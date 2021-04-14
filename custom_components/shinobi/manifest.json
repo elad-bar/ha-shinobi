@@ -1,0 +1,15 @@
+{
+    "domain": "shinobi",
+    "name": "Shinobi Video NVR",
+    "documentation": "https://github.com/elad-bar/ha-shinobi",
+    "after_dependencies": [
+        "mqtt"
+    ],
+    "dependencies": [
+        "camera"
+    ],
+    "codeowners": ["@elad-bar"],
+    "requirements": [  ],
+    "config_flow": true,
+    "version": "1.0.0"
+  }
