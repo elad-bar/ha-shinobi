@@ -3,8 +3,8 @@ import logging
 from homeassistant.helpers.device_registry import async_get_registry
 
 from ..helpers.const import *
-from .configuration_manager import ConfigManager
 from ..models.camera_data import CameraData
+from .configuration_manager import ConfigManager
 
 _LOGGER = logging.getLogger(__name__)
 

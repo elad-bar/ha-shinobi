@@ -10,9 +10,9 @@ from homeassistant.helpers.entity import Entity
 from ..api.shinobi_api import ShinobiApi
 from ..helpers import get_ha
 from ..helpers.const import *
-from .entity_data import EntityData
 from ..managers.device_manager import DeviceManager
 from ..managers.entity_manager import EntityManager
+from .entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
 

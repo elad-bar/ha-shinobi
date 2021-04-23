@@ -19,13 +19,13 @@ from homeassistant.helpers.entity_registry import (
 )
 from homeassistant.helpers.event import async_track_time_interval
 
-from .mqtt_manager import MQTTManager
 from ..api.shinobi_api import ShinobiApi
 from ..helpers.const import *
 from ..models.config_data import ConfigData
 from .configuration_manager import ConfigManager
 from .device_manager import DeviceManager
 from .entity_manager import EntityManager
+from .mqtt_manager import MQTTManager
 from .password_manager import PasswordManager
 from .storage_manager import StorageManager
 

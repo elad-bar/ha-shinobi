@@ -9,7 +9,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity_registry import EntityRegistry
 
-from .mqtt_manager import MQTTManager
 from ..api.shinobi_api import ShinobiApi
 from ..helpers.const import *
 from ..models.camera_data import CameraData
@@ -17,6 +16,7 @@ from ..models.config_data import ConfigData
 from ..models.entity_data import EntityData
 from .configuration_manager import ConfigManager
 from .device_manager import DeviceManager
+from .mqtt_manager import MQTTManager
 
 _LOGGER = logging.getLogger(__name__)
 

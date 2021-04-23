@@ -7,9 +7,8 @@ from datetime import timedelta
 
 from homeassistant.components.binary_sensor import DOMAIN as DOMAIN_BINARY_SENSOR
 from homeassistant.components.camera import DOMAIN as DOMAIN_CAMERA
-from homeassistant.components.switch import DOMAIN as DOMAIN_SWITCH
 from homeassistant.components.mqtt import DATA_MQTT
-
+from homeassistant.components.switch import DOMAIN as DOMAIN_SWITCH
 from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
@@ -18,8 +17,8 @@ from homeassistant.const import (
     CONF_SSL,
     CONF_USERNAME,
     CONF_VERIFY_SSL,
+    STATE_OFF,
     STATE_ON,
-    STATE_OFF
 )
 
 CONF_LOG_LEVEL = "log_level"

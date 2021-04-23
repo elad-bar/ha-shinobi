@@ -37,7 +37,7 @@ SSL | Check-box | + | Unchecked | Is SSL supported?
 Username | Textbox | - | | Username of admin user for BlueIris server
 Password | Textbox | - | | Password of admin user for BlueIris server
 
-###### Integration options (Configuration -> Integrations -> BlueIris Integration -> Options)  
+###### Integration options (Configuration -> Integrations -> BlueIris Integration -> Options)
 Fields name | Type | Required | Default | Description
 --- | --- | --- | --- | --- |
 Host | Texbox | + | ast stored hostname | Hostname or IP address of the BlueIris server
@@ -96,7 +96,7 @@ State: Idle
 
 Attributes | Available values |
 --- | --- |
-Status | Recording, 
+Status | Recording,
 Mode | stop (Disabled), start (Watch-Only), record (Record)
 Type | H264, MJPEG,
 FPS | -

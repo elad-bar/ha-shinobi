@@ -3,8 +3,8 @@ Support for Shinobi Video binary sensors.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/binary_sensor.shinobi/
 """
-import logging
 from datetime import datetime
+import logging
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.core import HomeAssistant
@@ -12,7 +12,7 @@ from homeassistant.helpers.event import async_call_later
 
 from .helpers.const import *
 from .managers.mqtt_manager import MQTTManager
-from .models.base_entity import async_setup_base_entry, BaseEntity
+from .models.base_entity import BaseEntity, async_setup_base_entry
 from .models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)

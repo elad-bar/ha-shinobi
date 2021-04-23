@@ -1,4 +1,3 @@
-
 class APIRequestException(Exception):
     endpoint: str
     response: dict
