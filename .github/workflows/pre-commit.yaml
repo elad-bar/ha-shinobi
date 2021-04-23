@@ -29,9 +29,8 @@ jobs:
         with:
           path: ~/.cache/pre-commit
           key: |
-            result = steps.cache_key_prefix.outputs.result
-            hash = hashFiles('.pre-commit-config.yaml')
-            ${{ result }}-${{ hash }}
+            ${{- steps.cache_key_prefix.outputs.result -}}-
+            ${{- hashFiles('.pre-commit-config.yaml') -}}
           restore-keys: |
             ${{ steps.cache_key_prefix.outputs.result }}-
       - run: pre-commit run --all-files --show-diff-on-failure --color=always
