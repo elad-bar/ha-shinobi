@@ -243,9 +243,7 @@ class EntityManager:
         try:
             device_name = self.device_manager.get_camera_device_name(camera)
 
-            device_class = SENSOR_DEVICE_CLASS.get(sensor_type, sensor_type)
-
-            entity_name = f"{self.integration_title} {camera.name} {device_class.capitalize()}"
+            entity_name = f"{self.integration_title} {camera.name} {sensor_type.capitalize()}"
             unique_id = f"{DOMAIN}-{DOMAIN_BINARY_SENSOR}-{entity_name}"
 
             state_topic = f"{MQTT_ALL_TOPIC}/{self.api.group_id}/{camera.monitorId}/trigger"
@@ -274,7 +272,7 @@ class EntityManager:
             entity.device_name = device_name
             entity.topic = state_topic
             entity.event = sensor_type
-            entity.device_class = device_class.lower()
+            entity.device_class = sensor_type
             entity.type = sensor_type
 
             self.mqtt_manager.set_state(state_topic, sensor_type, mqtt_state)
@@ -292,11 +290,14 @@ class EntityManager:
 
         try:
             supported_sensors = []
+            audio_event = SENSOR_DEVICE_CLASS[TRIGGER_PLUG_DB]
+            motion_event = SENSOR_DEVICE_CLASS[TRIGGER_PLUG_YOLO]
+
             if camera.has_audio and camera.has_audio_detector:
-                supported_sensors.append(TRIGGER_PLUG_DB)
+                supported_sensors.append(audio_event)
 
             if camera.has_motion_detector:
-                supported_sensors.append(TRIGGER_PLUG_YOLO)
+                supported_sensors.append(motion_event)
 
             for sensor_type_name in supported_sensors:
                 entity = self.get_camera_entity(camera, sensor_type_name)

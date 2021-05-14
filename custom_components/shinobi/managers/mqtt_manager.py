@@ -83,15 +83,18 @@ class MQTTManager:
 
         value = {
             TRIGGER_NAME: trigger_name,
+            TRIGGER_PLUG: trigger_plug,
             TRIGGER_DETAILS_REASON: trigger_reason,
             TRIGGER_TAGS: trigger_tags,
             TRIGGER_STATE: STATE_ON,
             TRIGGER_TIMESTAMP: datetime.now().timestamp()
         }
 
-        _LOGGER.debug(f"Topic: {topic} for {trigger_plug}: {value}")
+        trigger_event_name = SENSOR_DEVICE_CLASS[trigger_plug]
 
-        self.set_state(topic, trigger_plug, value)
+        _LOGGER.debug(f"Topic: {topic} for {trigger_plug} ({trigger_event_name}): {value}")
+
+        self.set_state(topic, trigger_event_name, value)
         self.event_handler()
 
     def get_state(self, topic, event_type):
