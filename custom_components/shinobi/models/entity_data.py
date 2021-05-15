@@ -10,10 +10,7 @@ class EntityData:
     icon: str
     device_name: str
     status: str
-    topic: str
-    event: str
     device_class: str
-    type: str
     details: dict
     disabled: bool
 
@@ -26,10 +23,7 @@ class EntityData:
         self.icon = ""
         self.device_name = ""
         self.status = ENTITY_STATUS_CREATED
-        self.topic = ""
-        self.event = ""
         self.device_class = ""
-        self.type = ""
         self.details = {}
         self.disabled = False
 
@@ -43,10 +37,7 @@ class EntityData:
             ENTITY_ICON: self.icon,
             ENTITY_DEVICE_NAME: self.device_name,
             ENTITY_STATUS: self.status,
-            ENTITY_TOPIC: self.topic,
-            ENTITY_EVENT: self.event,
             ENTITY_DEVICE_CLASS: self.device_class,
-            ENTITY_BINARY_SENSOR_TYPE: self.type,
             ENTITY_CAMERA_DETAILS: self.details,
             ENTITY_DISABLED: self.disabled,
         }

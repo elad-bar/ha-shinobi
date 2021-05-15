@@ -248,10 +248,12 @@ class EntityManager:
 
             state_topic = f"{MQTT_ALL_TOPIC}/{self.api.group_id}/{camera.monitorId}/trigger"
 
+            state = STATE_OFF
             mqtt_state = TRIGGER_DEFAULT
 
             if self.mqtt_manager is not None:
                 mqtt_state = self.mqtt_manager.get_state(state_topic, sensor_type)
+                state = mqtt_state.get(TRIGGER_STATE, STATE_OFF)
 
             attributes = {
                 ATTR_FRIENDLY_NAME: entity_name
@@ -266,16 +268,11 @@ class EntityManager:
             entity.id = camera.monitorId
             entity.unique_id = unique_id
             entity.name = entity_name
-            entity.state = mqtt_state.get(TRIGGER_STATE)
+            entity.state = state
             entity.attributes = attributes
             entity.icon = DEFAULT_ICON
             entity.device_name = device_name
-            entity.topic = state_topic
-            entity.event = sensor_type
             entity.device_class = sensor_type
-            entity.type = sensor_type
-
-            self.mqtt_manager.set_state(state_topic, sensor_type, mqtt_state)
 
             self.set_entity(DOMAIN_BINARY_SENSOR, entity_name, entity)
         except Exception as ex:
@@ -290,14 +287,12 @@ class EntityManager:
 
         try:
             supported_sensors = []
-            audio_event = SENSOR_DEVICE_CLASS[TRIGGER_PLUG_DB]
-            motion_event = SENSOR_DEVICE_CLASS[TRIGGER_PLUG_YOLO]
 
             if camera.has_audio and camera.has_audio_detector:
-                supported_sensors.append(audio_event)
+                supported_sensors.append(SENSOR_TYPE_SOUND)
 
             if camera.has_motion_detector:
-                supported_sensors.append(motion_event)
+                supported_sensors.append(SENSOR_TYPE_MOTION)
 
             for sensor_type_name in supported_sensors:
                 entity = self.get_camera_entity(camera, sensor_type_name)

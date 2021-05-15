@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.3
+
+- Improved MQTT sensor auto off logic
+
 ## v1.0.2
 
 - Support Tensorflow plugin as motion sensor
