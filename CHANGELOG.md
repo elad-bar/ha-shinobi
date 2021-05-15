@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.4
+
+- Added support of Shinobi Video plugin for DeepStack Face Recognition 
+- Added support of Shinobi Video plugin for DeepStack Object Detection
+- Added `shinobi/face_recognition` event to trigger once face identified
+
 ## v1.0.3
 
 - Improved MQTT sensor auto off logic

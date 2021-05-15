@@ -182,10 +182,14 @@ class HomeAssistantManager:
 
         _LOGGER.info(f"Current integration ({entry.title}) removed")
 
-    def mqtt_event_handler(self):
-        self.entity_manager.update()
+    def mqtt_event_handler(self, event_type: Optional[str] = None, event_data: Optional[dict] = None):
+        if event_type is not None and event_type == EVENT_FACE_RECOGNITION:
+            self._hass.bus.async_fire(event_type, event_data)
 
-        self._hass.async_create_task(self.dispatch_all())
+        else:
+            self.entity_manager.update()
+
+            self._hass.async_create_task(self.dispatch_all())
 
     async def async_update(self, event_time):
         if not self._is_initialized:

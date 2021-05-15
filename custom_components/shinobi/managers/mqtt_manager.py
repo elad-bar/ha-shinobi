@@ -103,15 +103,21 @@ class MQTTManager:
                 TRIGGER_TOPIC: topic
             }
 
-            sensor_type = PLUG_SENSOR_TYPE[trigger_plug]
+            sensor_type = PLUG_SENSOR_TYPE.get(trigger_plug, None)
 
-            previous_data = self.get_state(topic, sensor_type)
-            previous_state = previous_data.get(TRIGGER_STATE, STATE_OFF)
+            if sensor_type is not None:
+                if sensor_type == EVENT_FACE_RECOGNITION:
+                    previous_state = STATE_OFF
+                    _LOGGER.debug(f"Face recognition event: {payload}")
 
-            self.set_state(topic, sensor_type, value)
+                else:
+                    previous_data = self.get_state(topic, sensor_type)
+                    previous_state = previous_data.get(TRIGGER_STATE, STATE_OFF)
 
-            if previous_state == STATE_OFF:
-                self.event_handler()
+                    self.set_state(topic, sensor_type, value)
+
+                if previous_state == STATE_OFF:
+                    self.event_handler(sensor_type, payload)
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
