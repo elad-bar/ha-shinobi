@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Set up Shinobi Video",
-        "description": "Set up your BlueIris Server details (to control profiles, fill in valid username and password)",
+        "description": "Set up your Shinobi Video Server details (to control profiles, fill in valid username and password)",
         "data": {
           "host": "Host",
           "port": "Port",

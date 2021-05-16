@@ -15,7 +15,7 @@ Integration with Shinobi Video NVR. Creates the following components:
 
 #### Requirements
 - Shinobi Video Server available with credentials
-- MQTT Integration is optional - it will allow to listen to BlueIris event
+- MQTT Integration is optional - it will allow listening to Shinobi Video event
 
 #### Shinobi links:
 - [Using MQTT to receive and trigger events](https://hub.shinobi.video/articles/view/xEMps3O4y4VEaYk)
@@ -28,23 +28,23 @@ Currently, repository is not under official HACS repo, in order to install, you 
 Look for "Shinobi Video NVR" and install
 
 #### Integration settings
-###### Basic configuration (Configuration -> Integrations -> Add BlueIris)
+###### Basic configuration (Configuration -> Integrations -> Add Shinobi Video NVR)
 Fields name | Type | Required | Default | Description
 --- | --- | --- | --- | --- |
-Host | Texbox | + | None | Hostname or IP address of the BlueIris server
-Port | Textbox | + | 0 | HTTP Port to access BlueIris server
+Host | Texbox | + | None | Hostname or IP address of the Shinobi Video server
+Port | Textbox | + | 0 | HTTP Port to access Shinobi Video server
 SSL | Check-box | + | Unchecked | Is SSL supported?
-Username | Textbox | - | | Username of admin user for BlueIris server
-Password | Textbox | - | | Password of admin user for BlueIris server
+Username | Textbox | - | | Username of admin user for Shinobi Video server
+Password | Textbox | - | | Password of admin user for Shinobi Video server
 
-###### Integration options (Configuration -> Integrations -> BlueIris Integration -> Options)
+###### Integration options (Configuration -> Integrations -> Shinobi Video NVR Integration -> Options)
 Fields name | Type | Required | Default | Description
 --- | --- | --- | --- | --- |
-Host | Texbox | + | ast stored hostname | Hostname or IP address of the BlueIris server
-Port | Textbox | + | 0ast stored port | HTTP Port to access BlueIris server
+Host | Texbox | + | ast stored hostname | Hostname or IP address of the Shinobi Video server
+Port | Textbox | + | 0ast stored port | HTTP Port to access Shinobi Video server
 SSL | Check-box | + | Last stored SSL flag | Is SSL supported?
-Username | Textbox | - | Last stored username | Username of admin user for BlueIris server
-Password | Textbox | - | Last stored password | Password of admin user for BlueIris server
+Username | Textbox | - | Last stored username | Username of admin user for Shinobi Video server
+Password | Textbox | - | Last stored password | Password of admin user for Shinobi Video server
 Log level | Drop-down | + | Default | Changes component's log level (more details below)
 
 **Log Level's drop-down**

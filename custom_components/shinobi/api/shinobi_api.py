@@ -62,7 +62,7 @@ class ShinobiApi:
         return self.config_manager.data
 
     async def initialize(self):
-        _LOGGER.info("Initializing BlueIris")
+        _LOGGER.info("Initializing Shinobi Video")
 
         try:
             config_data = self.config_data
@@ -87,7 +87,7 @@ class ShinobiApi:
             line_number = tb.tb_lineno
 
             _LOGGER.error(
-                f"Failed to initialize BlueIris API ({self.base_url}), error: {ex}, line: {line_number}"
+                f"Failed to initialize Shinobi Video API ({self.base_url}), error: {ex}, line: {line_number}"
             )
 
     def build_url(self, endpoint):
