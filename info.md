@@ -8,6 +8,7 @@ Integration with Shinobi Video NVR. Creates the following components:
 * Binary Sensors (MOTION, SOUND) - per-camera defined.
 * Support HLS Streams instead of H264.
 * Support SSL with self-signed certificate.
+* Support Face-Recognition plugin as an event
 
 [Changelog](https://github.com/elad-bar/ha-shinobi/blob/master/CHANGELOG.md)
 
@@ -17,15 +18,17 @@ Integration with Shinobi Video NVR. Creates the following components:
 - Shinobi Video Server available with credentials
 - MQTT Integration is optional - it will allow listening to Shinobi Video event
 
-#### Shinobi links:
+#### Shinobi Video links:
 - [Using MQTT to receive and trigger events](https://hub.shinobi.video/articles/view/xEMps3O4y4VEaYk)
 - [How to use Motion Detection](https://hub.shinobi.video/articles/view/LKdcgcgWy9RJfUh)
 
+#### Shinobi Video DeepStack Plugins:
+[DeepStack-Face](https://github.com/elad-bar/shinobi-deepstack-face)
+[DeepStack-Object](https://github.com/elad-bar/shinobi-deepstack-object)
 
 #### Installations via HACS
-Currently, repository is not under official HACS repo, in order to install, you will need to add manually the repository
-
-Look for "Shinobi Video NVR" and install
+- In HACS, look for "Shinobi Video NVR" and install
+- In Configuration --> Integrations - Add Shinobi Video NVR
 
 #### Integration settings
 ###### Basic configuration (Configuration -> Integrations -> Add Shinobi Video NVR)
@@ -34,8 +37,8 @@ Fields name | Type | Required | Default | Description
 Host | Texbox | + | None | Hostname or IP address of the Shinobi Video server
 Port | Textbox | + | 0 | HTTP Port to access Shinobi Video server
 SSL | Check-box | + | Unchecked | Is SSL supported?
-Username | Textbox | - | | Username of admin user for Shinobi Video server
-Password | Textbox | - | | Password of admin user for Shinobi Video server
+Username | Textbox | - | | Username of dashboard user for Shinobi Video server
+Password | Textbox | - | | Password of dashboard user for Shinobi Video server
 
 ###### Integration options (Configuration -> Integrations -> Shinobi Video NVR Integration -> Options)
 Fields name | Type | Required | Default | Description
@@ -43,8 +46,8 @@ Fields name | Type | Required | Default | Description
 Host | Texbox | + | ast stored hostname | Hostname or IP address of the Shinobi Video server
 Port | Textbox | + | 0ast stored port | HTTP Port to access Shinobi Video server
 SSL | Check-box | + | Last stored SSL flag | Is SSL supported?
-Username | Textbox | - | Last stored username | Username of admin user for Shinobi Video server
-Password | Textbox | - | Last stored password | Password of admin user for Shinobi Video server
+Username | Textbox | - | Last stored username | Username of dashboard user for Shinobi Video server
+Password | Textbox | - | Last stored password | Password of dashboard user for Shinobi Video server
 Log level | Drop-down | + | Default | Changes component's log level (more details below)
 
 **Log Level's drop-down**
@@ -80,7 +83,7 @@ Once triggered, the following details will be added to the attributes of the bin
 
 Attributes | Description |
 --- | --- |
-name | Event name - Yolo / audio
+name | Event name - Yolo / Tensorflow / DeepStack-Object / audio
 reason | Event details - object / soundChange
 tags | relevant for motion only with object detection, will represent the detected object
 
@@ -100,3 +103,9 @@ Status | Recording,
 Mode | stop (Disabled), start (Watch-Only), record (Record)
 Type | H264, MJPEG,
 FPS | -
+
+## Events
+
+#### Face Recognition
+Supported by [DeepStack-Face](https://github.com/elad-bar/shinobi-deepstack-face) plugin only,
+Will publish event name `shinobi/face_recognition`, payload will be the same as in the MQTT message

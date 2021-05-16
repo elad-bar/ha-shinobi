@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.6
+
+- More instructions in README
+- Fix lint errors
+
+## v1.0.5
+
+- Fix README and Strings
+
 ## v1.0.4
 
 - Added support of Shinobi Video plugin for DeepStack Face Recognition
