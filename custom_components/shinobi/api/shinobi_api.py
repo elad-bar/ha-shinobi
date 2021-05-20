@@ -68,7 +68,7 @@ class ShinobiApi:
             config_data = self.config_data
 
             self.base_url = (
-                f"{config_data.protocol}://{config_data.host}:{config_data.port}"
+                f"{config_data.protocol}://{config_data.host}:{config_data.port}{config_data.path}"
             )
 
             self.is_logged_in = False

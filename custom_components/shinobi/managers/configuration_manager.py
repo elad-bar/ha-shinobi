@@ -37,6 +37,7 @@ class ConfigManager:
             result.host = data.get(CONF_HOST)
             result.port = data.get(CONF_PORT, 8080)
             result.ssl = data.get(CONF_SSL, False)
+            result.path = data.get(CONF_PATH, "")
 
             result.username = data.get(CONF_USERNAME)
             result.password = data.get(CONF_PASSWORD)
