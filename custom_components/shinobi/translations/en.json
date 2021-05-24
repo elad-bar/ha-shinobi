@@ -7,6 +7,7 @@
         "data": {
           "host": "Host",
           "port": "Port",
+          "path": "Path",
           "username": "Username",
           "password": "Password",
           "ssl": "Is SSL"
@@ -28,6 +29,7 @@
                   "host": "Host",
                   "port": "Port",
                   "ssl": "Is SSL",
+                  "path": "Path",
                   "username": "Username",
                   "password": "Password",
                   "log_level": "Log level"
