@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.7
+
+- Added code protection, logs and documentation for API Key usage [#3](https://github.com/elad-bar/ha-shinobi/issues/3)
+
 ## v1.0.6
 
 - More instructions in README

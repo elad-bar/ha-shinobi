@@ -15,8 +15,13 @@ Integration with Shinobi Video NVR. Creates the following components:
 ## How to
 
 #### Requirements
-- Shinobi Video Server available with credentials
+- Shinobi Video Server available with credentials - Dashboard user with API Key
 - MQTT Integration is optional - it will allow listening to Shinobi Video event
+
+#### How to generate permanent API Key:
+In Shinobi Video Dashboard, click your username in the top left.
+A menu will appear, click API.
+Add new token - IP: 0.0.0.0, Permissions - Select all
 
 #### Shinobi Video links:
 - [Using MQTT to receive and trigger events](https://hub.shinobi.video/articles/view/xEMps3O4y4VEaYk)

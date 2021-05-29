@@ -10,7 +10,6 @@ from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
-from . import APIRequestException
 from ..helpers.const import *
 from ..managers.configuration_manager import ConfigManager
 from ..models.camera_data import CameraData
@@ -93,10 +92,10 @@ class ShinobiApi:
     def build_url(self, endpoint):
         url = f"{self.base_url}/{endpoint}"
 
-        if GROUP_ID in url:
+        if GROUP_ID in url and self.group_id is not None:
             url = url.replace(GROUP_ID, self.group_id)
 
-        if AUTH_TOKEN in url:
+        if AUTH_TOKEN in url and self.api_key is not None:
             url = url.replace(AUTH_TOKEN, self.api_key)
 
         return url
@@ -172,37 +171,45 @@ class ShinobiApi:
             }
 
             login_data = await self.async_post(URL_LOGIN, data)
-            user_data = login_data.get("$user")
 
-            if user_data.get("ok", False):
-                self.group_id = user_data.get("ke")
-                self.api_key = user_data.get("auth_token")
-                uid = user_data.get("uid")
+            if login_data is not None:
+                user_data = login_data.get("$user", {})
 
-                _LOGGER.debug(f"Auth token: {self.api_key}")
+                if user_data.get("ok", False):
+                    self.group_id = user_data.get("ke")
+                    temp_api_key = user_data.get("auth_token")
+                    uid = user_data.get("uid")
 
-                api_keys_data = await self.async_get(URL_API_KEYS)
+                    _LOGGER.debug(f"Temporary auth token: {temp_api_key}")
 
-                if api_keys_data.get("ok", False):
-                    keys = api_keys_data.get("keys", [])
+                    self.api_key = temp_api_key
 
-                    for key in keys:
-                        key_uid = key.get("uid")
+                    api_keys_data = await self.async_get(URL_API_KEYS)
 
-                        if key_uid == uid:
-                            self.api_key = key.get("code")
-
-                            _LOGGER.debug(f"Access token: {self.api_key}")
-
-                            break
-                else:
                     self.api_key = None
-                    raise APIRequestException(URL_API_KEYS, login_data)
 
-            else:
-                raise APIRequestException(URL_LOGIN, login_data)
+                    if api_keys_data is not None and api_keys_data.get("ok", False):
+                        keys = api_keys_data.get("keys", [])
+
+                        for key in keys:
+                            key_uid = key.get("uid", None)
+
+                            if key_uid is not None and key_uid == uid:
+                                self.api_key = key.get("code")
+
+                                _LOGGER.debug(f"Permanent access token: {self.api_key}")
+
+                                break
+
+            if self.api_key is None:
+                error_message = "Failed to get permanent API Key"
+                error_instructions = f"please go to Shinobi Video Dashboard and add API for `{config_data.username}`"
+
+                _LOGGER.error(f"{error_message}, {error_instructions}")
 
         except Exception as ex:
+            self.api_key = None
+
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
