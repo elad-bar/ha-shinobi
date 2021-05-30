@@ -32,6 +32,12 @@ class ConfigData:
         return protocol
 
     @property
+    def ws_protocol(self):
+        protocol = WS_PROTOCOLS[self.ssl]
+
+        return protocol
+
+    @property
     def has_credentials(self):
         has_username = self.username and len(self.username) > 0
         has_password = self.password_clear_text and len(self.password_clear_text) > 0

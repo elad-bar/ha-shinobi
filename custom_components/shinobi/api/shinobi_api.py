@@ -24,6 +24,7 @@ class ShinobiApi:
 
     is_logged_in: bool
     group_id: Optional[str]
+    user_id: Optional[str]
     api_key: Optional[str]
     session: Optional[ClientSession]
     camera_list: List[CameraData]
@@ -39,6 +40,7 @@ class ShinobiApi:
             self.session_id = None
             self.is_logged_in = False
             self.group_id = None
+            self.user_id = None
             self.api_key = None
             self.session = None
             self.is_logged_in = False
@@ -106,15 +108,15 @@ class ShinobiApi:
 
         try:
             _LOGGER.debug(f"POST {url}")
+            if self.is_initialized:
+                async with self.session.post(url, data=request_data, ssl=False) as response:
+                    _LOGGER.debug(f"Status of {url}: {response.status}")
 
-            async with self.session.post(url, data=request_data, ssl=False) as response:
-                _LOGGER.debug(f"Status of {url}: {response.status}")
+                    response.raise_for_status()
 
-                response.raise_for_status()
+                    result = await response.json()
 
-                result = await response.json()
-
-                self._last_update = datetime.now()
+                    self._last_update = datetime.now()
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -133,14 +135,15 @@ class ShinobiApi:
         try:
             _LOGGER.debug(f"GET {url}")
 
-            async with self.session.get(url, ssl=False) as response:
-                _LOGGER.debug(f"Status of {url}: {response.status}")
+            if self.is_initialized:
+                async with self.session.get(url, ssl=False) as response:
+                    _LOGGER.debug(f"Status of {url}: {response.status}")
 
-                response.raise_for_status()
+                    response.raise_for_status()
 
-                result = await response.json()
+                    result = await response.json()
 
-                self._last_update = datetime.now()
+                    self._last_update = datetime.now()
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -179,6 +182,8 @@ class ShinobiApi:
                     self.group_id = user_data.get("ke")
                     temp_api_key = user_data.get("auth_token")
                     uid = user_data.get("uid")
+
+                    self.user_id = uid
 
                     _LOGGER.debug(f"Temporary auth token: {temp_api_key}")
 
@@ -225,13 +230,14 @@ class ShinobiApi:
         camera_list = []
         monitors = await self.async_get(URL_MONITORS)
 
-        for monitor in monitors:
-            monitor_details_str = monitor.get("details")
-            details = json.loads(monitor_details_str)
+        if monitors is not None:
+            for monitor in monitors:
+                monitor_details_str = monitor.get("details")
+                details = json.loads(monitor_details_str)
 
-            monitor["details"] = details
+                monitor["details"] = details
 
-            camera = CameraData(monitor)
-            camera_list.append(camera)
+                camera = CameraData(monitor)
+                camera_list.append(camera)
 
         self.camera_list = camera_list

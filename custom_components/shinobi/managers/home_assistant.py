@@ -20,11 +20,13 @@ from homeassistant.helpers.entity_registry import (
 from homeassistant.helpers.event import async_track_time_interval
 
 from ..api.shinobi_api import ShinobiApi
+from ..api.shinobi_websocket import ShinobiWebSocket
 from ..helpers.const import *
 from ..models.config_data import ConfigData
 from .configuration_manager import ConfigManager
 from .device_manager import DeviceManager
 from .entity_manager import EntityManager
+from .event_manager import EventManager
 from .mqtt_manager import MQTTManager
 from .password_manager import PasswordManager
 from .storage_manager import StorageManager
@@ -37,6 +39,7 @@ class HomeAssistantManager:
         self._hass = hass
 
         self._remove_async_track_time = None
+        self._remove_async_heartbeat_track_time = None
 
         self._is_initialized = False
         self._is_updating = False
@@ -44,12 +47,19 @@ class HomeAssistantManager:
         self._entity_registry = None
 
         self._api = None
+        self._ws = None
         self._entity_manager = None
         self._device_manager = None
         self._storage_manager = None
+        self._event_manager = None
 
         self._config_manager = ConfigManager(password_manager)
         self._mqtt_manager = None
+
+        def _send_heartbeat(internal_now):
+            self._hass.async_create_task(self._ws.async_send_heartbeat(internal_now))
+
+        self._send_heartbeat = _send_heartbeat
 
     @property
     def api(self) -> ShinobiApi:
@@ -86,17 +96,24 @@ class HomeAssistantManager:
     def mqtt_manager(self) -> MQTTManager:
         return self._mqtt_manager
 
+    @property
+    def event_manager(self) -> EventManager:
+        return self._event_manager
+
     async def async_init(self, entry: ConfigEntry):
         try:
             self._storage_manager = StorageManager(self._hass)
 
             await self._config_manager.update(entry)
 
+            self._event_manager = EventManager(self._hass, self.event_handler)
+
             self._api = ShinobiApi(self._hass, self._config_manager)
+            self._ws = ShinobiWebSocket(self._hass, self._api, self._config_manager, self._event_manager)
             self._entity_manager = EntityManager(self._hass, self)
             self._device_manager = DeviceManager(self._hass, self)
 
-            self._mqtt_manager = MQTTManager(self._hass, self._api, self.mqtt_event_handler)
+            self._mqtt_manager = MQTTManager(self._hass, self._api, self._event_manager)
 
             self._entity_registry = await er_async_get_registry(self._hass)
 
@@ -132,6 +149,9 @@ class HomeAssistantManager:
 
         await self.async_update_entry()
 
+    def _handle_event(self):
+        _LOGGER.debug("EVENT")
+
     def _update_entities(self, now):
         self._hass.async_create_task(self.async_update(now))
 
@@ -145,6 +165,10 @@ class HomeAssistantManager:
                 self._hass, self._update_entities, SCAN_INTERVAL
             )
 
+            self._remove_async_heartbeat_track_time = async_track_time_interval(
+                self._hass, self._send_heartbeat, HEARTBEAT_INTERVAL_SECONDS
+            )
+
         if not self._is_initialized:
             _LOGGER.info(
                 f"NOT INITIALIZED - Failed handling ConfigEntry change: {entry.as_dict()}"
@@ -156,8 +180,13 @@ class HomeAssistantManager:
         if update_config_manager:
             await self._config_manager.update(entry)
 
+        await self.event_manager.initialize()
+
         await self._api.initialize()
         await self._api.login()
+        await self._api.async_update()
+
+        await self._ws.initialize()
 
         if self.mqtt_manager.is_supported:
             await self.mqtt_manager.initialize()
@@ -167,9 +196,15 @@ class HomeAssistantManager:
     async def async_remove(self, entry: ConfigEntry):
         _LOGGER.info(f"Removing current integration - {entry.title}")
 
+        await self.terminate()
+
         if self._remove_async_track_time is not None:
             self._remove_async_track_time()
             self._remove_async_track_time = None
+
+        if self._remove_async_heartbeat_track_time is not None:
+            self._remove_async_heartbeat_track_time()
+            self._remove_async_heartbeat_track_time = None
 
         unload = self._hass.config_entries.async_forward_entry_unload
 
@@ -182,7 +217,24 @@ class HomeAssistantManager:
 
         _LOGGER.info(f"Current integration ({entry.title}) removed")
 
-    def mqtt_event_handler(self, event_type: Optional[str] = None, event_data: Optional[dict] = None):
+    async def terminate(self):
+        try:
+            _LOGGER.debug(f"Terminating WS")
+
+            await self._ws.close()
+
+            _LOGGER.debug(f"WS terminated")
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            _LOGGER.error(
+                f"Failed to terminate connection to WS, Error: {ex}, Line: {line_number}"
+            )
+
+    def event_handler(self, event_type: Optional[str] = None, event_data: Optional[dict] = None):
+        _LOGGER.debug(f"Handle event: {event_type}")
+
         if event_type is not None and event_type == EVENT_FACE_RECOGNITION:
             self._hass.bus.async_fire(event_type, event_data)
 

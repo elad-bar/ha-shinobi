@@ -16,7 +16,7 @@ from ..models.config_data import ConfigData
 from ..models.entity_data import EntityData
 from .configuration_manager import ConfigManager
 from .device_manager import DeviceManager
-from .mqtt_manager import MQTTManager
+from .event_manager import EventManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,16 +50,12 @@ class EntityManager:
         return self.ha.api
 
     @property
-    def mqtt_client(self) -> MQTTManager:
-        return self.ha.mqtt_manager
-
-    @property
     def device_manager(self) -> DeviceManager:
         return self.ha.device_manager
 
     @property
-    def mqtt_manager(self) -> MQTTManager:
-        return self.ha.mqtt_manager
+    def event_manager(self) -> EventManager:
+        return self.ha.event_manager
 
     @property
     def integration_title(self) -> str:
@@ -134,15 +130,14 @@ class EntityManager:
     def create_components(self):
         available_camera = self.api.camera_list
 
-        mqtt_binary_sensors = []
+        binary_sensors = []
 
         for camera in available_camera:
             self.generate_camera_component(camera)
 
-            if self.mqtt_manager.is_supported:
-                current_mqtt_binary_sensors = self.generate_camera_binary_sensors(camera)
+            current_mqtt_binary_sensors = self.generate_camera_binary_sensors(camera)
 
-                mqtt_binary_sensors.extend(current_mqtt_binary_sensors)
+            binary_sensors.extend(current_mqtt_binary_sensors)
 
     def update(self):
         self.hass.async_create_task(self._async_update())
@@ -249,19 +244,19 @@ class EntityManager:
             state_topic = f"{MQTT_ALL_TOPIC}/{self.api.group_id}/{camera.monitorId}/trigger"
 
             state = STATE_OFF
-            mqtt_state = TRIGGER_DEFAULT
+            event_state = TRIGGER_DEFAULT
 
-            if self.mqtt_manager is not None:
-                mqtt_state = self.mqtt_manager.get_state(state_topic, sensor_type)
-                state = mqtt_state.get(TRIGGER_STATE, STATE_OFF)
+            if self.event_manager is not None:
+                event_state = self.event_manager.get_state(state_topic, sensor_type)
+                state = event_state.get(TRIGGER_STATE, STATE_OFF)
 
             attributes = {
                 ATTR_FRIENDLY_NAME: entity_name
             }
 
             for attr in BINARY_SENSOR_ATTRIBUTES:
-                if attr in mqtt_state:
-                    attributes[attr] = mqtt_state.get(attr)
+                if attr in event_state:
+                    attributes[attr] = event_state.get(attr)
 
             entity = EntityData()
 
