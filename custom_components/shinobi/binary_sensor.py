@@ -14,7 +14,7 @@ from .models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
 
-DEPENDENCIES = [DOMAIN, "mqtt"]
+DEPENDENCIES = [DOMAIN]
 
 CURRENT_DOMAIN = DOMAIN_BINARY_SENSOR
 
@@ -40,7 +40,7 @@ async def async_unload_entry(hass, config_entry):
 
 
 class BaseBinarySensor(BinarySensorEntity, BaseEntity):
-    """Representation a binary sensor that is updated by MQTT."""
+    """Representation a binary sensor that is updated."""
 
     @property
     def should_poll(self):

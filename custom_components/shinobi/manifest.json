@@ -3,15 +3,13 @@
     "name": "Shinobi Video NVR",
     "documentation": "https://github.com/elad-bar/ha-shinobi",
     "issue_tracker": "https://github.com/elad-bar/ha-shinobi/issues",
-    "after_dependencies": [
-        "mqtt"
-    ],
+    "after_dependencies": [],
     "dependencies": [
         "camera"
     ],
     "codeowners": ["@elad-bar"],
     "requirements": [  ],
     "config_flow": true,
-    "version": "1.0.0",
+    "version": "1.1.0",
     "iot_class": "local_polling"
   }

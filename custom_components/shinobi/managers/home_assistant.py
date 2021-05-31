@@ -27,7 +27,6 @@ from .configuration_manager import ConfigManager
 from .device_manager import DeviceManager
 from .entity_manager import EntityManager
 from .event_manager import EventManager
-from .mqtt_manager import MQTTManager
 from .password_manager import PasswordManager
 from .storage_manager import StorageManager
 
@@ -54,7 +53,6 @@ class HomeAssistantManager:
         self._event_manager = None
 
         self._config_manager = ConfigManager(password_manager)
-        self._mqtt_manager = None
 
         def _send_heartbeat(internal_now):
             self._hass.async_create_task(self._ws.async_send_heartbeat(internal_now))
@@ -64,6 +62,10 @@ class HomeAssistantManager:
     @property
     def api(self) -> ShinobiApi:
         return self._api
+
+    @property
+    def ws(self) -> ShinobiWebSocket:
+        return self._ws
 
     @property
     def entity_manager(self) -> EntityManager:
@@ -93,10 +95,6 @@ class HomeAssistantManager:
         return None
 
     @property
-    def mqtt_manager(self) -> MQTTManager:
-        return self._mqtt_manager
-
-    @property
     def event_manager(self) -> EventManager:
         return self._event_manager
 
@@ -112,8 +110,6 @@ class HomeAssistantManager:
             self._ws = ShinobiWebSocket(self._hass, self._api, self._config_manager, self._event_manager)
             self._entity_manager = EntityManager(self._hass, self)
             self._device_manager = DeviceManager(self._hass, self)
-
-            self._mqtt_manager = MQTTManager(self._hass, self._api, self._event_manager)
 
             self._entity_registry = await er_async_get_registry(self._hass)
 
@@ -182,21 +178,15 @@ class HomeAssistantManager:
 
         await self.event_manager.initialize()
 
-        await self._api.initialize()
-        await self._api.login()
-        await self._api.async_update()
+        await self.api.initialize()
+        await self.api.login()
+        await self.api.async_update()
 
-        await self._ws.initialize()
-
-        if self.mqtt_manager.is_supported:
-            await self.mqtt_manager.initialize()
-
-        await self.async_update(datetime.now())
+        while not self.ws.is_aborted:
+            await self.ws.initialize()
 
     async def async_remove(self, entry: ConfigEntry):
         _LOGGER.info(f"Removing current integration - {entry.title}")
-
-        await self.terminate()
 
         if self._remove_async_track_time is not None:
             self._remove_async_track_time()
@@ -206,6 +196,8 @@ class HomeAssistantManager:
             self._remove_async_heartbeat_track_time()
             self._remove_async_heartbeat_track_time = None
 
+        await self.ws.close()
+
         unload = self._hass.config_entries.async_forward_entry_unload
 
         for domain in SUPPORTED_DOMAINS:
@@ -213,35 +205,20 @@ class HomeAssistantManager:
 
         await self._device_manager.async_remove()
 
-        self.mqtt_manager.terminate()
-
         _LOGGER.info(f"Current integration ({entry.title}) removed")
-
-    async def terminate(self):
-        try:
-            _LOGGER.debug(f"Terminating WS")
-
-            await self._ws.close()
-
-            _LOGGER.debug(f"WS terminated")
-        except Exception as ex:
-            exc_type, exc_obj, tb = sys.exc_info()
-            line_number = tb.tb_lineno
-
-            _LOGGER.error(
-                f"Failed to terminate connection to WS, Error: {ex}, Line: {line_number}"
-            )
 
     def event_handler(self, event_type: Optional[str] = None, event_data: Optional[dict] = None):
         _LOGGER.debug(f"Handle event: {event_type}")
 
-        if event_type is not None and event_type == EVENT_FACE_RECOGNITION:
-            self._hass.bus.async_fire(event_type, event_data)
-
-        else:
+        if event_type in PLUG_SENSOR_TYPE.keys():
             self.entity_manager.update()
 
             self._hass.async_create_task(self.dispatch_all())
+
+        else:
+            event_name = f"{SHINOBI_EVENT}{event_type}"
+
+            self._hass.bus.async_fire(event_name, event_data)
 
     async def async_update(self, event_time):
         if not self._is_initialized:

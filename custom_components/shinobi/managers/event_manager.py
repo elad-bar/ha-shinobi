@@ -43,54 +43,60 @@ class EventManager:
 
     def message_received(self, topic, payload):
         try:
-            trigger_name = payload.get(TRIGGER_NAME)
             trigger_details = payload.get(TRIGGER_DETAILS, {})
-            trigger_plug = trigger_details.get(TRIGGER_DETAILS_PLUG)
             trigger_reason = trigger_details.get(TRIGGER_DETAILS_REASON)
-            trigger_matrices = trigger_details.get(TRIGGER_DETAILS_MATRICES, [])
 
-            if trigger_name is None:
-                trigger_name = trigger_details.get(TRIGGER_NAME)
+            if trigger_reason in PLUG_SENSOR_TYPE.keys():
+                self._handle_sensor_event(topic, payload)
 
-            trigger_tags = []
-
-            for trigger_object in trigger_matrices:
-                trigger_tag = trigger_object.get(TRIGGER_DETAILS_MATRICES_TAG)
-
-                if trigger_tag not in trigger_tags:
-                    trigger_tags.append(trigger_tag)
-
-            value = {
-                TRIGGER_NAME: trigger_name,
-                TRIGGER_PLUG: trigger_plug,
-                TRIGGER_DETAILS_REASON: trigger_reason,
-                TRIGGER_TAGS: trigger_tags,
-                TRIGGER_STATE: STATE_ON,
-                TRIGGER_TIMESTAMP: datetime.now().timestamp(),
-                TRIGGER_TOPIC: topic
-            }
-
-            sensor_type = PLUG_SENSOR_TYPE.get(trigger_reason, None)
-
-            if sensor_type is not None:
-                if sensor_type == EVENT_FACE_RECOGNITION:
-                    previous_state = STATE_OFF
-                    _LOGGER.debug(f"Face recognition event: {payload}")
-
-                else:
-                    previous_data = self.get_state(topic, sensor_type)
-                    previous_state = previous_data.get(TRIGGER_STATE, STATE_OFF)
-
-                    self.set_state(topic, sensor_type, value)
-
-                if previous_state == STATE_OFF:
-                    self.callback(sensor_type, payload)
+            else:
+                _LOGGER.debug(f"Shinobi Video {trigger_reason} event: {payload}")
+                self.callback(trigger_reason, payload)
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
             _LOGGER.error(f"Failed to message_received, Topic {topic}, Payload: {payload}, Error: {ex}, Line: {line_number}")
+
+    def _handle_sensor_event(self, topic, payload):
+        trigger_details = payload.get(TRIGGER_DETAILS, {})
+        trigger_reason = trigger_details.get(TRIGGER_DETAILS_REASON)
+
+        trigger_name = payload.get(TRIGGER_NAME)
+        trigger_plug = trigger_details.get(TRIGGER_DETAILS_PLUG)
+        trigger_matrices = trigger_details.get(TRIGGER_DETAILS_MATRICES, [])
+
+        if trigger_name is None:
+            trigger_name = trigger_details.get(TRIGGER_NAME)
+
+        trigger_tags = []
+
+        for trigger_object in trigger_matrices:
+            trigger_tag = trigger_object.get(TRIGGER_DETAILS_MATRICES_TAG)
+
+            if trigger_tag not in trigger_tags:
+                trigger_tags.append(trigger_tag)
+
+        sensor_type = PLUG_SENSOR_TYPE.get(trigger_reason, None)
+
+        value = {
+            TRIGGER_NAME: trigger_name,
+            TRIGGER_PLUG: trigger_plug,
+            TRIGGER_DETAILS_REASON: trigger_reason,
+            TRIGGER_TAGS: trigger_tags,
+            TRIGGER_STATE: STATE_ON,
+            TRIGGER_TIMESTAMP: datetime.now().timestamp(),
+            TRIGGER_TOPIC: topic
+        }
+
+        previous_data = self.get_state(topic, sensor_type)
+        previous_state = previous_data.get(TRIGGER_STATE, STATE_OFF)
+
+        self.set_state(topic, sensor_type, value)
+
+        if previous_state == STATE_OFF:
+            self.callback(sensor_type, payload)
 
     def _check_triggers(self, now):
         self.hass.async_create_task(self._async_check_triggers(now))

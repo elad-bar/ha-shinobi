@@ -7,7 +7,6 @@ from datetime import timedelta
 
 from homeassistant.components.binary_sensor import DOMAIN as DOMAIN_BINARY_SENSOR
 from homeassistant.components.camera import DOMAIN as DOMAIN_CAMERA
-from homeassistant.components.mqtt import DATA_MQTT
 from homeassistant.components.switch import DOMAIN as DOMAIN_SWITCH
 from homeassistant.const import (
     CONF_HOST,
@@ -55,6 +54,14 @@ SERVICE_SET_LEVEL = "set_level"
 
 SHINOBI_AUTH_ERROR = "Authorization required"
 
+SHINOBI_WS_ENDPOINT = "/socket.io/?EIO=3&transport=websocket"
+
+SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE = "0"
+SHINOBI_WS_PING_MESSAGE = "2"
+SHINOBI_WS_PONG_MESSAGE = "3"
+SHINOBI_WS_CONNECTION_READY_MESSAGE = "40"
+SHINOBI_WS_ACTION_MESSAGE = "42"
+
 AUTHENTICATION_BASIC = "basic"
 
 NOTIFICATION_ID = f"{DOMAIN}_notification"
@@ -75,8 +82,6 @@ DEFAULT_FORCE_UPDATE = False
 
 SENSOR_MAIN_NAME = "Main"
 
-MQTT_ALL_TOPIC = "shinobi"
-DEFAULT_QOS = 0
 MAX_MSG_SIZE = 0
 DISCONNECT_INTERVAL = 5
 
@@ -228,7 +233,7 @@ SOUND_DETECTION = "Sound Detection"
 SENSOR_TYPE_MOTION = "motion"
 SENSOR_TYPE_SOUND = "sound"
 
-EVENT_FACE_RECOGNITION = "shinobi/face_recognition"
+SHINOBI_EVENT = "shinobi/"
 
 REASON_MOTION = "motion"
 REASON_SOUND = "soundChange"
@@ -236,8 +241,7 @@ REASON_FACE = "face"
 
 PLUG_SENSOR_TYPE = {
     REASON_MOTION: SENSOR_TYPE_MOTION,
-    REASON_SOUND: SENSOR_TYPE_SOUND,
-    REASON_FACE: EVENT_FACE_RECOGNITION
+    REASON_SOUND: SENSOR_TYPE_SOUND
 }
 
 SENSOR_AUTO_OFF_INTERVAL = {
@@ -249,4 +253,4 @@ TRIGGER_DEFAULT = {
     TRIGGER_STATE: STATE_OFF
 }
 
-BINARY_SENSOR_ATTRIBUTES = [TRIGGER_NAME, TRIGGER_DETAILS_REASON, TRIGGER_TAGS]
+BINARY_SENSOR_ATTRIBUTES = []

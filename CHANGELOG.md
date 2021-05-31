@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0
+
+**Breaking change**
+
+A new version rely on WebSocket instead of MQTT,
+Permanent API Key must support WebSocket connection, otherwise, integration will not work,
+
+**What's new**
+- Switched from MQTT to WebSocket events
+- Motion sensors rely on motion detection instead of object detection
+- Object detection and Face identification are being represented as an event
+
 ## 1.0.7
 
 - Added code protection, logs and documentation for API Key usage [#3](https://github.com/elad-bar/ha-shinobi/issues/3)

@@ -28,13 +28,14 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class ShinobiWebSocket:
-    is_logged_in: bool
+    is_connected: bool
     api: ShinobiApi
     session: Optional[ClientSession]
     hass: HomeAssistant
     config_manager: ConfigManager
     event_manager: EventManager
     base_url: Optional[str]
+    is_aborted: bool
 
     def __init__(self,
                  hass: HomeAssistant,
@@ -49,9 +50,9 @@ class ShinobiWebSocket:
         self._session = None
         self._ws = None
         self._pending_payloads = []
-        self.shutting_down = False
-        self.is_logged_in = False
+        self.is_connected = False
         self.api = api
+        self.is_aborted = False
 
         self._handlers = {
             "log": self.handle_log,
@@ -69,15 +70,14 @@ class ShinobiWebSocket:
         _LOGGER.debug("Initializing WS connection")
 
         try:
-            self.is_logged_in = False
-            self.shutting_down = False
-
             cd = self.config_data
-            endpoint = "/socket.io/?EIO=3&transport=websocket"
 
             self.base_url = (
-                f"{cd.ws_protocol}://{cd.host}:{cd.port}{cd.path}{endpoint}"
+                f"{cd.ws_protocol}://{cd.host}:{cd.port}{cd.path}{SHINOBI_WS_ENDPOINT}"
             )
+
+            if self.is_connected:
+                await self.close()
 
             if self.hass is None:
                 self._session = aiohttp.client.ClientSession()
@@ -96,9 +96,10 @@ class ShinobiWebSocket:
                 timeout=SCAN_INTERVAL_WS_TIMEOUT,
             ) as ws:
 
-                self.is_logged_in = True
+                self.is_connected = True
 
                 self._ws = ws
+
                 await self.listen()
 
         except Exception as ex:
@@ -107,7 +108,7 @@ class ShinobiWebSocket:
             else:
                 _LOGGER.warning(f"Failed to connect Shinobi Video WS, Error: {ex}")
 
-        self.is_logged_in = False
+        self.is_connected = False
 
         _LOGGER.info("WS Connection terminated")
 
@@ -135,7 +136,7 @@ class ShinobiWebSocket:
             if (
                 not continue_to_next
                 or not self.is_initialized
-                or not self.is_logged_in
+                or not self.is_connected
             ):
                 break
 
@@ -166,17 +167,17 @@ class ShinobiWebSocket:
         return result
 
     async def parse_message(self, message: str):
-        if message.startswith("0"):
+        if message.startswith(SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE):
             _LOGGER.debug(f"Connected, Message: {message[1:]}")
 
-        elif message.startswith("3"):
+        elif message.startswith(SHINOBI_WS_PONG_MESSAGE):
             _LOGGER.debug(f"Pong received")
 
-        elif message.startswith("40"):
+        elif message.startswith(SHINOBI_WS_CONNECTION_READY_MESSAGE):
             _LOGGER.debug(f"Back channel connected")
             await self.send_connect_message()
 
-        elif message.startswith("42"):
+        elif message.startswith(SHINOBI_WS_ACTION_MESSAGE):
             json_str = message[2:]
             payload = json.loads(json_str)
             await self.parse_payload(payload)
@@ -222,7 +223,7 @@ class ShinobiWebSocket:
         monitor_id = data.get("id")
         group_id = data.get("ke")
 
-        topic = f"{MQTT_ALL_TOPIC}/{group_id}/{monitor_id}/trigger"
+        topic = f"{group_id}/{monitor_id}"
 
         self.event_manager.message_received(topic, data)
 
@@ -240,16 +241,12 @@ class ShinobiWebSocket:
         json_str = json.dumps(message_data)
         message = f"42{json_str}"
 
-        if self.is_logged_in:
-            await self._ws.send_str(message)
+        await self.send(message)
 
     async def send_ping_message(self):
         _LOGGER.debug("Pinging")
 
-        message = f"2"
-
-        if self.is_logged_in:
-            await self._ws.send_str(message)
+        await self.send(SHINOBI_WS_PING_MESSAGE)
 
     async def send_connect_monitor(self, monitor: CameraData):
         message_data = [
@@ -267,17 +264,19 @@ class ShinobiWebSocket:
         json_str = json.dumps(message_data)
         message = f"42{json_str}"
 
-        _LOGGER.info(f"Start listen monitor #{monitor.monitorId}, Data: {message}")
+        await self.send(message)
 
-        await self._ws.send_str(message)
+    async def send(self, message: str):
+        _LOGGER.debug(f"Sending message, Data: {message}, Connected: {self.is_connected}")
 
-    def disconnect(self):
-        self.is_logged_in = False
+        if self.is_connected:
+            await self._ws.send_str(message)
 
     async def close(self):
         _LOGGER.info("Closing connection to WS")
 
-        self.is_logged_in = False
+        self.is_aborted = True
+        self.is_connected = False
 
         if self._ws is not None:
             await self._ws.close()
@@ -285,11 +284,3 @@ class ShinobiWebSocket:
             await asyncio.sleep(DISCONNECT_INTERVAL)
 
         self._ws = None
-
-    @staticmethod
-    def get_keep_alive_data():
-        content = "2"
-
-        _LOGGER.debug(f"Keep alive data to be sent: {content}")
-
-        return content

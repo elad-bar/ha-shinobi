@@ -12,24 +12,18 @@ Integration with Shinobi Video NVR. Creates the following components:
 
 [Changelog](https://github.com/elad-bar/ha-shinobi/blob/master/CHANGELOG.md)
 
+#### Requirements
+- Shinobi Video Server 
+- Dashboard user with API Key (with all permissions)
+- JPEG API enabled
+- Optional: Motion detection - [How to use Motion Detection](https://hub.shinobi.video/articles/view/LKdcgcgWy9RJfUh)
+ 
 ## How to
 
-#### Requirements
-- Shinobi Video Server available with credentials - Dashboard user with API Key
-- MQTT Integration is optional - it will allow listening to Shinobi Video event
-
-#### How to generate permanent API Key:
+#### Generate permanent API Key:
 In Shinobi Video Dashboard, click your username in the top left.
 A menu will appear, click API.
 Add new token - IP: 0.0.0.0, Permissions - Select all
-
-#### Shinobi Video links:
-- [Using MQTT to receive and trigger events](https://hub.shinobi.video/articles/view/xEMps3O4y4VEaYk)
-- [How to use Motion Detection](https://hub.shinobi.video/articles/view/LKdcgcgWy9RJfUh)
-
-#### Shinobi Video DeepStack Plugins:
-[DeepStack-Face](https://github.com/elad-bar/shinobi-deepstack-face)
-[DeepStack-Object](https://github.com/elad-bar/shinobi-deepstack-object)
 
 #### Installations via HACS
 - In HACS, look for "Shinobi Video NVR" and install
@@ -81,17 +75,8 @@ Please remove the integration and re-add it to make it work again.
 ## Components
 
 #### Binary Sensors
-Binary sensor are relying on MQTT, you will need to set up in Shinobi Video Server MQTT plugin and configure each of the monitors to trigger MQTT message.
-
 Each binary sensor will have the name pattern - {Integration Title} {Camera Name} {Sound / Motion},
 Once triggered, the following details will be added to the attributes of the binary sensor:
-
-Attributes | Description |
---- | --- |
-name | Event name - Yolo / Tensorflow / DeepStack-Object / audio
-reason | Event details - object / soundChange
-tags | relevant for motion only with object detection, will represent the detected object
-
 
 ###### Audio
 Represents whether the camera is triggered for noise or not
@@ -111,6 +96,18 @@ FPS | -
 
 ## Events
 
-#### Face Recognition
+#### Face Recognition - shinobi/face
 Supported by [DeepStack-Face](https://github.com/elad-bar/shinobi-deepstack-face) plugin only,
-Will publish event name `shinobi/face_recognition`, payload will be the same as in the MQTT message
+
+Payload:
+```json
+
+```
+
+#### Object Detection - shinobi/object
+Supported by [DeepStack-Face](https://github.com/elad-bar/shinobi-deepstack-object) plugin only,
+
+Payload:
+```json
+
+```

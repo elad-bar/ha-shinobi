@@ -93,7 +93,7 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
         super()._immediate_update(previous_state)
 
     async def async_added_to_hass_local(self):
-        """Subscribe MQTT events."""
+        """Subscribe events."""
         _LOGGER.info(f"Added new {self.name}")
 
     @property

@@ -135,9 +135,9 @@ class EntityManager:
         for camera in available_camera:
             self.generate_camera_component(camera)
 
-            current_mqtt_binary_sensors = self.generate_camera_binary_sensors(camera)
+            current_binary_sensors = self.generate_camera_binary_sensors(camera)
 
-            binary_sensors.extend(current_mqtt_binary_sensors)
+            binary_sensors.extend(current_binary_sensors)
 
     def update(self):
         self.hass.async_create_task(self._async_update())
@@ -241,7 +241,7 @@ class EntityManager:
             entity_name = f"{self.integration_title} {camera.name} {sensor_type.capitalize()}"
             unique_id = f"{DOMAIN}-{DOMAIN_BINARY_SENSOR}-{entity_name}"
 
-            state_topic = f"{MQTT_ALL_TOPIC}/{self.api.group_id}/{camera.monitorId}/trigger"
+            state_topic = f"{self.api.group_id}/{camera.monitorId}"
 
             state = STATE_OFF
             event_state = TRIGGER_DEFAULT
