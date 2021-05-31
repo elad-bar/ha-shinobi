@@ -13,11 +13,11 @@ Integration with Shinobi Video NVR. Creates the following components:
 [Changelog](https://github.com/elad-bar/ha-shinobi/blob/master/CHANGELOG.md)
 
 #### Requirements
-- Shinobi Video Server 
+- Shinobi Video Server
 - Dashboard user with API Key (with all permissions)
 - JPEG API enabled
 - Optional: Motion detection - [How to use Motion Detection](https://hub.shinobi.video/articles/view/LKdcgcgWy9RJfUh)
- 
+
 ## How to
 
 #### Generate permanent API Key:

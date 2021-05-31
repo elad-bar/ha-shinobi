@@ -4,23 +4,23 @@ For more details about this component, please refer to the documentation at
 https://home-assistant.io/components/shinobi/
 """
 import asyncio
+from datetime import datetime
 import json
 import logging
-from datetime import datetime
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import aiohttp
 from aiohttp import ClientSession
-from homeassistant.core import HomeAssistant
 
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
-from .shinobi_api import ShinobiApi
 from ..helpers.const import *
 from ..managers.configuration_manager import ConfigManager
 from ..managers.event_manager import EventManager
 from ..models.camera_data import CameraData
 from ..models.config_data import ConfigData
+from .shinobi_api import ShinobiApi
 
 REQUIREMENTS = ["aiohttp"]
 
