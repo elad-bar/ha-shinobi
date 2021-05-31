@@ -97,17 +97,68 @@ FPS | -
 ## Events
 
 #### Face Recognition - shinobi/face
-Supported by [DeepStack-Face](https://github.com/elad-bar/shinobi-deepstack-face) plugin only,
+Supports any face recognition plugin
+
+Tested with [DeepStack-Face](https://github.com/elad-bar/shinobi-deepstack-face) 
+
 
 Payload:
 ```json
-
+{
+  "f": "detector_trigger",
+  "id": "MonitorID",
+  "ke": "GroupID",
+  "details": {
+    "plug": "Plugin Name",
+    "name": "Camera Name",
+    "reason": "face",
+    "matrices": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "tag": "Uploaded image name",
+        "confidence": 0,
+        "path": "/dev/shm/streams/GroupID/MonitorID/FileName.jpg"
+      }
+    ],
+    "imgHeight": 480,
+    "imgWidth": 640,
+    "time": 66
+  }
+}
 ```
 
 #### Object Detection - shinobi/object
-Supported by [DeepStack-Face](https://github.com/elad-bar/shinobi-deepstack-object) plugin only,
+Supports any object detection plugin
+
+Tested with [DeepStack-Object](https://github.com/elad-bar/shinobi-deepstack-object) 
 
 Payload:
 ```json
-
+{
+  "f": "detector_trigger",
+  "id": "MonitorID",
+  "ke": "GroupID",
+  "details": {
+    "plug": "Plugin Name",
+    "name": "Camera Name",
+    "reason": "object",
+    "matrices": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "tag": "Object name",
+        "confidence": 0,
+        "path": "/dev/shm/streams/GroupID/MonitorID/FileName.jpg"
+      }
+    ],
+    "imgHeight": 480,
+    "imgWidth": 640,
+    "time": 66
+  }
+}
 ```
