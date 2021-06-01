@@ -1,164 +1,52 @@
-# Shinobi Video NVR
+# Changelog
 
-## Description
+## 1.1.1
 
-Integration with Shinobi Video NVR. Creates the following components:
+- Improve WebSocket reconnect mechanism
 
-* Camera - per-camera defined.
-* Binary Sensors (MOTION, SOUND) - per-camera defined.
-* Support HLS Streams instead of H264.
-* Support SSL with self-signed certificate.
-* Support Face-Recognition plugin as an event
+## 1.1.0
 
-[Changelog](https://github.com/elad-bar/ha-shinobi/blob/master/CHANGELOG.md)
+**Breaking change**
 
-#### Requirements
-- Shinobi Video Server
-- Dashboard user with API Key (with all permissions)
-- JPEG API enabled
-- Optional: Motion detection - [How to use Motion Detection](https://hub.shinobi.video/articles/view/LKdcgcgWy9RJfUh)
+A new version rely on WebSocket instead of MQTT,
+Permanent API Key must support WebSocket connection, otherwise, integration will not work,
 
-## How to
+**What's new**
+- Switched from MQTT to WebSocket events
+- Motion sensors rely on motion detection instead of object detection
+- Object detection and Face identification are being represented as an event
 
-#### Generate permanent API Key:
-In Shinobi Video Dashboard, click your username in the top left.
-A menu will appear, click API.
-Add new token - IP: 0.0.0.0, Permissions - Select all
+## 1.0.7
 
-#### Installations via HACS
-- In HACS, look for "Shinobi Video NVR" and install
-- In Configuration --> Integrations - Add Shinobi Video NVR
+- Added code protection, logs and documentation for API Key usage [#3](https://github.com/elad-bar/ha-shinobi/issues/3)
 
-#### Integration settings
-###### Basic configuration (Configuration -> Integrations -> Add Shinobi Video NVR)
-Fields name | Type | Required | Default | Description
---- | --- | --- | --- | --- |
-Host | Texbox | + | None | Hostname or IP address of the Shinobi Video server
-Port | Textbox | + | 0 | HTTP Port to access Shinobi Video server
-SSL | Check-box | + | Unchecked | Is SSL supported?
-Username | Textbox | - | | Username of dashboard user for Shinobi Video server
-Password | Textbox | - | | Password of dashboard user for Shinobi Video server
+## v1.0.6
 
-###### Integration options (Configuration -> Integrations -> Shinobi Video NVR Integration -> Options)
-Fields name | Type | Required | Default | Description
---- | --- | --- | --- | --- |
-Host | Texbox | + | ast stored hostname | Hostname or IP address of the Shinobi Video server
-Port | Textbox | + | 0ast stored port | HTTP Port to access Shinobi Video server
-SSL | Check-box | + | Last stored SSL flag | Is SSL supported?
-Username | Textbox | - | Last stored username | Username of dashboard user for Shinobi Video server
-Password | Textbox | - | Last stored password | Password of dashboard user for Shinobi Video server
-Log level | Drop-down | + | Default | Changes component's log level (more details below)
+- More instructions in README
+- Fix lint errors
 
-**Log Level's drop-down**
-New feature to set the log level for the component without need to set log_level in `customization:` and restart or call manually `logger.set_level` and loose it after restart.
+## v1.0.5
 
-Upon startup or integration's option update, based on the value chosen, the component will make a service call to `logger.set_level` for that component with the desired value,
+- Fix README and Strings
 
-In case `Default` option is chosen, flow will skip calling the service, after changing from any other option to `Default`, it will not take place automatically, only after restart
+## v1.0.4
 
-###### Configuration validations
-Upon submitting the form of creating an integration or updating options,
+- Added support of Shinobi Video plugin for DeepStack Face Recognition
+- Added support of Shinobi Video plugin for DeepStack Object Detection
+- Added `shinobi/face_recognition` event to trigger once face identified
 
-Component will try to log in into the Shinobi Video server to verify new settings, following errors can appear:
-- Integration already configured with the same title
-- Invalid server details - Cannot reach the server
+## v1.0.3
 
-###### Encryption key got corrupted
-If a persistent notification popped up with the following message:
-```
-Encryption key got corrupted, please remove the integration and re-add it
-```
+- Improved MQTT sensor auto off logic
 
-It means that encryption key was modified from outside the code,
-Please remove the integration and re-add it to make it work again.
+## v1.0.2
 
-## Components
+- Support Tensorflow plugin as motion sensor
 
-#### Binary Sensors
-Each binary sensor will have the name pattern - {Integration Title} {Camera Name} {Sound / Motion},
-Once triggered, the following details will be added to the attributes of the binary sensor:
+## v1.0.1
 
-###### Audio
-Represents whether the camera is triggered for noise or not
+- Fix hassfest validation error - Added iot_class=local_polling to manifest
 
-###### Motion
-Represents whether the camera is triggered for motion or not
+## v1.0.0
 
-###### Camera
-State: Idle
-
-Attributes | Available values |
---- | --- |
-Status | Recording,
-Mode | stop (Disabled), start (Watch-Only), record (Record)
-Type | H264, MJPEG,
-FPS | -
-
-## Events
-
-#### Face Recognition - shinobi/face
-Supports any face recognition plugin
-
-Tested with [DeepStack-Face](https://github.com/elad-bar/shinobi-deepstack-face)
-
-
-Payload:
-```json
-{
-  "f": "detector_trigger",
-  "id": "MonitorID",
-  "ke": "GroupID",
-  "details": {
-    "plug": "Plugin Name",
-    "name": "Camera Name",
-    "reason": "face",
-    "matrices": [
-      {
-        "x": 0,
-        "y": 0,
-        "width": 0,
-        "height": 0,
-        "tag": "Uploaded image name",
-        "confidence": 0,
-        "path": "/dev/shm/streams/GroupID/MonitorID/FileName.jpg"
-      }
-    ],
-    "imgHeight": 480,
-    "imgWidth": 640,
-    "time": 66
-  }
-}
-```
-
-#### Object Detection - shinobi/object
-Supports any object detection plugin
-
-Tested with [DeepStack-Object](https://github.com/elad-bar/shinobi-deepstack-object)
-
-Payload:
-```json
-{
-  "f": "detector_trigger",
-  "id": "MonitorID",
-  "ke": "GroupID",
-  "details": {
-    "plug": "Plugin Name",
-    "name": "Camera Name",
-    "reason": "object",
-    "matrices": [
-      {
-        "x": 0,
-        "y": 0,
-        "width": 0,
-        "height": 0,
-        "tag": "Object name",
-        "confidence": 0,
-        "path": "/dev/shm/streams/GroupID/MonitorID/FileName.jpg"
-      }
-    ],
-    "imgHeight": 480,
-    "imgWidth": 640,
-    "time": 66
-  }
-}
-```
+Initial release

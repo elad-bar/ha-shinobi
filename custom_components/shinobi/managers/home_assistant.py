@@ -3,7 +3,7 @@ Support for Shinobi Video.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/shinobi/
 """
-from datetime import datetime
+import asyncio
 import logging
 import sys
 from typing import Optional
@@ -145,9 +145,6 @@ class HomeAssistantManager:
 
         await self.async_update_entry()
 
-    def _handle_event(self):
-        _LOGGER.debug("EVENT")
-
     def _update_entities(self, now):
         self._hass.async_create_task(self.async_update(now))
 
@@ -184,6 +181,9 @@ class HomeAssistantManager:
 
         while not self.ws.is_aborted:
             await self.ws.initialize()
+
+            if not self.ws.is_aborted:
+                await asyncio.sleep(RECONNECT_INTERVAL)
 
     async def async_remove(self, entry: ConfigEntry):
         _LOGGER.info(f"Removing current integration - {entry.title}")
