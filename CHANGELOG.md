@@ -2,6 +2,10 @@
 
 ## 1.1.2
 
+- Fix error while loading caused by a listener of `home assistant stop` event
+
+## 1.1.2
+
 - Graceful WebSocket disconnect upon HA shutdown / restart
 
 ## 1.1.1
