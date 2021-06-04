@@ -272,10 +272,14 @@ class ShinobiWebSocket:
         if self.is_connected:
             await self._ws.send_str(message)
 
+    async def terminate(self):
+        self.is_aborted = True
+
+        await self.close()
+
     async def close(self):
         _LOGGER.info("Closing connection to WS")
 
-        self.is_aborted = True
         self.is_connected = False
 
         if self._ws is not None:

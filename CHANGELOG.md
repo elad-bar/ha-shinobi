@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2
+
+- Graceful WebSocket disconnect upon HA shutdown / restart 
+
 ## 1.1.1
 
 - Improve WebSocket reconnect mechanism

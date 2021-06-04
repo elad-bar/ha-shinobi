@@ -4,6 +4,7 @@ For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/shinobi/
 """
 import asyncio
+import datetime
 import logging
 import sys
 from typing import Optional
@@ -177,13 +178,22 @@ class HomeAssistantManager:
 
         await self.api.initialize()
         await self.api.login()
-        await self.api.async_update()
+
+        await self.async_update(datetime.datetime.now())
 
         while not self.ws.is_aborted:
             await self.ws.initialize()
 
             if not self.ws.is_aborted:
                 await asyncio.sleep(RECONNECT_INTERVAL)
+
+    def stop(self):
+        self._hass.async_create_task(self._async_stop())
+
+    async def _async_stop(self):
+        _LOGGER.info(f"HA was stopped")
+
+        await self.ws.terminate()
 
     async def async_remove(self, entry: ConfigEntry):
         _LOGGER.info(f"Removing current integration - {entry.title}")
@@ -196,7 +206,7 @@ class HomeAssistantManager:
             self._remove_async_heartbeat_track_time()
             self._remove_async_heartbeat_track_time = None
 
-        await self.ws.close()
+        await self.ws.terminate()
 
         unload = self._hass.config_entries.async_forward_entry_unload
 

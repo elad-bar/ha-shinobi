@@ -44,6 +44,8 @@ DATA_HA_ENTITIES = f"{DATA}_HA_Entities"
 DEFAULT_NAME = "Shinobi Video"
 DEFAULT_PORT = 8080
 
+EVENT_HOMEASSISTANT_STOP = "homeassistant_stop"
+
 DOMAIN_KEY_FILE = f"{DOMAIN}.key"
 JSON_DATA_FILE = f"custom_components/{DOMAIN}/data/[NAME].json"
 

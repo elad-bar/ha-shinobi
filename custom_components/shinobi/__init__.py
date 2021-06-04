@@ -26,8 +26,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         await handle_log_level(hass, entry)
 
+        ha = get_ha(hass, entry.entry_id)
+
         _LOGGER.debug(f"Starting async_setup_entry of {DOMAIN}")
         entry.add_update_listener(async_options_updated)
+
+        def handle_homeassistant_stop(event):
+            ha.stop()
+
+        hass.bus.listen(EVENT_HOMEASSISTANT_STOP, handle_homeassistant_stop)
 
         await async_set_ha(hass, entry)
 
