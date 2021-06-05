@@ -1,6 +1,12 @@
 # Changelog
 
-## 1.1.2
+## 1.1.4
+
+- Better handling FPS values
+    - Empty: default value of HA will be 1FPS [#6](https://github.com/elad-bar/ha-shinobi/issues/6)
+    - Decimal: ignore decimal numbers
+
+## 1.1.3
 
 - Fix error while loading caused by a listener of `home assistant stop` event
 

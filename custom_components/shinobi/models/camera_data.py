@@ -22,7 +22,12 @@ class CameraData:
 
         monitor_details = camera.get("details", {})
 
-        self.fps = int(monitor_details.get(ATTR_CAMERA_DETAILS_FPS, "1"))
+        fps = monitor_details.get(ATTR_CAMERA_DETAILS_FPS, "1")
+
+        if "." in fps:
+            fps = fps.split(".")[0]
+
+        self.fps = 1 if fps == "" else int(fps)
         self.has_audio = monitor_details.get(ATTR_CAMERA_DETAILS_AUDIO_CODEC, "no") != "no"
         self.has_audio_detector = monitor_details.get(ATTR_CAMERA_DETAILS_DETECTOR_AUDIO, "0") != "0"
         self.has_motion_detector = monitor_details.get(ATTR_CAMERA_DETAILS_DETECTOR, "0") != "0"
