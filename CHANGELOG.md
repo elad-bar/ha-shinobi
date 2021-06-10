@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.5
+
+- Fix motion binary sensor is now relying on detector_pam settings
+
+
 ## 1.1.4
 
 - Better handling FPS values
