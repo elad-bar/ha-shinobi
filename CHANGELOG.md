@@ -2,8 +2,10 @@
 
 ## 1.1.5
 
-- Fix motion binary sensor is now relying on detector_pam settings
+- Fix motion binary sensor is now relying on detector_pam settings [#10](https://github.com/elad-bar/ha-shinobi/issues/10)
+- JPEG API must be enabled to create camera entity [#7](https://github.com/elad-bar/ha-shinobi/issues/7), in addition, will present warning log message:
 
+  `JPEG API is not enabled for {camera.name}, Camera will not be created`
 
 ## 1.1.4
 

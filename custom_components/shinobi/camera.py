@@ -117,22 +117,25 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
         try:
             url = self._still_image_url.async_render()
         except TemplateError as err:
-            _LOGGER.error("Error parsing template %s: %s", self._still_image_url, err)
+            _LOGGER.error(f"Error parsing template {self._still_image_url}, Error: {err}")
             return self._last_image
 
         if url == self._last_url and self._limit_refetch:
             return self._last_image
 
         try:
-            websession = async_get_clientsession(self.hass, verify_ssl=self.verify_ssl)
+            ws = async_get_clientsession(self.hass, verify_ssl=self.verify_ssl)
             with async_timeout.timeout(10):
-                response = await websession.get(url, auth=self._auth)
+                response = await ws.get(url, auth=self._auth)
+
             self._last_image = await response.read()
+
         except asyncio.TimeoutError:
-            _LOGGER.error("Timeout getting camera image from %s", self.name)
+            _LOGGER.error(f"Timeout getting camera image from {self.name}")
             return self._last_image
+
         except aiohttp.ClientError as err:
-            _LOGGER.error("Error getting new camera image from %s: %s", self.name, err)
+            _LOGGER.error(f"Error getting new camera image from {self.name}, Error: {err}")
             return self._last_image
 
         self._last_url = url

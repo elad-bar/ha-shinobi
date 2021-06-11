@@ -292,7 +292,8 @@ class EntityManager:
             for sensor_type_name in supported_sensors:
                 entity = self.get_camera_entity(camera, sensor_type_name)
 
-                entities.append(entity)
+                if entity is not None:
+                    entities.append(entity)
 
         except Exception as ex:
             self.log_exception(ex, f"Failed to generate binary sensors for {camera}")
@@ -305,64 +306,69 @@ class EntityManager:
             device_name = self.device_manager.get_camera_device_name(camera)
 
             entity_name = f"{self.integration_title} {camera.name}"
-            username = self.config_data.username
-            password = self.config_data.password_clear_text
-            base_url = self.api.base_url
 
-            unique_id = f"{DOMAIN}-{DOMAIN_CAMERA}-{entity_name}"
+            if camera.jpeg_api_enabled:
+                username = self.config_data.username
+                password = self.config_data.password_clear_text
+                base_url = self.api.base_url
 
-            snapshot = f"{base_url}{camera.snapshot}"
-            still_image_url_template = cv.template(snapshot)
+                unique_id = f"{DOMAIN}-{DOMAIN_CAMERA}-{entity_name}"
 
-            support_stream = DOMAIN_STREAM in self.hass.data
+                snapshot = f"{base_url}{camera.snapshot}"
+                still_image_url_template = cv.template(snapshot)
 
-            stream_source = ""
+                support_stream = DOMAIN_STREAM in self.hass.data
 
-            for stream in camera.streams:
-                stream_source = f"{base_url}{stream}"
+                stream_source = ""
 
-                break
+                for stream in camera.streams:
+                    stream_source = f"{base_url}{stream}"
 
-            camera_details = {
-                CONF_NAME: f"{entity_name}",
-                CONF_STILL_IMAGE_URL: still_image_url_template,
-                CONF_STREAM_SOURCE: stream_source,
-                CONF_LIMIT_REFETCH_TO_URL_CHANGE: False,
-                CONF_FRAMERATE: camera.fps,
-                CONF_CONTENT_TYPE: DEFAULT_CONTENT_TYPE,
-                CONF_VERIFY_SSL: False,
-                CONF_USERNAME: username,
-                CONF_PASSWORD: password,
-                CONF_AUTHENTICATION: AUTHENTICATION_BASIC,
-                CONF_SUPPORT_STREAM: support_stream,
-            }
+                    break
 
-            attributes = {
-                ATTR_FRIENDLY_NAME: entity_name,
-                CONF_STREAM_SOURCE: stream_source,
-                CONF_STILL_IMAGE_URL: snapshot
-            }
+                camera_details = {
+                    CONF_NAME: f"{entity_name}",
+                    CONF_STILL_IMAGE_URL: still_image_url_template,
+                    CONF_STREAM_SOURCE: stream_source,
+                    CONF_LIMIT_REFETCH_TO_URL_CHANGE: False,
+                    CONF_FRAMERATE: camera.fps,
+                    CONF_CONTENT_TYPE: DEFAULT_CONTENT_TYPE,
+                    CONF_VERIFY_SSL: False,
+                    CONF_USERNAME: username,
+                    CONF_PASSWORD: password,
+                    CONF_AUTHENTICATION: AUTHENTICATION_BASIC,
+                    CONF_SUPPORT_STREAM: support_stream,
+                }
 
-            for key in CAMERA_ATTRIBUTES:
-                key_name = CAMERA_ATTRIBUTES[key]
-                attributes[key_name] = camera.details.get(key, "N/A")
+                attributes = {
+                    ATTR_FRIENDLY_NAME: entity_name,
+                    CONF_STREAM_SOURCE: stream_source,
+                    CONF_STILL_IMAGE_URL: snapshot
+                }
 
-            monitor_details = camera.details.get("details", {})
+                for key in CAMERA_ATTRIBUTES:
+                    key_name = CAMERA_ATTRIBUTES[key]
+                    attributes[key_name] = camera.details.get(key, "N/A")
 
-            for key in CAMERA_DETAILS_ATTRIBUTES:
-                key_name = CAMERA_DETAILS_ATTRIBUTES[key]
-                attributes[key_name] = monitor_details.get(key, "N/A")
+                monitor_details = camera.details.get("details", {})
 
-            entity = EntityData()
+                for key in CAMERA_DETAILS_ATTRIBUTES:
+                    key_name = CAMERA_DETAILS_ATTRIBUTES[key]
+                    attributes[key_name] = monitor_details.get(key, "N/A")
 
-            entity.id = camera.monitorId
-            entity.unique_id = unique_id
-            entity.name = entity_name
-            entity.attributes = attributes
-            entity.icon = DEFAULT_ICON
-            entity.device_name = device_name
-            entity.details = camera_details
-            entity.state = camera.status
+                entity = EntityData()
+
+                entity.id = camera.monitorId
+                entity.unique_id = unique_id
+                entity.name = entity_name
+                entity.attributes = attributes
+                entity.icon = DEFAULT_ICON
+                entity.device_name = device_name
+                entity.details = camera_details
+                entity.state = camera.status
+
+            else:
+                _LOGGER.warning(f"JPEG API is not enabled for {camera.name}, Camera will not be created")
 
         except Exception as ex:
             self.log_exception(ex, f"Failed to get camera for {camera}")

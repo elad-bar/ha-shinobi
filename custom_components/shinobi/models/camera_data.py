@@ -11,6 +11,7 @@ class CameraData:
     has_audio_detector: bool
     has_motion_detector: bool
     fps: int
+    jpeg_api_enabled: bool
 
     def __init__(self, camera):
         self.monitorId = camera.get(ATTR_CAMERA_MONITOR_ID)
@@ -19,6 +20,7 @@ class CameraData:
         self.snapshot = camera.get(ATTR_CAMERA_SNAPSHOT)
         self.streams = camera.get(ATTR_CAMERA_STREAMS)
         self.details = camera
+        self.jpeg_api_enabled = self.snapshot is not None and self.snapshot != ""
 
         monitor_details = camera.get("details", {})
 
@@ -44,7 +46,6 @@ class CameraData:
             SOUND_DETECTION: self.has_audio_detector,
             TRIGGER_PLUG_DB: self.has_audio,
             ATTR_FPS: self.fps
-
         }
 
         to_string = f"{obj}"
