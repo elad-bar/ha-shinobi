@@ -38,6 +38,26 @@ class ConfigData:
         return protocol
 
     @property
+    def api_url(self):
+        path = "/" if self.path == "" else self.path
+
+        url = (
+            f"{self.protocol}://{self.host}:{self.port}{path}"
+        )
+
+        return url
+
+    @property
+    def ws_url(self):
+        path = "/" if self.path == "" else self.path
+
+        url = (
+            f"{self.ws_protocol}://{self.host}:{self.port}{path}{SHINOBI_WS_ENDPOINT}"
+        )
+
+        return url
+
+    @property
     def has_credentials(self):
         has_username = self.username and len(self.username) > 0
         has_password = self.password_clear_text and len(self.password_clear_text) > 0

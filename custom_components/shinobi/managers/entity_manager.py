@@ -314,7 +314,7 @@ class EntityManager:
 
                 unique_id = f"{DOMAIN}-{DOMAIN_CAMERA}-{entity_name}"
 
-                snapshot = f"{base_url}{camera.snapshot}"
+                snapshot = f"{base_url}{camera.snapshot[1:]}"
                 still_image_url_template = cv.template(snapshot)
 
                 support_stream = DOMAIN_STREAM in self.hass.data
@@ -322,9 +322,9 @@ class EntityManager:
                 stream_source = ""
 
                 for stream in camera.streams:
-                    stream_source = f"{base_url}{stream}"
-
-                    break
+                    if stream is not None:
+                        stream_source = f"{base_url}{stream[1:]}"
+                        break
 
                 camera_details = {
                     CONF_NAME: f"{entity_name}",

@@ -66,12 +66,7 @@ class ShinobiApi:
         _LOGGER.info("Initializing Shinobi Video")
 
         try:
-            config_data = self.config_data
-
-            self.base_url = (
-                f"{config_data.protocol}://{config_data.host}:{config_data.port}{config_data.path}"
-            )
-
+            self.base_url = self.config_data.api_url
             self.is_logged_in = False
             self.camera_list = []
 
@@ -92,7 +87,7 @@ class ShinobiApi:
             )
 
     def build_url(self, endpoint):
-        url = f"{self.base_url}/{endpoint}"
+        url = f"{self.base_url}{endpoint}"
 
         if GROUP_ID in url and self.group_id is not None:
             url = url.replace(GROUP_ID, self.group_id)

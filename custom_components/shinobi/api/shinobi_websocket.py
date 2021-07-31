@@ -34,7 +34,6 @@ class ShinobiWebSocket:
     hass: HomeAssistant
     config_manager: ConfigManager
     event_manager: EventManager
-    base_url: Optional[str]
     is_aborted: bool
 
     def __init__(self,
@@ -70,12 +69,6 @@ class ShinobiWebSocket:
         _LOGGER.debug("Initializing WS connection")
 
         try:
-            cd = self.config_data
-
-            self.base_url = (
-                f"{cd.ws_protocol}://{cd.host}:{cd.port}{cd.path}{SHINOBI_WS_ENDPOINT}"
-            )
-
             if self.is_connected:
                 await self.close()
 
@@ -89,7 +82,7 @@ class ShinobiWebSocket:
 
         try:
             async with self._session.ws_connect(
-                self.base_url,
+                self.config_data.ws_url,
                 ssl=False,
                 autoclose=True,
                 max_msg_size=MAX_MSG_SIZE,
