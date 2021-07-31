@@ -1,4 +1,8 @@
 # Changelog
+## 1.1.7
+
+- Path parameter causing issues for WebSocket (add protection in case virtual path is `/`) [#14](https://github.com/elad-bar/ha-shinobi/issues/14)
+
 ## 1.1.6
 
 - Path parameter causing issues (add protection in case virtual path is `/`) [#14](https://github.com/elad-bar/ha-shinobi/issues/14)

@@ -56,7 +56,7 @@ SERVICE_SET_LEVEL = "set_level"
 
 SHINOBI_AUTH_ERROR = "Authorization required"
 
-SHINOBI_WS_ENDPOINT = "/socket.io/?EIO=3&transport=websocket"
+SHINOBI_WS_ENDPOINT = "socket.io/?EIO=3&transport=websocket"
 
 SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE = "0"
 SHINOBI_WS_PING_MESSAGE = "2"
