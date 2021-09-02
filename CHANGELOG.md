@@ -1,4 +1,10 @@
 # Changelog
+
+## 1.1.8
+
+- Support HA v2021.9.0 breaking change - `Camera` component
+- Support `SensorEntity` instead of `Entity`
+
 ## 1.1.7
 
 - Path parameter causing issues for WebSocket (add protection in case virtual path is `/`) [#14](https://github.com/elad-bar/ha-shinobi/issues/14)
