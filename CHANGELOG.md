@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.9
+
+- Missing Binary Motion Sensors due to wrong motion detection parameter [#15](https://github.com/elad-bar/ha-shinobi/issues/15)
+
 ## 1.1.8
 
 - Support HA v2021.9.0 breaking change - `Camera` component
