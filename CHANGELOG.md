@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.10
+
+- Added `detector_trigger` motion event validation to avoid corrupted data
+
 ## 1.1.9
 
 - Missing Binary Motion Sensors due to wrong motion detection parameter [#15](https://github.com/elad-bar/ha-shinobi/issues/15)
