@@ -223,9 +223,18 @@ class ShinobiApi:
         _LOGGER.debug("Retrieving camera list")
 
         camera_list = []
-        monitors = await self.async_get(URL_MONITORS)
+        response = await self.async_get(URL_MONITORS)
 
-        if monitors is not None:
+        if response is None:
+            _LOGGER.warning("No monitors were found")
+
+        else:
+            if isinstance(response, list):
+                monitors = response
+
+            else:
+                monitors: List = [response]
+
             for monitor in monitors:
                 try:
                     if monitor is None:

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.12
+
+- Added support for single camera (response of an object instead of array) [#16](https://github.com/elad-bar/ha-shinobi/issues/16)
+
 ## 1.1.11
 
 - Added more logs for debugging invalid monitor's loading
