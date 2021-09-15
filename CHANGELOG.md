@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.11
+
+- Added more logs for debugging invalid monitor's loading
+- Camera properties added - `is_recording` and `motion_detection_enabled`
+- Unused imports cleanup
+- Added `requirements.txt`
+
 ## 1.1.10
 
 - Added `detector_trigger` motion event validation to avoid corrupted data

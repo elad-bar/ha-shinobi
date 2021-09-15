@@ -94,7 +94,7 @@ class ConfigFlowManager:
     def _get_default_fields(
         self, flow, config_data: Optional[ConfigData] = None
     ) -> Dict[vol.Marker, Any]:
-        _LOGGER.debug(f"_get_default_fields, config_data: {config_data}")
+        _LOGGER.debug(f"Get default fields for {flow}, config_data: {config_data}")
 
         if config_data is None:
             config_data = self.config_data
@@ -111,7 +111,7 @@ class ConfigFlowManager:
         return fields
 
     async def get_default_data(self, user_input) -> vol.Schema:
-        _LOGGER.debug(f"get_default_data, user_input: {user_input}")
+        _LOGGER.debug(f"Get default data, user_input: {user_input}")
 
         config_data = await self._config_manager.get_basic_data(user_input)
 
@@ -132,9 +132,12 @@ class ConfigFlowManager:
         try:
             _LOGGER.debug(f"_update_entry, data: {self._data}")
 
-            entry = ConfigEntry(
-                0, "", "", self._data, "", "", {}, options=self._options
-            )
+            entry = ConfigEntry(version=0,
+                                domain="",
+                                title="",
+                                data=self._data,
+                                source="",
+                                options=self._options)
 
             await self._config_manager.update(entry)
         except InvalidToken:
@@ -142,9 +145,12 @@ class ConfigFlowManager:
 
             del self._data[CONF_PASSWORD]
 
-            entry = ConfigEntry(
-                0, "", "", self._data, "", "", {}, options=self._options
-            )
+            entry = ConfigEntry(version=0,
+                                domain="",
+                                title="",
+                                data=self._data,
+                                source="",
+                                options=self._options)
 
             await self._config_manager.update(entry)
 

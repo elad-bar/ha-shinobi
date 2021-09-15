@@ -98,6 +98,14 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
         _LOGGER.info(f"Added new {self.name}")
 
     @property
+    def is_recording(self) -> bool:
+        return self.entity.state == "Recording"
+
+    @property
+    def motion_detection_enabled(self):
+        return self.entity.details.get(CONF_MOTION_DETECTION, False)
+
+    @property
     def supported_features(self):
         """Return supported features for this camera."""
         return self._supported_features

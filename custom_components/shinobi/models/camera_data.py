@@ -1,6 +1,9 @@
-import json
+import logging
+import sys
 
 from ..helpers.const import *
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class CameraData:
@@ -14,25 +17,34 @@ class CameraData:
     jpeg_api_enabled: bool
 
     def __init__(self, camera):
-        self.monitorId = camera.get(ATTR_CAMERA_MONITOR_ID)
-        self.name = camera.get(ATTR_CAMERA_NAME)
-        self.status = camera.get(ATTR_CAMERA_STATUS)
-        self.snapshot = camera.get(ATTR_CAMERA_SNAPSHOT)
-        self.streams = camera.get(ATTR_CAMERA_STREAMS)
-        self.details = camera
-        self.jpeg_api_enabled = self.snapshot is not None and self.snapshot != ""
+        try:
+            self.monitorId = camera.get(ATTR_CAMERA_MONITOR_ID)
+            self.name = camera.get(ATTR_CAMERA_NAME)
+            self.status = camera.get(ATTR_CAMERA_STATUS)
+            self.snapshot = camera.get(ATTR_CAMERA_SNAPSHOT)
+            self.streams = camera.get(ATTR_CAMERA_STREAMS)
+            self.details = camera
+            self.jpeg_api_enabled = self.snapshot is not None and self.snapshot != ""
 
-        monitor_details = camera.get("details", {})
+            monitor_details = camera.get("details", {})
 
-        fps = monitor_details.get(ATTR_CAMERA_DETAILS_FPS, "1")
+            fps = monitor_details.get(ATTR_CAMERA_DETAILS_FPS, "1")
 
-        if "." in fps:
-            fps = fps.split(".")[0]
+            if "." in fps:
+                fps = fps.split(".")[0]
 
-        self.fps = 1 if fps == "" else int(fps)
-        self.has_audio = monitor_details.get(ATTR_CAMERA_DETAILS_AUDIO_CODEC, "no") != "no"
-        self.has_audio_detector = monitor_details.get(ATTR_CAMERA_DETAILS_DETECTOR_AUDIO, "0") != "0"
-        self.has_motion_detector = monitor_details.get(ATTR_CAMERA_DETAILS_DETECTOR, "0") != "0"
+            self.fps = 1 if fps == "" else int(fps)
+            self.has_audio = monitor_details.get(ATTR_CAMERA_DETAILS_AUDIO_CODEC, "no") != "no"
+            self.has_audio_detector = monitor_details.get(ATTR_CAMERA_DETAILS_DETECTOR_AUDIO, "0") != "0"
+            self.has_motion_detector = monitor_details.get(ATTR_CAMERA_DETAILS_DETECTOR, "0") != "0"
+
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            _LOGGER.error(
+                f"Failed to initialize CameraData: {camera}, Error: {ex}, Line: {line_number}"
+            )
 
     def __repr__(self):
         obj = {

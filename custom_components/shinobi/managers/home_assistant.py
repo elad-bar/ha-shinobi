@@ -115,6 +115,7 @@ class HomeAssistantManager:
             self._entity_registry = await er_async_get_registry(self._hass)
 
             self._hass.loop.create_task(self._async_init())
+
         except InvalidToken:
             error_message = "Encryption key got corrupted, please remove the integration and re-add it"
 

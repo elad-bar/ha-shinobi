@@ -153,7 +153,9 @@ class EventManager:
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
-            _LOGGER.error(f"Failed to _async_check_triggers, Error: {ex}, Line: {line_number}")
+            _LOGGER.error(
+                f"Failed to check triggers (async) at {event_time}, Error: {ex}, Line: {line_number}"
+            )
 
     def get_state(self, topic, event_type):
         key = _get_camera_binary_sensor_key(topic, event_type)

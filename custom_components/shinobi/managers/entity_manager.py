@@ -338,6 +338,7 @@ class EntityManager:
                     CONF_PASSWORD: password,
                     CONF_AUTHENTICATION: AUTHENTICATION_BASIC,
                     CONF_SUPPORT_STREAM: support_stream,
+                    CONF_MOTION_DETECTION: camera.has_motion_detector
                 }
 
                 attributes = {

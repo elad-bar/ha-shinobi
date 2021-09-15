@@ -227,12 +227,25 @@ class ShinobiApi:
 
         if monitors is not None:
             for monitor in monitors:
-                monitor_details_str = monitor.get("details")
-                details = json.loads(monitor_details_str)
+                try:
+                    if monitor is None:
+                        _LOGGER.warning(f"Invalid camera details found")
 
-                monitor["details"] = details
+                    else:
+                        monitor_details_str = monitor.get("details")
+                        details = json.loads(monitor_details_str)
 
-                camera = CameraData(monitor)
-                camera_list.append(camera)
+                        monitor["details"] = details
+
+                        camera = CameraData(monitor)
+                        camera_list.append(camera)
+
+                except Exception as ex:
+                    exc_type, exc_obj, tb = sys.exc_info()
+                    line_number = tb.tb_lineno
+
+                    _LOGGER.error(
+                        f"Failed to load camera data: {monitor}, Error: {ex}, Line: {line_number}"
+                    )
 
         self.camera_list = camera_list
