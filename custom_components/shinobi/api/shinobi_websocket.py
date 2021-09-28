@@ -7,6 +7,7 @@ import asyncio
 from datetime import datetime
 import json
 import logging
+import sys
 from typing import Callable, Optional
 
 import aiohttp
@@ -52,6 +53,12 @@ class ShinobiWebSocket:
         self.is_connected = False
         self.api = api
         self.is_aborted = False
+        self._messages_handler: dict = {
+            SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE: self.handle_connection_established_message,
+            SHINOBI_WS_PONG_MESSAGE: self.handle_pong_message,
+            SHINOBI_WS_CONNECTION_READY_MESSAGE: self.handle_ready_state_message,
+            SHINOBI_WS_ACTION_MESSAGE: self.handle_action_message
+        }
 
         self._handlers = {
             "log": self.handle_log,
@@ -151,7 +158,7 @@ class ShinobiWebSocket:
         else:
             self._last_update = datetime.now()
 
-            if msg.data == "close":
+            if msg.data is None or msg.data == "close":
                 result = False
             else:
                 self.hass.async_create_task(self.parse_message(msg.data))
@@ -160,42 +167,78 @@ class ShinobiWebSocket:
         return result
 
     async def parse_message(self, message: str):
-        if message.startswith(SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE):
-            _LOGGER.debug(f"Connected, Message: {message[1:]}")
+        message_parts = message.split("[")
+        message_prefix = message_parts[0]
 
-        elif message.startswith(SHINOBI_WS_PONG_MESSAGE):
-            _LOGGER.debug(f"Pong received")
+        message_handler = self._messages_handler.get(message_prefix)
 
-        elif message.startswith(SHINOBI_WS_CONNECTION_READY_MESSAGE):
-            _LOGGER.debug(f"Back channel connected")
-            await self.send_connect_message()
-
-        elif message.startswith(SHINOBI_WS_ACTION_MESSAGE):
-            json_str = message[2:]
-            payload = json.loads(json_str)
-            await self.parse_payload(payload)
-
-        else:
+        if message_handler is None:
             _LOGGER.debug(f"No message handler available, Message: {message}")
 
-    async def parse_payload(self, payload):
-        action = payload[0]
-        data = payload[1]
+        else:
+            message_data = message.replace(message_prefix, "")
 
-        if action == "f":
-            func = data.get(action)
+            await message_handler(message_prefix, message_data)
 
-            if func in self._handlers.keys():
-                handler: Callable = self._handlers.get(func, None)
+    @staticmethod
+    async def handle_connection_established_message(prefix, data):
+        _LOGGER.debug(f"WebSocket connection established")
 
-                if handler is not None:
-                    await handler(data)
+    @staticmethod
+    async def handle_pong_message(prefix, data):
+        _LOGGER.debug(f"Pong message received")
+
+    async def handle_ready_state_message(self, prefix, data):
+        _LOGGER.debug(f"WebSocket connection state changed to ready")
+
+        await self.send_connect_message()
+
+    async def handle_action_message(self, prefix, data):
+        try:
+            payload = json.loads(data)
+            action = payload[0]
+            data = payload[1]
+
+            if action == "f":
+                func = data.get(action)
+
+                if func in self._handlers.keys():
+                    handler: Callable = self._handlers.get(func, None)
+
+                    if handler is not None:
+                        await handler(data)
+
+                else:
+                    _LOGGER.debug(f"Payload received, Type: {func}")
 
             else:
-                _LOGGER.debug(f"Payload received, Type: {func}")
+                _LOGGER.debug(f"No payload handler available, Payload: {payload}")
 
-        else:
-            _LOGGER.debug(f"No payload handler available, Payload: {payload}")
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            supported_event = False
+            for key in self._handlers.keys():
+                if key in data[0:50]:
+                    supported_event = True
+                    break
+
+            if supported_event:
+                _LOGGER.error(f"Failed to parse message, Data: {data}, Error: {ex}, Line: {line_number}")
+
+            else:
+                key = "Unknown"
+                unsupported_data = str(data[0:50])
+
+                if unsupported_data.startswith(TRIGGER_STARTS_WITH):
+                    key_tmp = unsupported_data.replace(TRIGGER_STARTS_WITH, "")
+                    key_arr = key_tmp.split("\"")
+
+                    if len(key_arr) > 0:
+                        key = key_arr[0]
+
+                _LOGGER.debug(f"Ignoring unsupported event message, Key: {key}, Data: {unsupported_data}")
 
     async def handle_log(self, data):
         monitor_id = data.get("mid")

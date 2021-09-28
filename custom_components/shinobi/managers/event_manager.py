@@ -82,7 +82,7 @@ class EventManager:
 
             for trigger_object in trigger_matrices:
                 if trigger_object is None:
-                    _LOGGER.warning(f"Invalid trigger object, payload: {payload}")
+                    _LOGGER.debug(f"Ignoring empty trigger object")
 
                 else:
                     trigger_tag = trigger_object.get(TRIGGER_DETAILS_MATRICES_TAG)
@@ -101,6 +101,9 @@ class EventManager:
                 TRIGGER_TIMESTAMP: datetime.now().timestamp(),
                 TRIGGER_TOPIC: topic
             }
+
+            if len(trigger_tags) == 0 and sensor_type == REASON_MOTION:
+                _LOGGER.warning(f"No tags found for the event, Data: {payload}")
 
             previous_data = self.get_state(topic, sensor_type)
             previous_state = previous_data.get(TRIGGER_STATE, STATE_OFF)

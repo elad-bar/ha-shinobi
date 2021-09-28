@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.13
+
+- Fix error due to unsupported event messages [#17](https://github.com/elad-bar/ha-shinobi/issues/17)
+- Change message's log level of empty matrices to `DEBUG`
+
 ## 1.1.12
 
 - Added support for single camera (response of an object instead of array) [#16](https://github.com/elad-bar/ha-shinobi/issues/16)
