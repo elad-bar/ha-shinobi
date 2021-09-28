@@ -47,14 +47,6 @@ Port | Textbox | + | 0ast stored port | HTTP Port to access Shinobi Video server
 SSL | Check-box | + | Last stored SSL flag | Is SSL supported?
 Username | Textbox | - | Last stored username | Username of dashboard user for Shinobi Video server
 Password | Textbox | - | Last stored password | Password of dashboard user for Shinobi Video server
-Log level | Drop-down | + | Default | Changes component's log level (more details below)
-
-**Log Level's drop-down**
-New feature to set the log level for the component without need to set log_level in `customization:` and restart or call manually `logger.set_level` and loose it after restart.
-
-Upon startup or integration's option update, based on the value chosen, the component will make a service call to `logger.set_level` for that component with the desired value,
-
-In case `Default` option is chosen, flow will skip calling the service, after changing from any other option to `Default`, it will not take place automatically, only after restart
 
 ###### Configuration validations
 Upon submitting the form of creating an integration or updating options,
@@ -161,4 +153,15 @@ Payload:
     "time": 66
   }
 }
+```
+
+## Troubleshooting
+
+Before opening an issue, please provide logs related to the issue,
+For debug log level, please add the following to your config.yaml
+```yaml
+logger:
+  default: warning
+  logs:
+    custom_components.shinobi: debug
 ```

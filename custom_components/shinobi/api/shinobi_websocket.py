@@ -241,7 +241,7 @@ class ShinobiWebSocket:
                 _LOGGER.debug(f"Ignoring unsupported event message, Key: {key}, Data: {unsupported_data}")
 
     async def handle_log(self, data):
-        monitor_id = data.get("mid")
+        monitor_id = data.get(ATTR_CAMERA_MONITOR_ID)
         log = data.get("log", {})
         log_type = log.get("type")
 
@@ -257,7 +257,7 @@ class ShinobiWebSocket:
         _LOGGER.debug(f"Payload received, Data: {data}")
 
         monitor_id = data.get("id")
-        group_id = data.get("ke")
+        group_id = data.get(ATTR_CAMERA_GROUP_ID)
 
         topic = f"{group_id}/{monitor_id}"
 
@@ -269,7 +269,7 @@ class ShinobiWebSocket:
             {
                 "auth": self.api.api_key,
                 "f": "init",
-                "ke": self.api.group_id,
+                ATTR_CAMERA_GROUP_ID: self.api.group_id,
                 "uid": self.api.user_id
             }
         ]
@@ -292,7 +292,7 @@ class ShinobiWebSocket:
                 "f": "monitor",
                 "ff": "watch_on",
                 "id": monitor.monitorId,
-                "ke": self.api.group_id,
+                ATTR_CAMERA_GROUP_ID: self.api.group_id,
                 "uid": self.api.user_id
             }
         ]

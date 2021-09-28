@@ -31,8 +31,7 @@
                   "ssl": "Is SSL",
                   "path": "Path",
                   "username": "Username",
-                  "password": "Password",
-                  "log_level": "Log level"
+                  "password": "Password"
               }
           }
       },

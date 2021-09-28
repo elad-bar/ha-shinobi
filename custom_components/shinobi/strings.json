@@ -29,8 +29,7 @@
                   "port": "Port",
                   "ssl": "Is SSL",
                   "username": "Username",
-                  "password": "Password",
-                  "log_level": "Log level"
+                  "password": "Password"
               }
           }
       },

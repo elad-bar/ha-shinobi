@@ -12,7 +12,6 @@ class ConfigData:
     username: Optional[str]
     password: Optional[str]
     password_clear_text: Optional[str]
-    log_level: str
 
     def __init__(self):
         self.name = DEFAULT_NAME
@@ -23,7 +22,6 @@ class ConfigData:
         self.username = None
         self.password = None
         self.password_clear_text = None
-        self.log_level = LOG_LEVEL_DEFAULT
 
     @property
     def protocol(self):
@@ -74,8 +72,7 @@ class ConfigData:
             CONF_SSL: self.ssl,
             CONF_PATH: self.path,
             CONF_USERNAME: self.username,
-            CONF_PASSWORD: self.password,
-            CONF_LOG_LEVEL: self.log_level,
+            CONF_PASSWORD: self.password
         }
 
         to_string = f"{obj}"

@@ -174,7 +174,7 @@ class ShinobiApi:
                 user_data = login_data.get("$user", {})
 
                 if user_data.get("ok", False):
-                    self.group_id = user_data.get("ke")
+                    self.group_id = user_data.get(ATTR_CAMERA_GROUP_ID)
                     temp_api_key = user_data.get("auth_token")
                     uid = user_data.get("uid")
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.14
+
+- Code and logs cleanup
+- Added `Troubleshooting` section in README
+
 ## 1.1.13
 
 - Fix error due to unsupported event messages [#17](https://github.com/elad-bar/ha-shinobi/issues/17)

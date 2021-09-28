@@ -21,8 +21,6 @@ from homeassistant.const import (
     STATE_ON,
 )
 
-CONF_LOG_LEVEL = "log_level"
-
 CONF_SUPPORT_STREAM = "support_stream"
 
 CONF_ARR = [CONF_USERNAME, CONF_PASSWORD, CONF_HOST, CONF_PORT, CONF_SSL, CONF_PATH]
@@ -40,21 +38,13 @@ PASSWORD_MANAGER = f"pm_{DOMAIN}"
 DATA = f"data_{DOMAIN}"
 DATA_API = f"{DATA}_API"
 DATA_HA = f"{DATA}_HA"
-DATA_HA_ENTITIES = f"{DATA}_HA_Entities"
 DEFAULT_NAME = "Shinobi Video"
 DEFAULT_PORT = 8080
-
-EVENT_HOMEASSISTANT_STOP = "homeassistant_stop"
 
 DOMAIN_KEY_FILE = f"{DOMAIN}.key"
 JSON_DATA_FILE = f"custom_components/{DOMAIN}/data/[NAME].json"
 
 SCAN_INTERVAL_WS_TIMEOUT = timedelta(seconds=60)
-
-DOMAIN_LOGGER = "logger"
-SERVICE_SET_LEVEL = "set_level"
-
-SHINOBI_AUTH_ERROR = "Authorization required"
 
 SHINOBI_WS_ENDPOINT = "socket.io/?EIO=3&transport=websocket"
 
@@ -66,11 +56,7 @@ SHINOBI_WS_ACTION_MESSAGE = "42"
 
 AUTHENTICATION_BASIC = "basic"
 
-NOTIFICATION_ID = f"{DOMAIN}_notification"
-NOTIFICATION_TITLE = f"{DEFAULT_NAME} Setup"
-
 DEFAULT_ICON = "mdi:alarm-light"
-SCHEDULE_ICON = "mdi:calendar-clock"
 ATTR_FRIENDLY_NAME = "friendly_name"
 
 PROTOCOLS = {True: "https", False: "http"}
@@ -82,19 +68,11 @@ TRIGGER_INTERVAL = timedelta(seconds=1)
 
 DEFAULT_FORCE_UPDATE = False
 
-SENSOR_MAIN_NAME = "Main"
-
 MAX_MSG_SIZE = 0
 DISCONNECT_INTERVAL = 5
 RECONNECT_INTERVAL = 30
 
-ATTR_STATUS = [
-]
-
 DISCOVERY = f"{DOMAIN}_discovery"
-DISCOVERY_BINARY_SENSOR = f"{DISCOVERY}_{DOMAIN_BINARY_SENSOR}"
-DISCOVERY_CAMERA = f"{DISCOVERY}_{DOMAIN_CAMERA}"
-DISCOVERY_SWITCH = f"{DISCOVERY}_{DOMAIN_SWITCH}"
 
 UPDATE_SIGNAL_CAMERA = f"{DOMAIN}_{DOMAIN_CAMERA}_UPDATE_SIGNAL"
 UPDATE_SIGNAL_BINARY_SENSOR = f"{DOMAIN}_{DOMAIN_BINARY_SENSOR}_UPDATE_SIGNAL"
@@ -112,24 +90,15 @@ ENTITY_STATE = "state"
 ENTITY_ATTRIBUTES = "attributes"
 ENTITY_ICON = "icon"
 ENTITY_UNIQUE_ID = "unique-id"
-ENTITY_EVENT = "event-type"
-ENTITY_TOPIC = "topic"
 ENTITY_DEVICE_CLASS = "device-class"
 ENTITY_DEVICE_NAME = "device-name"
 ENTITY_CAMERA_DETAILS = "camera-details"
-ENTITY_BINARY_SENSOR_TYPE = "binary-sensor-type"
 ENTITY_DISABLED = "disabled"
-
 
 ENTITY_STATUS = "entity-status"
 ENTITY_STATUS_EMPTY = None
 ENTITY_STATUS_READY = f"{ENTITY_STATUS}-ready"
 ENTITY_STATUS_CREATED = f"{ENTITY_STATUS}-created"
-
-CONF_CLEAR_CREDENTIALS = "clear-credentials"
-
-DOMAIN_LOAD = "load"
-DOMAIN_UNLOAD = "unload"
 
 CONF_CONTENT_TYPE = "content_type"
 CONF_LIMIT_REFETCH_TO_URL_CHANGE = "limit_refetch_to_url_change"
@@ -137,20 +106,6 @@ CONF_STILL_IMAGE_URL = "still_image_url"
 CONF_STREAM_SOURCE = "stream_source"
 CONF_FRAMERATE = "framerate"
 CONF_MOTION_DETECTION = "motion_detection"
-
-LOG_LEVEL_DEFAULT = "Default"
-LOG_LEVEL_DEBUG = "Debug"
-LOG_LEVEL_INFO = "Info"
-LOG_LEVEL_WARNING = "Warning"
-LOG_LEVEL_ERROR = "Error"
-
-LOG_LEVELS = [
-    LOG_LEVEL_DEFAULT,
-    LOG_LEVEL_DEBUG,
-    LOG_LEVEL_INFO,
-    LOG_LEVEL_WARNING,
-    LOG_LEVEL_ERROR,
-]
 
 URL_LOGIN = "?json=true"
 URL_MONITORS = "[AUTH_TOKEN]/monitor/[GROUP_ID]"
@@ -168,8 +123,6 @@ MONITOR_ID = "[MONITOR_ID]"
 
 LOGIN_USERNAME = "mail"
 LOGIN_PASSWORD = "pass"
-LOGIN_FUNCTION = "function"
-LOGIN_DASH = "dash"
 
 DEFAULT_ACCESS_DETAILS = {
                 "auth_socket": False,
@@ -185,13 +138,6 @@ DEFAULT_ACCESS_DETAILS = {
 ATTR_CAMERA_MONITOR_ID = "mid"
 ATTR_CAMERA_GROUP_ID = "ke"
 ATTR_CAMERA_NAME = "name"
-ATTR_CAMERA_TYPE = "type"
-ATTR_CAMERA_EXTENSION = "ext"
-ATTR_CAMERA_PROTOCOL = "protocol"
-ATTR_CAMERA_HOST = "host"
-ATTR_CAMERA_PATH = "path"
-ATTR_CAMERA_PORT = "port"
-ATTR_CAMERA_MODE = "mode"
 ATTR_CAMERA_STATUS = "status"
 ATTR_CAMERA_SNAPSHOT = "snapshot"
 ATTR_CAMERA_STREAMS = "streams"
@@ -219,16 +165,9 @@ TRIGGER_NAME = "name"
 TRIGGER_DETAILS = "details"
 TRIGGER_DETAILS_PLUG = "plug"
 TRIGGER_DETAILS_REASON = "reason"
-TRIGGER_DETAILS_MATRICES = "matrices"
-TRIGGER_DETAILS_MATRICES_TAG = "tag"
 
-TRIGGER_PLUG_DEEPSTACK_FACE = "DeepStack-Face"
-TRIGGER_PLUG_DEEPSTACK_OBJECT = "DeepStack-Object"
-TRIGGER_PLUG_TENSORFLOW = "Tensorflow"
-TRIGGER_PLUG_YOLO = "Yolo"
 TRIGGER_PLUG_DB = "audio"
 
-TRIGGER_TAGS = "tags"
 TRIGGER_STATE = "state"
 TRIGGER_TIMESTAMP = "timestamp"
 TRIGGER_TOPIC = "topic"
@@ -243,7 +182,6 @@ SHINOBI_EVENT = "shinobi/"
 
 REASON_MOTION = "motion"
 REASON_SOUND = "soundChange"
-REASON_FACE = "face"
 
 PLUG_SENSOR_TYPE = {
     REASON_MOTION: SENSOR_TYPE_MOTION,

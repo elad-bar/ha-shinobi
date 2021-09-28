@@ -19,11 +19,8 @@ class ConfigManager:
 
     async def update(self, config_entry: ConfigEntry):
         data = config_entry.data
-        options = config_entry.options
 
         result: ConfigData = await self.get_basic_data(data)
-
-        result.log_level = options.get(CONF_LOG_LEVEL, LOG_LEVEL_DEFAULT)
 
         self.config_entry = config_entry
         self.data = result
