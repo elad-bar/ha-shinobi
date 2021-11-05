@@ -195,6 +195,11 @@ class ShinobiWebSocket:
 
     async def handle_action_message(self, prefix, data):
         try:
+            for bad_format in INVALID_JSON_FORMATS.keys():
+                if bad_format in data:
+                    fixed_format = INVALID_JSON_FORMATS[bad_format]
+                    data = str(data).replace(bad_format, fixed_format)
+
             payload = json.loads(data)
             action = payload[0]
             data = payload[1]

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.15
+
+- Better handling error message due to invalid WebSocket message
+
 ## 1.1.14
 
 - Code and logs cleanup

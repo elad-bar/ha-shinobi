@@ -198,3 +198,8 @@ TRIGGER_DEFAULT = {
 }
 
 BINARY_SENSOR_ATTRIBUTES = []
+
+INVALID_JSON_FORMATS = {
+    "\":,\"": "\": null,\"",
+    "\":,}": "\": null}"
+}
