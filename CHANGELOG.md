@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.16
+
+- Added support to use original stream directly from the camera (Integration's installation / options --> Use original stream)
+- If stream is not set in Shinobi Video Server, will use original stream
+- Disabled monitors in Shinobi Video Server will be created as disabled
+
 ## 1.1.15
 
 - Better handling error message due to invalid WebSocket message

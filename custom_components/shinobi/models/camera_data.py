@@ -15,6 +15,7 @@ class CameraData:
     has_motion_detector: bool
     fps: int
     jpeg_api_enabled: bool
+    original_stream: str
 
     def __init__(self, camera):
         try:
@@ -37,6 +38,15 @@ class CameraData:
             self.has_audio = monitor_details.get(ATTR_CAMERA_DETAILS_AUDIO_CODEC, "no") != "no"
             self.has_audio_detector = monitor_details.get(ATTR_CAMERA_DETAILS_DETECTOR_AUDIO, "0") != "0"
             self.has_motion_detector = monitor_details.get(ATTR_CAMERA_DETAILS_DETECTOR, "0") != "0"
+            original_stream = monitor_details.get(ATTR_ORIGINAL_STREAM)
+            stream_username = monitor_details.get(ATTR_STREAM_USERNAME)
+            stream_password = monitor_details.get(ATTR_STREAM_PASSWORD)
+            stream_credentials = f"{STREAM_PROTOCOL_SUFFIX}{stream_username}:{stream_password}@"
+
+            if original_stream is not None and stream_credentials not in original_stream:
+                original_stream = original_stream.replace(STREAM_PROTOCOL_SUFFIX, stream_credentials)
+
+            self.original_stream = original_stream
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -46,6 +56,12 @@ class CameraData:
                 f"Failed to initialize CameraData: {camera}, Error: {ex}, Line: {line_number}"
             )
 
+    @property
+    def disabled(self):
+        is_disabled = self.status == "Stopped"
+
+        return is_disabled
+
     def __repr__(self):
         obj = {
             ATTR_CAMERA_MONITOR_ID: self.monitorId,
@@ -54,6 +70,7 @@ class CameraData:
             ATTR_CAMERA_SNAPSHOT: self.snapshot,
             ATTR_CAMERA_STREAMS: self.streams,
             ATTR_CAMERA_DETAILS: self.details,
+            ATTR_ORIGINAL_STREAM: self.original_stream,
             MOTION_DETECTION: self.has_motion_detector,
             SOUND_DETECTION: self.has_audio_detector,
             TRIGGER_PLUG_DB: self.has_audio,

@@ -39,6 +39,8 @@ class ConfigManager:
             result.username = data.get(CONF_USERNAME)
             result.password = data.get(CONF_PASSWORD)
 
+            result.use_original_stream = data.get(CONF_USE_ORIGINAL_STREAM, False)
+
             if result.password is not None and len(result.password) > 0:
                 password_clear_text = await self.password_manager.decrypt(
                     result.password

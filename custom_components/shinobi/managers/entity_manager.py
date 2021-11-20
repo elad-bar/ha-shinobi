@@ -7,7 +7,7 @@ from homeassistant.components.stream import DOMAIN as DOMAIN_STREAM
 from homeassistant.const import CONF_AUTHENTICATION
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.entity_registry import EntityRegistry
+from homeassistant.helpers.entity_registry import DISABLED_INTEGRATION, EntityRegistry
 
 from ..api.shinobi_api import ShinobiApi
 from ..helpers.const import *
@@ -122,6 +122,8 @@ class EntityManager:
             self.check_domain(domain)
 
             self.entities[domain][name] = data
+
+            _LOGGER.debug(f"Setting entity: {name}: {data}")
         except Exception as ex:
             self.log_exception(
                 ex, f"Failed to set_entity, domain: {domain}, name: {name}"
@@ -178,6 +180,11 @@ class EntityManager:
                     if entity.status == ENTITY_STATUS_CREATED:
                         entity_item = self.entity_registry.async_get(entity_id)
 
+                        if entity.disabled and entity_item is not None:
+                            self.entity_registry.async_update_entity(entity_id, disabled_by=DISABLED_INTEGRATION)
+
+                            entity_item = self.entity_registry.async_get(entity_id)
+
                         if entity.unique_id in entities_to_delete:
                             entities_to_delete.remove(entity.unique_id)
 
@@ -189,7 +196,6 @@ class EntityManager:
 
                         if entity_id is not None:
                             entity_component.entity_id = entity_id
-
                             state = self.hass.states.get(entity_id)
 
                             if state is None:
@@ -268,6 +274,7 @@ class EntityManager:
             entity.icon = DEFAULT_ICON
             entity.device_name = device_name
             entity.device_class = sensor_type
+            entity.disabled = camera.disabled
 
             self.set_entity(DOMAIN_BINARY_SENSOR, entity_name, entity)
         except Exception as ex:
@@ -310,6 +317,7 @@ class EntityManager:
             if camera.jpeg_api_enabled:
                 username = self.config_data.username
                 password = self.config_data.password_clear_text
+                use_original_stream = self.config_data.use_original_stream
                 base_url = self.api.base_url
 
                 unique_id = f"{DOMAIN}-{DOMAIN_CAMERA}-{entity_name}"
@@ -319,12 +327,16 @@ class EntityManager:
 
                 support_stream = DOMAIN_STREAM in self.hass.data
 
-                stream_source = ""
+                stream_source = None
 
-                for stream in camera.streams:
-                    if stream is not None:
-                        stream_source = f"{base_url}{stream[1:]}"
-                        break
+                if not use_original_stream:
+                    for stream in camera.streams:
+                        if stream is not None:
+                            stream_source = f"{base_url}{stream[1:]}"
+                            break
+
+                if use_original_stream or stream_source is None:
+                    stream_source = camera.original_stream
 
                 camera_details = {
                     CONF_NAME: f"{entity_name}",
@@ -367,6 +379,7 @@ class EntityManager:
                 entity.device_name = device_name
                 entity.details = camera_details
                 entity.state = camera.status
+                entity.disabled = camera.disabled
 
             else:
                 _LOGGER.warning(f"JPEG API is not enabled for {camera.name}, Camera will not be created")

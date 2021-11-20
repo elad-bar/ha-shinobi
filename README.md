@@ -38,6 +38,7 @@ Port | Textbox | + | 0 | HTTP Port to access Shinobi Video server
 SSL | Check-box | + | Unchecked | Is SSL supported?
 Username | Textbox | - | | Username of dashboard user for Shinobi Video server
 Password | Textbox | - | | Password of dashboard user for Shinobi Video server
+Use original stream | Check-box | - | Unchecked | If checked will use the original stream directly from the camera, otherwise, will use the stream from Shinobi Video (Default)
 
 ###### Integration options (Configuration -> Integrations -> Shinobi Video NVR Integration -> Options)
 Fields name | Type | Required | Default | Description
@@ -47,6 +48,7 @@ Port | Textbox | + | 0ast stored port | HTTP Port to access Shinobi Video server
 SSL | Check-box | + | Last stored SSL flag | Is SSL supported?
 Username | Textbox | - | Last stored username | Username of dashboard user for Shinobi Video server
 Password | Textbox | - | Last stored password | Password of dashboard user for Shinobi Video server
+Use original stream | Check-box | - | Unchecked | If checked will use the original stream directly from the camera, otherwise, will use the stream from Shinobi Video (Default)
 
 ###### Configuration validations
 Upon submitting the form of creating an integration or updating options,

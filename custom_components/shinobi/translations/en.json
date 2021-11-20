@@ -10,7 +10,8 @@
           "path": "Path",
           "username": "Username",
           "password": "Password",
-          "ssl": "Is SSL"
+          "ssl": "Is SSL",
+          "use_original_stream": "Use original stream"
         }
       }
     },
@@ -31,7 +32,8 @@
                   "ssl": "Is SSL",
                   "path": "Path",
                   "username": "Username",
-                  "password": "Password"
+                  "password": "Password",
+                  "use_original_stream": "Use original stream"
               }
           }
       },

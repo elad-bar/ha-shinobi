@@ -9,7 +9,8 @@
           "port": "Port",
           "username": "Username",
           "password": "Password",
-          "ssl": "Is SSL"
+          "ssl": "Is SSL",
+          "use_original_stream": "Use original stream"
         }
       }
     },
@@ -29,7 +30,8 @@
                   "port": "Port",
                   "ssl": "Is SSL",
                   "username": "Username",
-                  "password": "Password"
+                  "password": "Password",
+                  "use_original_stream": "Use original stream"
               }
           }
       },

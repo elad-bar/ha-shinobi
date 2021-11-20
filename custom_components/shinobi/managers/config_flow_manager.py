@@ -106,6 +106,7 @@ class ConfigFlowManager:
             vol.Optional(CONF_SSL, default=config_data.ssl): bool,
             vol.Optional(CONF_USERNAME, default=config_data.username): str,
             vol.Optional(CONF_PASSWORD, default=config_data.password_clear_text): str,
+            vol.Optional(CONF_USE_ORIGINAL_STREAM, default=config_data.use_original_stream): bool,
         }
 
         return fields

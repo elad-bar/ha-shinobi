@@ -9,6 +9,7 @@ class ConfigData:
     port: int
     ssl: bool
     path: str
+    use_original_stream: bool
     username: Optional[str]
     password: Optional[str]
     password_clear_text: Optional[str]
@@ -22,6 +23,7 @@ class ConfigData:
         self.username = None
         self.password = None
         self.password_clear_text = None
+        self.use_original_stream = False
 
     @property
     def protocol(self):
@@ -72,7 +74,8 @@ class ConfigData:
             CONF_SSL: self.ssl,
             CONF_PATH: self.path,
             CONF_USERNAME: self.username,
-            CONF_PASSWORD: self.password
+            CONF_PASSWORD: self.password,
+            CONF_USE_ORIGINAL_STREAM: self.use_original_stream
         }
 
         to_string = f"{obj}"
