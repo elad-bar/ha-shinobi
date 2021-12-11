@@ -5,9 +5,11 @@ https://home-assistant.io/components/switch.shinobi/
 """
 from datetime import timedelta
 
-from homeassistant.components.binary_sensor import DOMAIN as DOMAIN_BINARY_SENSOR
+from homeassistant.components.binary_sensor import (
+    DOMAIN as DOMAIN_BINARY_SENSOR,
+    BinarySensorDeviceClass,
+)
 from homeassistant.components.camera import DOMAIN as DOMAIN_CAMERA
-from homeassistant.components.switch import DOMAIN as DOMAIN_SWITCH
 from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
@@ -91,7 +93,7 @@ ENTITY_STATE = "state"
 ENTITY_ATTRIBUTES = "attributes"
 ENTITY_ICON = "icon"
 ENTITY_UNIQUE_ID = "unique-id"
-ENTITY_DEVICE_CLASS = "device-class"
+ENTITY_BINARY_SENSOR_DEVICE_CLASS = "binary-sensor-device-class"
 ENTITY_DEVICE_NAME = "device-name"
 ENTITY_CAMERA_DETAILS = "camera-details"
 ENTITY_DISABLED = "disabled"
@@ -181,22 +183,19 @@ TRIGGER_TOPIC = "topic"
 MOTION_DETECTION = "Motion Detection"
 SOUND_DETECTION = "Sound Detection"
 
-SENSOR_TYPE_MOTION = "motion"
-SENSOR_TYPE_SOUND = "sound"
-
 SHINOBI_EVENT = "shinobi/"
 
 REASON_MOTION = "motion"
 REASON_SOUND = "soundChange"
 
 PLUG_SENSOR_TYPE = {
-    REASON_MOTION: SENSOR_TYPE_MOTION,
-    REASON_SOUND: SENSOR_TYPE_SOUND
+    REASON_MOTION: BinarySensorDeviceClass.MOTION,
+    REASON_SOUND: BinarySensorDeviceClass.SOUND
 }
 
 SENSOR_AUTO_OFF_INTERVAL = {
-    SENSOR_TYPE_MOTION: 20,
-    SENSOR_TYPE_SOUND: 10
+    BinarySensorDeviceClass.MOTION: 20,
+    BinarySensorDeviceClass.SOUND: 10
 }
 
 TRIGGER_DEFAULT = {

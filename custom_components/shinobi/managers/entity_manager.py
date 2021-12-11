@@ -238,7 +238,7 @@ class EntityManager:
         except Exception as ex:
             self.log_exception(ex, f"Failed to update, step: {step}")
 
-    def get_camera_entity(self, camera: CameraData, sensor_type) -> EntityData:
+    def get_camera_entity(self, camera: CameraData, sensor_type: BinarySensorDeviceClass) -> EntityData:
         entity = None
 
         try:
@@ -273,7 +273,7 @@ class EntityManager:
             entity.attributes = attributes
             entity.icon = DEFAULT_ICON
             entity.device_name = device_name
-            entity.device_class = sensor_type
+            entity.binary_sensor_device_class = sensor_type
             entity.disabled = camera.disabled
 
             self.set_entity(DOMAIN_BINARY_SENSOR, entity_name, entity)
@@ -291,10 +291,10 @@ class EntityManager:
             supported_sensors = []
 
             if camera.has_audio and camera.has_audio_detector:
-                supported_sensors.append(SENSOR_TYPE_SOUND)
+                supported_sensors.append(BinarySensorDeviceClass.SOUND)
 
             if camera.has_motion_detector:
-                supported_sensors.append(SENSOR_TYPE_MOTION)
+                supported_sensors.append(BinarySensorDeviceClass.MOTION)
 
             for sensor_type_name in supported_sensors:
                 entity = self.get_camera_entity(camera, sensor_type_name)

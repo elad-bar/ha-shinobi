@@ -92,7 +92,7 @@ class BaseEntity(SensorEntity):
         return False
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         """Return true if the binary sensor is on."""
         return self.entity.attributes
 

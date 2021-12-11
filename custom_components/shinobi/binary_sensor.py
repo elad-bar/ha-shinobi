@@ -53,9 +53,9 @@ class BaseBinarySensor(BinarySensorEntity, BaseEntity):
         return self.entity.state == STATE_ON
 
     @property
-    def device_class(self):
+    def device_class(self) -> BinarySensorDeviceClass:
         """Return the class of this sensor."""
-        return self.entity.device_class
+        return self.entity.binary_sensor_device_class
 
     @property
     def force_update(self):

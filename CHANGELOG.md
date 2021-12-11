@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.17
+
+- Upgraded code to support breaking changes of HA v2012.12.0
+
 ## 1.1.16
 
 - Added support to use original stream directly from the camera (Integration's installation / options --> Use original stream)

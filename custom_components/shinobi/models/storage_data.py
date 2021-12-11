@@ -22,7 +22,6 @@ class StorageData:
 
         if obj is not None:
             data.key = obj.get("key")
-            integrations = obj.get("integrations", {})
 
         return data
 
