@@ -3,6 +3,8 @@ Support for Shinobi Video binary sensors.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/binary_sensor.shinobi/
 """
+from __future__ import annotations
+
 import logging
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
@@ -53,7 +55,7 @@ class BaseBinarySensor(BinarySensorEntity, BaseEntity):
         return self.entity.state == STATE_ON
 
     @property
-    def device_class(self) -> BinarySensorDeviceClass:
+    def device_class(self) -> BinarySensorDeviceClass | str | None:
         """Return the class of this sensor."""
         return self.entity.binary_sensor_device_class
 

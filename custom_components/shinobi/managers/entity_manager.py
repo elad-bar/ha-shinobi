@@ -7,7 +7,11 @@ from homeassistant.components.stream import DOMAIN as DOMAIN_STREAM
 from homeassistant.const import CONF_AUTHENTICATION
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.entity_registry import DISABLED_INTEGRATION, EntityRegistry
+from homeassistant.helpers.entity_registry import (
+    DISABLED_INTEGRATION,
+    EntityRegistry,
+    RegistryEntryDisabler,
+)
 
 from ..api.shinobi_api import ShinobiApi
 from ..helpers.const import *
@@ -181,7 +185,8 @@ class EntityManager:
                         entity_item = self.entity_registry.async_get(entity_id)
 
                         if entity.disabled and entity_item is not None:
-                            self.entity_registry.async_update_entity(entity_id, disabled_by=DISABLED_INTEGRATION)
+                            self.entity_registry.async_update_entity(entity_id,
+                                                                     disabled_by=RegistryEntryDisabler.INTEGRATION)
 
                             entity_item = self.entity_registry.async_get(entity_id)
 
