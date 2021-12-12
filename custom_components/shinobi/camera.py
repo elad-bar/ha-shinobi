@@ -5,6 +5,7 @@ https://home-assistant.io/components/camera.shinobi/
 """
 from abc import ABC
 import asyncio
+from datetime import datetime
 import logging
 from typing import Optional
 
@@ -134,7 +135,8 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
 
         try:
             ws = async_get_clientsession(self.hass, verify_ssl=self.verify_ssl)
-            with async_timeout.timeout(10):
+            async with async_timeout.timeout(10):
+                url = f"{url}?ts={datetime.now().timestamp()}"
                 response = await ws.get(url, auth=self._auth)
 
             self._last_image = await response.read()

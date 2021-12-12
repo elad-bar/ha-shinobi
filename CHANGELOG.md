@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.18
+
+- Fixed camera's timeout warning message
+
 ## 1.1.17
 
 - Upgraded code to support breaking changes of HA v2012.12.0
