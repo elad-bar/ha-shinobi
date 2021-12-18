@@ -102,7 +102,7 @@ class ConfigFlowManager:
         fields = {
             vol.Optional(CONF_HOST, default=config_data.host): str,
             vol.Optional(CONF_PATH, default=config_data.path): str,
-            vol.Optional(CONF_PORT, default=config_data.port): str,
+            vol.Optional(CONF_PORT, default=config_data.port): int,
             vol.Optional(CONF_SSL, default=config_data.ssl): bool,
             vol.Optional(CONF_USERNAME, default=config_data.username): str,
             vol.Optional(CONF_PASSWORD, default=config_data.password_clear_text): str,
