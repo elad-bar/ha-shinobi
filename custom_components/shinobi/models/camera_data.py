@@ -16,6 +16,7 @@ class CameraData:
     fps: int
     jpeg_api_enabled: bool
     original_stream: str
+    mode: str
 
     def __init__(self, camera):
         try:
@@ -24,6 +25,7 @@ class CameraData:
             self.status = camera.get(ATTR_CAMERA_STATUS)
             self.snapshot = camera.get(ATTR_CAMERA_SNAPSHOT)
             self.streams = camera.get(ATTR_CAMERA_STREAMS)
+            self.mode = camera.get(ATTR_CAMERA_MODE)
             self.details = camera
             self.jpeg_api_enabled = self.snapshot is not None and self.snapshot != ""
 
@@ -58,7 +60,7 @@ class CameraData:
 
     @property
     def disabled(self):
-        is_disabled = self.status == "Stopped"
+        is_disabled = self.mode == "stop"
 
         return is_disabled
 

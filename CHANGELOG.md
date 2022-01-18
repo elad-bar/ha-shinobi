@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.20
+
+- Fixed disabled by wrong parameter
+
 ## 1.1.19
 
 - Fixed shinobi video configuration port validation, changed from string to integer
