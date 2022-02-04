@@ -7,11 +7,7 @@ from homeassistant.components.stream import DOMAIN as DOMAIN_STREAM
 from homeassistant.const import CONF_AUTHENTICATION
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.entity_registry import (
-    DISABLED_INTEGRATION,
-    EntityRegistry,
-    RegistryEntryDisabler,
-)
+from homeassistant.helpers.entity_registry import EntityRegistry, RegistryEntryDisabler
 
 from ..api.shinobi_api import ShinobiApi
 from ..helpers.const import *
@@ -151,11 +147,6 @@ class EntityManager:
     async def _async_update(self):
         step = "Mark as ignore"
         try:
-            entities_to_delete = []
-
-            for entity in self.get_all_entities():
-                entities_to_delete.append(entity.unique_id)
-
             step = "Create components"
 
             self.create_components()
@@ -189,9 +180,6 @@ class EntityManager:
                                                                      disabled_by=RegistryEntryDisabler.INTEGRATION)
 
                             entity_item = self.entity_registry.async_get(entity_id)
-
-                        if entity.unique_id in entities_to_delete:
-                            entities_to_delete.remove(entity.unique_id)
 
                         step = f"Mark as created - {domain} -> {entity_key}"
 
@@ -228,17 +216,6 @@ class EntityManager:
 
                 if len(entities_to_add) > 0:
                     async_add_entities(entities_to_add, True)
-
-            if len(entities_to_delete) > 0:
-                _LOGGER.info(f"Following items will be deleted: {entities_to_delete}")
-
-                for domain in SIGNALS:
-                    entities = dict(self.get_entities(domain))
-
-                    for entity_key in entities:
-                        entity = entities[entity_key]
-                        if entity.unique_id in entities_to_delete:
-                            await self.ha.delete_entity(domain, entity.name)
 
         except Exception as ex:
             self.log_exception(ex, f"Failed to update, step: {step}")

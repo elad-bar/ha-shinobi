@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.21
+
+- Removed entity / device delete upon restarting HA
+
 ## 1.1.20
 
 - Fixed disabled by wrong parameter
