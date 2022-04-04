@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.22
+
+- Added support for dashboard-v3 (using SocketIO v4.4.1)
+
 ## 1.1.21
 
 - Removed entity / device delete upon restarting HA

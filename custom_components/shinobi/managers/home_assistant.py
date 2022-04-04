@@ -180,6 +180,11 @@ class HomeAssistantManager:
         await self.api.initialize()
         await self.api.login()
 
+        ws_version = await self.api.get_socket_io_version()
+
+        if self.ws.version != ws_version:
+            self.ws.version = ws_version
+
         await self.async_update(datetime.datetime.now())
 
         while not self.ws.is_aborted:

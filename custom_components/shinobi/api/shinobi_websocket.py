@@ -36,6 +36,7 @@ class ShinobiWebSocket:
     config_manager: ConfigManager
     event_manager: EventManager
     is_aborted: bool
+    version: int
 
     def __init__(self,
                  hass: HomeAssistant,
@@ -53,6 +54,7 @@ class ShinobiWebSocket:
         self.is_connected = False
         self.api = api
         self.is_aborted = False
+        self.version = 3
         self._messages_handler: dict = {
             SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE: self.handle_connection_established_message,
             SHINOBI_WS_PONG_MESSAGE: self.handle_pong_message,
@@ -73,7 +75,7 @@ class ShinobiWebSocket:
         return None
 
     async def initialize(self):
-        _LOGGER.debug("Initializing WS connection")
+        _LOGGER.debug(f"Initializing WebSocket.IO v{self.version} connection")
 
         try:
             if self.is_connected:
@@ -88,8 +90,10 @@ class ShinobiWebSocket:
             _LOGGER.warning(f"Failed to create session of EdgeOS WS, Error: {str(ex)}")
 
         try:
+            url = self.config_data.ws_url.replace("[VERSION]", str(self.version))
+
             async with self._session.ws_connect(
-                self.config_data.ws_url,
+                url,
                 ssl=False,
                 autoclose=True,
                 max_msg_size=MAX_MSG_SIZE,
@@ -140,7 +144,7 @@ class ShinobiWebSocket:
             ):
                 break
 
-        _LOGGER.info(f"Stop listening")
+        _LOGGER.info("Stop listening")
 
     def handle_next_message(self, msg):
         result = False
@@ -159,6 +163,8 @@ class ShinobiWebSocket:
             self._last_update = datetime.now()
 
             if msg.data is None or msg.data == "close":
+                _LOGGER.info(f"Message: {msg}")
+
                 result = False
             else:
                 self.hass.async_create_task(self.parse_message(msg.data))
@@ -167,29 +173,40 @@ class ShinobiWebSocket:
         return result
 
     async def parse_message(self, message: str):
-        message_parts = message.split("[")
-        message_prefix = message_parts[0]
+        try:
+            all_keys = self._messages_handler.keys()
 
-        message_handler = self._messages_handler.get(message_prefix)
+            message_handler = None
+            current_key = None
 
-        if message_handler is None:
-            _LOGGER.debug(f"No message handler available, Message: {message}")
+            for key in all_keys:
+                if f"{key}[" in message or f"{key}{{" in message or key == message:
+                    current_key = key
+                    message_handler = self._messages_handler.get(current_key)
 
-        else:
-            message_data = message.replace(message_prefix, "")
+            if message_handler is None:
+                _LOGGER.debug(f"No message handler available, Message: {message}")
 
-            await message_handler(message_prefix, message_data)
+            else:
+                message_data = message.replace(current_key, "")
 
-    @staticmethod
-    async def handle_connection_established_message(prefix, data):
-        _LOGGER.debug(f"WebSocket connection established")
+                await message_handler(current_key, message_data)
+
+        except Exception as ex:
+            _LOGGER.error(f"Failed to parse message, Message: {message}, Error: {str(ex)}")
+
+    async def handle_connection_established_message(self, prefix, data):
+        _LOGGER.debug(f"WebSocket connection established, ID: {prefix}, Payload: {data}")
+
+        if self.version == 4:
+            await self.send(SHINOBI_WS_CONNECTION_READY_MESSAGE)
 
     @staticmethod
     async def handle_pong_message(prefix, data):
-        _LOGGER.debug(f"Pong message received")
+        _LOGGER.debug(f"Pong message received, ID: {prefix}, Payload: {data}")
 
     async def handle_ready_state_message(self, prefix, data):
-        _LOGGER.debug(f"WebSocket connection state changed to ready")
+        _LOGGER.debug(f"WebSocket connection state changed to ready, ID: {prefix}, Payload: {data}")
 
         await self.send_connect_message()
 
@@ -215,6 +232,9 @@ class ShinobiWebSocket:
 
                 else:
                     _LOGGER.debug(f"Payload received, Type: {func}")
+
+            elif action == "ping":
+                await self.send_pong_message(data)
 
             else:
                 _LOGGER.debug(f"No payload handler available, Payload: {payload}")
@@ -284,10 +304,20 @@ class ShinobiWebSocket:
 
         await self.send(message)
 
+    async def send_pong_message(self, data):
+        message_data = [
+            "pong", data
+        ]
+
+        json_str = json.dumps(message_data)
+        message = f"42{json_str}"
+
+        await self.send(message)
+
     async def send_ping_message(self):
         _LOGGER.debug("Pinging")
 
-        await self.send(SHINOBI_WS_PING_MESSAGE)
+        await self._ws.ping(SHINOBI_WS_PING_MESSAGE)
 
     async def send_connect_monitor(self, monitor: CameraData):
         message_data = [

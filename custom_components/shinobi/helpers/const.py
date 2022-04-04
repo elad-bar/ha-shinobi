@@ -49,7 +49,7 @@ JSON_DATA_FILE = f"custom_components/{DOMAIN}/data/[NAME].json"
 
 SCAN_INTERVAL_WS_TIMEOUT = timedelta(seconds=60)
 
-SHINOBI_WS_ENDPOINT = "socket.io/?EIO=3&transport=websocket"
+SHINOBI_WS_ENDPOINT = "socket.io/?EIO=[VERSION]&transport=websocket"
 
 SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE = "0"
 SHINOBI_WS_PING_MESSAGE = "2"
@@ -113,6 +113,7 @@ CONF_MOTION_DETECTION = "motion_detection"
 URL_LOGIN = "?json=true"
 URL_MONITORS = "[AUTH_TOKEN]/monitor/[GROUP_ID]"
 URL_API_KEYS = "[AUTH_TOKEN]/api/[GROUP_ID]/list"
+URL_SOCKET_IO_V4 = "libs/js/socket.io.min.js"
 
 RESPONSE_CHECK = {
     URL_LOGIN: True,

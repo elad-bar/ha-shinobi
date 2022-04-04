@@ -123,6 +123,34 @@ class ShinobiApi:
 
         return result
 
+    async def async_is_resource_available(self, endpoint):
+        result = False
+        url = self.build_url(endpoint)
+
+        try:
+            _LOGGER.debug(f"GET {url}")
+
+            if self.is_initialized:
+                async with self.session.get(url, ssl=False) as response:
+                    _LOGGER.debug(f"Status of {url}: {response.status}")
+
+                    response.raise_for_status()
+
+                    result = True
+
+                    self._last_update = datetime.now()
+
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            _LOGGER.info(
+                f"Resource is not available in {endpoint}, Error: {ex}, Line: {line_number}"
+            )
+
+        return result
+
+
     async def async_get(self, endpoint):
         result = None
         url = self.build_url(endpoint)
@@ -218,6 +246,18 @@ class ShinobiApi:
         self.is_logged_in = self.api_key is not None
 
         return self.is_logged_in
+
+    async def get_socket_io_version(self):
+        _LOGGER.debug("Get SocketIO version")
+        version = 3
+
+        response = await self.async_is_resource_available(URL_SOCKET_IO_V4)
+
+        if response:
+            version = 4
+
+        return version
+
 
     async def load_camera(self):
         _LOGGER.debug("Retrieving camera list")
