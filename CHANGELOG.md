@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.23
+
+- Fixed invalid event JSON from Shinobi video when confidence level is between 0 and 1 with decimal number - confidence level is lack of leading 0.
+
 ## 1.1.22
 
 - Added support for dashboard-v3 (using SocketIO v4.4.1)
