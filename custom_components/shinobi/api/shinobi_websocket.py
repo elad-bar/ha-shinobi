@@ -212,32 +212,36 @@ class ShinobiWebSocket:
 
     async def handle_action_message(self, prefix, data):
         try:
-            for bad_format in INVALID_JSON_FORMATS.keys():
-                if bad_format in data:
-                    fixed_format = INVALID_JSON_FORMATS[bad_format]
-                    data = str(data).replace(bad_format, fixed_format)
-
-            payload = json.loads(data)
-            action = payload[0]
-            data = payload[1]
-
-            if action == "f":
-                func = data.get(action)
-
-                if func in self._handlers.keys():
-                    handler: Callable = self._handlers.get(func, None)
-
-                    if handler is not None:
-                        await handler(data)
-
-                else:
-                    _LOGGER.debug(f"Payload received, Type: {func}")
-
-            elif action == "ping":
-                await self.send_pong_message(data)
+            if isinstance(data, bytes):
+                _LOGGER.debug(f"Cannot parse message (bytes), Prefix: {prefix}")
 
             else:
-                _LOGGER.debug(f"No payload handler available, Payload: {payload}")
+                for bad_format in INVALID_JSON_FORMATS.keys():
+                    if bad_format in data:
+                        fixed_format = INVALID_JSON_FORMATS[bad_format]
+                        data = str(data).replace(bad_format, fixed_format)
+
+                payload = json.loads(data)
+                action = payload[0]
+                data = payload[1]
+
+                if action == "f":
+                    func = data.get(action)
+
+                    if func in self._handlers.keys():
+                        handler: Callable = self._handlers.get(func, None)
+
+                        if handler is not None:
+                            await handler(data)
+
+                    else:
+                        _LOGGER.debug(f"Payload ({prefix}) received, Type: {func}")
+
+                elif action == "ping":
+                    await self.send_pong_message(data)
+
+                else:
+                    _LOGGER.debug(f"No payload handler available ({prefix}), Payload: {payload}")
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()

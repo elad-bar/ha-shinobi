@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.24
+
+- Fixed 'Failed to parse message' error when the message is bytes based (by ignoring that message)
+
 ## 1.1.23
 
 - Fixed invalid event JSON from Shinobi video when confidence level is between 0 and 1 with decimal number - confidence level is lack of leading 0.
