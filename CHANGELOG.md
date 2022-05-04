@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.25
+
+- Added WebSocket message inspection to make sure only TEXT messages are being handled
+
 ## 1.1.24
 
 - Fixed 'Failed to parse message' error when the message is bytes based (by ignoring that message)

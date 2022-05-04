@@ -159,7 +159,7 @@ class ShinobiWebSocket:
         elif msg.type == aiohttp.WSMsgType.ERROR:
             _LOGGER.warning(f"Connection error, Description: {self._ws.exception()}")
 
-        else:
+        elif msg.type == aiohttp.WSMsgType.text:
             self._last_update = datetime.now()
 
             if msg.data is None or msg.data == "close":
@@ -169,6 +169,9 @@ class ShinobiWebSocket:
             else:
                 self.hass.async_create_task(self.parse_message(msg.data))
                 result = True
+
+        else:
+            _LOGGER.info(f"Ignoring unsupported message, Type: {msg.type}, Content: {msg}")
 
         return result
 
@@ -212,36 +215,32 @@ class ShinobiWebSocket:
 
     async def handle_action_message(self, prefix, data):
         try:
-            if isinstance(data, bytes):
-                _LOGGER.debug(f"Cannot parse message (bytes), Prefix: {prefix}")
+            for bad_format in INVALID_JSON_FORMATS.keys():
+                if bad_format in data:
+                    fixed_format = INVALID_JSON_FORMATS[bad_format]
+                    data = str(data).replace(bad_format, fixed_format)
 
-            else:
-                for bad_format in INVALID_JSON_FORMATS.keys():
-                    if bad_format in data:
-                        fixed_format = INVALID_JSON_FORMATS[bad_format]
-                        data = str(data).replace(bad_format, fixed_format)
+            payload = json.loads(data)
+            action = payload[0]
+            data = payload[1]
 
-                payload = json.loads(data)
-                action = payload[0]
-                data = payload[1]
+            if action == "f":
+                func = data.get(action)
 
-                if action == "f":
-                    func = data.get(action)
+                if func in self._handlers.keys():
+                    handler: Callable = self._handlers.get(func, None)
 
-                    if func in self._handlers.keys():
-                        handler: Callable = self._handlers.get(func, None)
-
-                        if handler is not None:
-                            await handler(data)
-
-                    else:
-                        _LOGGER.debug(f"Payload ({prefix}) received, Type: {func}")
-
-                elif action == "ping":
-                    await self.send_pong_message(data)
+                    if handler is not None:
+                        await handler(data)
 
                 else:
-                    _LOGGER.debug(f"No payload handler available ({prefix}), Payload: {payload}")
+                    _LOGGER.debug(f"Payload ({prefix}) received, Type: {func}")
+
+            elif action == "ping":
+                await self.send_pong_message(data)
+
+            else:
+                _LOGGER.debug(f"No payload handler available ({prefix}), Payload: {payload}")
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
