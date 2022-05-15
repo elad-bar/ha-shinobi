@@ -1,3 +1,4 @@
+import datetime
 import logging
 import sys
 from typing import Dict, List, Optional
@@ -370,6 +371,14 @@ class EntityManager:
             self.log_exception(ex, f"Failed to get camera for {camera}")
 
         return entity
+
+    def set_motion_detection(self, camera_id: str, motion_detection_enabled: bool):
+        self.hass.async_create_task(self.async_set_motion_detection(camera_id, motion_detection_enabled))
+
+    async def async_set_motion_detection(self, camera_id: str, motion_detection_enabled: bool):
+        await self.api.async_set_motion_detection(camera_id, motion_detection_enabled)
+
+        await self.ha.async_update(datetime.datetime.now)
 
     def generate_camera_component(self, camera: CameraData):
         try:

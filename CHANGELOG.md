@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.26
+
+- Added Enable / Disable motion detection per camera ([#22](https://github.com/elad-bar/ha-shinobi/issues/22))
+
 ## 1.1.25
 
 - Added WebSocket message inspection to make sure only TEXT messages are being handled

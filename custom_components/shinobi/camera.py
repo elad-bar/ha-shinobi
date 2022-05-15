@@ -155,3 +155,19 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
     async def stream_source(self):
         """Return the source of the stream."""
         return self._stream_source
+
+    def enable_motion_detection(self) -> None:
+        """Enable motion detection in the camera."""
+        if self.motion_detection_enabled:
+            _LOGGER.error(f"{self.name} - motion detection already enabled'")
+
+        else:
+            self.entity_manager.set_motion_detection(self.entity.id, True)
+
+    def disable_motion_detection(self) -> None:
+        """Disable motion detection in camera."""
+        if self.motion_detection_enabled:
+            self.entity_manager.set_motion_detection(self.entity.id, False)
+
+        else:
+            _LOGGER.error(f"{self.name} - motion detection already disabled'")

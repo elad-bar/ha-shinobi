@@ -86,7 +86,7 @@ class ShinobiApi:
                 f"Failed to initialize Shinobi Video API ({self.base_url}), error: {ex}, line: {line_number}"
             )
 
-    def build_url(self, endpoint):
+    def build_url(self, endpoint, monitor_id: str = None):
         url = f"{self.base_url}{endpoint}"
 
         if GROUP_ID in url and self.group_id is not None:
@@ -95,16 +95,23 @@ class ShinobiApi:
         if AUTH_TOKEN in url and self.api_key is not None:
             url = url.replace(AUTH_TOKEN, self.api_key)
 
+        if MONITOR_ID in url and monitor_id is not None:
+            url = url.replace(MONITOR_ID, monitor_id)
+
         return url
 
-    async def async_post(self, endpoint, request_data=None):
+    async def async_post(self, endpoint, request_data: dict, camera_id: str = None, is_url_encoded: bool = False):
         result = None
-        url = self.build_url(endpoint)
+        url = self.build_url(endpoint, camera_id)
 
         try:
-            _LOGGER.debug(f"POST {url}")
+            _LOGGER.debug(f"POST {url}, Url Encoded: {is_url_encoded}")
+
             if self.is_initialized:
-                async with self.session.post(url, data=request_data, ssl=False) as response:
+                data = None if is_url_encoded else request_data
+                json_data = request_data if is_url_encoded else None
+
+                async with self.session.post(url, data=data, json=json_data, ssl=False) as response:
                     _LOGGER.debug(f"Status of {url}: {response.status}")
 
                     response.raise_for_status()
@@ -118,40 +125,12 @@ class ShinobiApi:
             line_number = tb.tb_lineno
 
             _LOGGER.error(
-                f"Failed to post data to {endpoint}, Error: {ex}, Line: {line_number}"
+                f"Failed to post JSON to {endpoint}, Error: {ex}, Line: {line_number}"
             )
 
         return result
 
-    async def async_is_resource_available(self, endpoint):
-        result = False
-        url = self.build_url(endpoint)
-
-        try:
-            _LOGGER.debug(f"GET {url}")
-
-            if self.is_initialized:
-                async with self.session.get(url, ssl=False) as response:
-                    _LOGGER.debug(f"Status of {url}: {response.status}")
-
-                    response.raise_for_status()
-
-                    result = True
-
-                    self._last_update = datetime.now()
-
-        except Exception as ex:
-            exc_type, exc_obj, tb = sys.exc_info()
-            line_number = tb.tb_lineno
-
-            _LOGGER.info(
-                f"Resource is not available in {endpoint}, Error: {ex}, Line: {line_number}"
-            )
-
-        return result
-
-
-    async def async_get(self, endpoint):
+    async def async_get(self, endpoint, resource_available_check: bool = False):
         result = None
         url = self.build_url(endpoint)
 
@@ -164,7 +143,11 @@ class ShinobiApi:
 
                     response.raise_for_status()
 
-                    result = await response.json()
+                    if resource_available_check:
+                        result = True
+
+                    else:
+                        result = await response.json()
 
                     self._last_update = datetime.now()
 
@@ -212,7 +195,7 @@ class ShinobiApi:
 
                     self.api_key = temp_api_key
 
-                    api_keys_data = await self.async_get(URL_API_KEYS)
+                    api_keys_data: dict = await self.async_get(URL_API_KEYS)
 
                     self.api_key = None
 
@@ -251,19 +234,18 @@ class ShinobiApi:
         _LOGGER.debug("Get SocketIO version")
         version = 3
 
-        response = await self.async_is_resource_available(URL_SOCKET_IO_V4)
+        response: bool = await self.async_get(URL_SOCKET_IO_V4, True)
 
         if response:
             version = 4
 
         return version
 
-
     async def load_camera(self):
         _LOGGER.debug("Retrieving camera list")
 
         camera_list = []
-        response = await self.async_get(URL_MONITORS)
+        response: dict = await self.async_get(URL_MONITORS)
 
         if response is None:
             _LOGGER.warning("No monitors were found")
@@ -298,3 +280,23 @@ class ShinobiApi:
                     )
 
         self.camera_list = camera_list
+
+    async def async_set_motion_detection(self, camera_id: str, motion_detection_enabled: bool):
+        _LOGGER.debug(f"Updating camera {camera_id} motion detection state to {motion_detection_enabled}")
+
+        url = f"{URL_MONITORS}/{camera_id}"
+
+        response: dict = await self.async_get(url)
+        camera_data = response[0]
+        camera_details_str = camera_data.get("details")
+        details = json.loads(camera_details_str)
+
+        details[ATTR_CAMERA_DETAILS_DETECTOR] = str(1 if motion_detection_enabled else 0)
+
+        camera_data["details"] = details
+
+        data = {
+            "data": camera_data
+        }
+
+        await self.async_post(URL_UPDATE_MONITOR, data, camera_id, True)
