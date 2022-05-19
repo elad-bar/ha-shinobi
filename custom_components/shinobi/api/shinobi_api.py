@@ -143,12 +143,12 @@ class ShinobiApi:
                 async with self.session.get(url, ssl=False) as response:
                     _LOGGER.debug(f"Status of {url}: {response.status}")
 
-                    response.raise_for_status()
-
                     if resource_available_check:
-                        result = True
+                        result = response.ok
 
                     else:
+                        response.raise_for_status()
+
                         result = await response.json()
 
                     self._last_update = datetime.now()

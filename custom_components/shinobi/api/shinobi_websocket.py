@@ -320,7 +320,8 @@ class ShinobiWebSocket:
     async def send_ping_message(self):
         _LOGGER.debug("Pinging")
 
-        await self._ws.ping(SHINOBI_WS_PING_MESSAGE)
+        if self.is_connected:
+            await self._ws.ping(SHINOBI_WS_PING_MESSAGE)
 
     async def send_connect_monitor(self, monitor: CameraData):
         message_data = [

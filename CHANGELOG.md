@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.28
+
+- Fix error message when using Shinobi Video with non dashboard-v3 branch (SocketIO=v3)
+- Fix ping attempt while WebSocket connection is closed
+
 ## 1.1.27
 
 - Add Media Browser support ([#23](https://github.com/elad-bar/ha-shinobi/issues/23))
