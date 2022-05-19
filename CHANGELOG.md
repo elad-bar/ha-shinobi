@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.27
+
+- Add Media Browser support ([#23](https://github.com/elad-bar/ha-shinobi/issues/23))
+
 ## 1.1.26
 
 - Added Enable / Disable motion detection per camera ([#22](https://github.com/elad-bar/ha-shinobi/issues/22))

@@ -28,6 +28,7 @@ class ShinobiApi:
     api_key: Optional[str]
     session: Optional[ClientSession]
     camera_list: List[CameraData]
+    video_list: List[dict]
     hass: HomeAssistant
     config_manager: ConfigManager
     base_url: Optional[str]
@@ -69,6 +70,7 @@ class ShinobiApi:
             self.base_url = self.config_data.api_url
             self.is_logged_in = False
             self.camera_list = []
+            self.video_list = []
 
             if self.hass is None:
                 if self.session is not None:
@@ -165,6 +167,7 @@ class ShinobiApi:
         _LOGGER.info(f"Updating data from Shinobi Video Server ({self.config_data.name})")
 
         await self.load_camera()
+        await self.load_videos()
 
     async def login(self):
         _LOGGER.info("Performing login")
@@ -280,6 +283,23 @@ class ShinobiApi:
                     )
 
         self.camera_list = camera_list
+
+    async def load_videos(self):
+        _LOGGER.debug("Retrieving videos list")
+
+        response: dict = await self.async_get(URL_VIDEOS)
+
+        if response is None:
+            _LOGGER.warning("Invalid video response")
+
+        else:
+            video_details = response.get("videos", [])
+
+            if len(video_details) == 0:
+                _LOGGER.warning("No videos found")
+
+            else:
+                self.video_list = video_details
 
     async def async_set_motion_detection(self, camera_id: str, motion_detection_enabled: bool):
         _LOGGER.debug(f"Updating camera {camera_id} motion detection state to {motion_detection_enabled}")

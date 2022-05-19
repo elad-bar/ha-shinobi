@@ -44,6 +44,8 @@ DATA_HA = f"{DATA}_HA"
 DEFAULT_NAME = "Shinobi Video"
 DEFAULT_PORT = 8080
 
+MEDIA_BROWSER_NAME = f"{DEFAULT_NAME} Browser"
+
 DOMAIN_KEY_FILE = f"{DOMAIN}.key"
 JSON_DATA_FILE = f"custom_components/{DOMAIN}/data/[NAME].json"
 
@@ -112,6 +114,7 @@ CONF_MOTION_DETECTION = "motion_detection"
 
 URL_LOGIN = "?json=true"
 URL_MONITORS = "[AUTH_TOKEN]/monitor/[GROUP_ID]"
+URL_VIDEOS = "[AUTH_TOKEN]/videos/[GROUP_ID]"
 URL_API_KEYS = "[AUTH_TOKEN]/api/[GROUP_ID]/list"
 URL_SOCKET_IO_V4 = "libs/js/socket.io.min.js"
 URL_UPDATE_MONITOR = "[AUTH_TOKEN]/configureMonitor/[GROUP_ID]/[MONITOR_ID]"
@@ -212,3 +215,12 @@ INVALID_JSON_FORMATS = {
     "\":.": "\": 0.",
     "\":,}": "\": null}"
 }
+
+CODEC_TO_MIMETYPE = {
+    "mp4": "video/mp4"
+}
+
+VIDEO_DETAILS_MONITOR_ID = "mid"
+VIDEO_DETAILS_TIME = "time"
+VIDEO_DETAILS_TIME_FORMAT = "%x %X"
+VIDEO_DETAILS_URL = "actionUrl"
