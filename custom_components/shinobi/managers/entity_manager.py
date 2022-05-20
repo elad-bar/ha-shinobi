@@ -301,11 +301,10 @@ class EntityManager:
                 username = self.config_data.username
                 password = self.config_data.password_clear_text
                 use_original_stream = self.config_data.use_original_stream
-                base_url = self.api.base_url
 
                 unique_id = f"{DOMAIN}-{DOMAIN_CAMERA}-{entity_name}"
 
-                snapshot = f"{base_url}{camera.snapshot[1:]}"
+                snapshot = self.api.build_url(camera.snapshot)
                 still_image_url_template = cv.template(snapshot)
 
                 support_stream = DOMAIN_STREAM in self.hass.data
@@ -315,7 +314,7 @@ class EntityManager:
                 if not use_original_stream:
                     for stream in camera.streams:
                         if stream is not None:
-                            stream_source = f"{base_url}{stream[1:]}"
+                            stream_source = self.api.build_url(stream)
                             break
 
                 if use_original_stream or stream_source is None:

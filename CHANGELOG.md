@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.29
+
+- Fix video date and time parsing when TZ is not available
+- Video data code separation
+- Code cleanup
+
 ## 1.1.28
 
 - Fix error message when using Shinobi Video with non dashboard-v3 branch (SocketIO=v3)

@@ -13,6 +13,7 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from ..helpers.const import *
 from ..managers.configuration_manager import ConfigManager
 from ..models.camera_data import CameraData
+from ..models.video_data import VideoData
 
 REQUIREMENTS = ["aiohttp"]
 
@@ -28,7 +29,7 @@ class ShinobiApi:
     api_key: Optional[str]
     session: Optional[ClientSession]
     camera_list: List[CameraData]
-    video_list: List[dict]
+    video_list: List[VideoData]
     hass: HomeAssistant
     config_manager: ConfigManager
     base_url: Optional[str]
@@ -63,6 +64,15 @@ class ShinobiApi:
     def config_data(self):
         return self.config_manager.data
 
+    @property
+    def camera_dict(self) -> dict[str, CameraData]:
+        camera_items = {}
+
+        for camera in self.camera_list:
+            camera_items[camera.monitorId] = camera
+
+        return camera_items
+
     async def initialize(self):
         _LOGGER.info("Initializing Shinobi Video")
 
@@ -89,6 +99,9 @@ class ShinobiApi:
             )
 
     def build_url(self, endpoint, monitor_id: str = None):
+        if endpoint.startswith("/"):
+            endpoint = endpoint[1:]
+
         url = f"{self.base_url}{endpoint}"
 
         if GROUP_ID in url and self.group_id is not None:
@@ -286,6 +299,7 @@ class ShinobiApi:
 
     async def load_videos(self):
         _LOGGER.debug("Retrieving videos list")
+        video_list = []
 
         response: dict = await self.async_get(URL_VIDEOS)
 
@@ -299,7 +313,28 @@ class ShinobiApi:
                 _LOGGER.warning("No videos found")
 
             else:
-                self.video_list = video_details
+                camera_items = self.camera_dict
+
+                for video in video_details:
+                    try:
+                        if video is None:
+                            _LOGGER.warning(f"Invalid video details found")
+
+                        else:
+                            video_data = VideoData(video, camera_items)
+
+                            if video_data is not None:
+                                video_list.append(video_data)
+
+                    except Exception as ex:
+                        exc_type, exc_obj, tb = sys.exc_info()
+                        line_number = tb.tb_lineno
+
+                        _LOGGER.error(
+                            f"Failed to load video data: {video}, Error: {ex}, Line: {line_number}"
+                        )
+
+        self.video_list = video_list
 
     async def async_set_motion_detection(self, camera_id: str, motion_detection_enabled: bool):
         _LOGGER.debug(f"Updating camera {camera_id} motion detection state to {motion_detection_enabled}")

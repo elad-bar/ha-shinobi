@@ -1,6 +1,13 @@
 from homeassistant.exceptions import HomeAssistantError
 
 
+class CameraNotFoundError(HomeAssistantError):
+    camera_id: str
+
+    def __init__(self, camera_id: str):
+        self.camera_id = camera_id
+
+
 class AlreadyExistsError(HomeAssistantError):
     title: str
 
