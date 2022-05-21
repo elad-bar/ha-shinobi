@@ -117,8 +117,6 @@ class EntityManager:
                 self.entity_registry.async_update_entity(entity_id,
                                                          disabled_by=RegistryEntryDisabler.INTEGRATION)
 
-                entity_item = self.entity_registry.async_get(entity_id)
-
             else:
                 entity.disabled = entity_item.disabled
 

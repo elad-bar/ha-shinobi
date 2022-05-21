@@ -216,24 +216,17 @@ class HomeAssistantManager:
 
         unload = self._hass.config_entries.async_forward_entry_unload
 
-        for domain in SUPPORTED_DOMAINS:
+        for domain in SIGNALS:
             await unload(entry, domain)
 
         await self._device_manager.async_remove()
 
         _LOGGER.info(f"Current integration ({entry.title}) removed")
 
-    def event_handler(self, event_type: Optional[str] = None, event_data: Optional[dict] = None):
-        if event_type is not None:
-            if event_type in PLUG_SENSOR_TYPE.keys():
-                self.entity_manager.update()
+    def event_handler(self):
+        self.entity_manager.update()
 
-                self._hass.async_create_task(self.dispatch_all())
-
-            else:
-                event_name = f"{SHINOBI_EVENT}{event_type}"
-
-                self._hass.bus.async_fire(event_name, event_data)
+        self._hass.async_create_task(self.dispatch_all())
 
     async def async_update(self, event_time):
         if not self._is_initialized:

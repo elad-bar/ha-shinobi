@@ -50,7 +50,9 @@ class EventManager:
             event_type = None
 
             if sensor_type is None:
-                event_type = trigger_reason
+                event_name = f"{SHINOBI_EVENT}{trigger_reason}"
+
+                self.hass.bus.async_fire(event_name, payload)
 
             else:
                 trigger_name = payload.get(TRIGGER_NAME)
@@ -74,9 +76,7 @@ class EventManager:
                 self.set_state(topic, sensor_type, value)
 
                 if previous_state == STATE_OFF:
-                    event_type = sensor_type
-
-            self.callback(event_type, payload)
+                    self.callback()
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()

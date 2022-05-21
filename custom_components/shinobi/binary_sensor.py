@@ -58,23 +58,3 @@ class BaseBinarySensor(BinarySensorEntity, BaseEntity):
     def device_class(self) -> BinarySensorDeviceClass | str | None:
         """Return the class of this sensor."""
         return self.entity.binary_sensor_device_class
-
-    @property
-    def force_update(self):
-        """Force update."""
-        return DEFAULT_FORCE_UPDATE
-
-    async def async_added_to_hass_local(self):
-        _LOGGER.info(f"Added new {self.name}")
-
-    def _immediate_update(self, previous_state: str):
-        is_on = self.entity.state == STATE_ON
-        was_changed = self.state != previous_state
-
-        if was_changed:
-            _LOGGER.debug(
-                f"{self.name} updated from {previous_state} to {self.state}"
-            )
-
-        if not is_on or was_changed:
-            super()._immediate_update(previous_state)
