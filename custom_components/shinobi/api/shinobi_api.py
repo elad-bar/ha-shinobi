@@ -12,7 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from ..helpers.const import *
 from ..managers.configuration_manager import ConfigManager
-from ..models.camera_data import CameraData
+from ..models.camera_data import MonitorData
 from ..models.video_data import VideoData
 
 REQUIREMENTS = ["aiohttp"]
@@ -28,11 +28,11 @@ class ShinobiApi:
     user_id: Optional[str]
     api_key: Optional[str]
     session: Optional[ClientSession]
-    camera_list: List[CameraData]
     video_list: List[VideoData]
     hass: HomeAssistant
     config_manager: ConfigManager
     base_url: Optional[str]
+    monitors: dict[str, MonitorData]
 
     def __init__(self, hass: HomeAssistant, config_manager: ConfigManager):
         try:
@@ -47,6 +47,7 @@ class ShinobiApi:
             self.session = None
             self.is_logged_in = False
             self.base_url = None
+            self.monitors = {}
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -64,22 +65,12 @@ class ShinobiApi:
     def config_data(self):
         return self.config_manager.data
 
-    @property
-    def camera_dict(self) -> dict[str, CameraData]:
-        camera_items = {}
-
-        for camera in self.camera_list:
-            camera_items[camera.monitorId] = camera
-
-        return camera_items
-
     async def initialize(self):
         _LOGGER.info("Initializing Shinobi Video")
 
         try:
             self.base_url = self.config_data.api_url
             self.is_logged_in = False
-            self.camera_list = []
             self.video_list = []
 
             if self.hass is None:
@@ -102,18 +93,26 @@ class ShinobiApi:
         if endpoint.startswith("/"):
             endpoint = endpoint[1:]
 
+        endpoint = self.build_endpoint(endpoint, monitor_id)
+
         url = f"{self.base_url}{endpoint}"
 
-        if GROUP_ID in url and self.group_id is not None:
-            url = url.replace(GROUP_ID, self.group_id)
-
-        if AUTH_TOKEN in url and self.api_key is not None:
-            url = url.replace(AUTH_TOKEN, self.api_key)
-
-        if MONITOR_ID in url and monitor_id is not None:
-            url = url.replace(MONITOR_ID, monitor_id)
-
         return url
+
+    def build_endpoint(self, endpoint, monitor_id: str = None):
+        if endpoint.startswith("/"):
+            endpoint = endpoint[1:]
+
+        if GROUP_ID in endpoint and self.group_id is not None:
+            endpoint = endpoint.replace(GROUP_ID, self.group_id)
+
+        if AUTH_TOKEN in endpoint and self.api_key is not None:
+            endpoint = endpoint.replace(AUTH_TOKEN, self.api_key)
+
+        if MONITOR_ID in endpoint and monitor_id is not None:
+            endpoint = endpoint.replace(MONITOR_ID, monitor_id)
+
+        return endpoint
 
     async def async_post(self, endpoint, request_data: dict, camera_id: str = None, is_url_encoded: bool = False):
         result = None
@@ -260,7 +259,6 @@ class ShinobiApi:
     async def load_camera(self):
         _LOGGER.debug("Retrieving camera list")
 
-        camera_list = []
         response: dict = await self.async_get(URL_MONITORS)
 
         if response is None:
@@ -284,8 +282,9 @@ class ShinobiApi:
 
                         monitor["details"] = details
 
-                        camera = CameraData(monitor)
-                        camera_list.append(camera)
+                        camera = MonitorData(monitor)
+
+                        self.monitors[camera.monitorId] = camera
 
                 except Exception as ex:
                     exc_type, exc_obj, tb = sys.exc_info()
@@ -294,8 +293,6 @@ class ShinobiApi:
                     _LOGGER.error(
                         f"Failed to load camera data: {monitor}, Error: {ex}, Line: {line_number}"
                     )
-
-        self.camera_list = camera_list
 
     async def load_videos(self):
         _LOGGER.debug("Retrieving videos list")
@@ -313,15 +310,13 @@ class ShinobiApi:
                 _LOGGER.warning("No videos found")
 
             else:
-                camera_items = self.camera_dict
-
                 for video in video_details:
                     try:
                         if video is None:
                             _LOGGER.warning(f"Invalid video details found")
 
                         else:
-                            video_data = VideoData(video, camera_items)
+                            video_data = VideoData(video, self.monitors)
 
                             if video_data is not None:
                                 video_list.append(video_data)
@@ -336,8 +331,26 @@ class ShinobiApi:
 
         self.video_list = video_list
 
+    async def async_set_camera_mode(self, camera_id: str, mode: str):
+        _LOGGER.info(f"Updating camera {camera_id} mode to {mode}")
+
+        endpoint = self.build_endpoint(f"{URL_UPDATE_MODE}/{mode}", camera_id)
+
+        response = await self.async_get(endpoint)
+
+        response_message = response.get("msg")
+
+        result = response.get("ok", False)
+
+        if result:
+            _LOGGER.info(f"{response_message} for {camera_id}")
+        else:
+            _LOGGER.warning(f"{response_message} for {camera_id}")
+
+        return result
+
     async def async_set_motion_detection(self, camera_id: str, motion_detection_enabled: bool):
-        _LOGGER.debug(f"Updating camera {camera_id} motion detection state to {motion_detection_enabled}")
+        _LOGGER.info(f"Updating camera {camera_id} motion detection state to {motion_detection_enabled}")
 
         url = f"{URL_MONITORS}/{camera_id}"
 

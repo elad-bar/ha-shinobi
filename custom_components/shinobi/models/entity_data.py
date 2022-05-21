@@ -7,7 +7,7 @@ class EntityData:
     id: str
     unique_id: str
     name: str
-    state: bool
+    state: str
     attributes: dict
     icon: str
     device_name: str
@@ -15,12 +15,13 @@ class EntityData:
     binary_sensor_device_class: Optional[BinarySensorDeviceClass]
     details: dict
     disabled: bool
+    domain: str
 
     def __init__(self):
         self.id = ""
         self.unique_id = ""
         self.name = ""
-        self.state = False
+        self.state = ""
         self.attributes = {}
         self.icon = ""
         self.device_name = ""
@@ -28,6 +29,7 @@ class EntityData:
         self.binary_sensor_device_class = None
         self.details = {}
         self.disabled = False
+        self.domain = ""
 
     def __repr__(self):
         obj = {
@@ -42,6 +44,7 @@ class EntityData:
             ENTITY_BINARY_SENSOR_DEVICE_CLASS: self.binary_sensor_device_class,
             ENTITY_CAMERA_DETAILS: self.details,
             ENTITY_DISABLED: self.disabled,
+            ENTITY_DOMAIN: self.domain
         }
 
         to_string = f"{obj}"

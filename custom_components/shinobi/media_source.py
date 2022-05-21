@@ -144,7 +144,9 @@ class ShinobiMediaSource(MediaSource, ABC):
         else:
             # We show camera in the root additionally, when there is no item
             if not item.identifier or category == DOMAIN_CAMERA:
-                for camera in self.api.camera_list:
+                for camera_id in self.api.monitors:
+                    camera = self.api.monitors.get(camera_id)
+
                     item = BrowseMediaSource(
                         domain=DOMAIN,
                         identifier=f"{DOMAIN_CAMERA}/{camera.monitorId}",

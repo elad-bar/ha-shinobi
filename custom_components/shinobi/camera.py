@@ -86,7 +86,7 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
         self._last_url = None
         self._last_image = None
 
-    def _immediate_update(self, previous_state: bool):
+    def _immediate_update(self, previous_state: str):
         if previous_state != self.entity.state:
             _LOGGER.debug(
                 f"{self.name} updated from {previous_state} to {self.entity.state}"
@@ -100,7 +100,7 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
 
     @property
     def is_recording(self) -> bool:
-        return self.entity.state == "Recording"
+        return self.entity.state == CAMERA_MODE_RECORD
 
     @property
     def motion_detection_enabled(self):
@@ -156,18 +156,18 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
         """Return the source of the stream."""
         return self._stream_source
 
-    def enable_motion_detection(self) -> None:
+    async def async_enable_motion_detection(self) -> None:
         """Enable motion detection in the camera."""
         if self.motion_detection_enabled:
             _LOGGER.error(f"{self.name} - motion detection already enabled'")
 
         else:
-            self.entity_manager.set_motion_detection(self.entity.id, True)
+            await self.entity_manager.async_set_motion_detection(self.entity.id, True)
 
-    def disable_motion_detection(self) -> None:
+    async def async_disable_motion_detection(self) -> None:
         """Disable motion detection in camera."""
         if self.motion_detection_enabled:
-            self.entity_manager.set_motion_detection(self.entity.id, False)
+            await self.entity_manager.async_set_motion_detection(self.entity.id, False)
 
         else:
             _LOGGER.error(f"{self.name} - motion detection already disabled'")

@@ -3,7 +3,6 @@ import logging
 from homeassistant.helpers.device_registry import async_get_registry
 
 from ..helpers.const import *
-from ..models.camera_data import CameraData
 from .configuration_manager import ConfigManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,10 +52,9 @@ class DeviceManager:
 
     def update(self):
         self.generate_system_device()
-        camera_list = self._api.camera_list
 
-        for camera in camera_list:
-            self.generate_camera_device(camera)
+        for camera_id in self._api.monitors:
+            self.generate_camera_device(camera_id)
 
     def get_system_device_name(self):
         title = self.config_manager.config_entry.title
@@ -65,8 +63,9 @@ class DeviceManager:
 
         return device_name
 
-    def get_camera_device_name(self, camera: CameraData):
+    def get_camera_device_name(self, camera_id: str):
         title = self.config_manager.config_entry.title
+        camera = self._api.monitors.get(camera_id)
 
         device_name = f"{title} {camera.name} ({camera.monitorId})"
 
@@ -84,8 +83,8 @@ class DeviceManager:
 
         self.set(device_name, device_info)
 
-    def generate_camera_device(self, camera):
-        device_name = self.get_camera_device_name(camera)
+    def generate_camera_device(self, camera_id: str):
+        device_name = self.get_camera_device_name(camera_id)
 
         device_info = {
             "identifiers": {(DEFAULT_NAME, device_name)},

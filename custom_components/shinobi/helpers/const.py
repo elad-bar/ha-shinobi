@@ -10,6 +10,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
 )
 from homeassistant.components.camera import DOMAIN as DOMAIN_CAMERA
+from homeassistant.components.select import DOMAIN as DOMAIN_SELECT
 from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
@@ -81,12 +82,12 @@ DISCOVERY = f"{DOMAIN}_discovery"
 
 UPDATE_SIGNAL_CAMERA = f"{DOMAIN}_{DOMAIN_CAMERA}_UPDATE_SIGNAL"
 UPDATE_SIGNAL_BINARY_SENSOR = f"{DOMAIN}_{DOMAIN_BINARY_SENSOR}_UPDATE_SIGNAL"
-
-SUPPORTED_DOMAINS = [DOMAIN_BINARY_SENSOR, DOMAIN_CAMERA]
+UPDATE_SIGNAL_SELECT = f"{DOMAIN}_{DOMAIN_SELECT}_UPDATE_SIGNAL"
 
 SIGNALS = {
     DOMAIN_BINARY_SENSOR: UPDATE_SIGNAL_BINARY_SENSOR,
     DOMAIN_CAMERA: UPDATE_SIGNAL_CAMERA,
+    DOMAIN_SELECT: UPDATE_SIGNAL_SELECT,
 }
 
 ENTITY_ID = "id"
@@ -99,11 +100,14 @@ ENTITY_BINARY_SENSOR_DEVICE_CLASS = "binary-sensor-device-class"
 ENTITY_DEVICE_NAME = "device-name"
 ENTITY_CAMERA_DETAILS = "camera-details"
 ENTITY_DISABLED = "disabled"
+ENTITY_DOMAIN = "domain"
+ENTITY_STATUS = "status"
 
-ENTITY_STATUS = "entity-status"
 ENTITY_STATUS_EMPTY = None
-ENTITY_STATUS_READY = f"{ENTITY_STATUS}-ready"
-ENTITY_STATUS_CREATED = f"{ENTITY_STATUS}-created"
+ENTITY_STATUS_READY = "ready"
+ENTITY_STATUS_CREATED = "created"
+ENTITY_STATUS_DELETED = "deleted"
+ENTITY_STATUS_UPDATED = "updated"
 
 CONF_CONTENT_TYPE = "content_type"
 CONF_LIMIT_REFETCH_TO_URL_CHANGE = "limit_refetch_to_url_change"
@@ -118,6 +122,7 @@ URL_VIDEOS = "[AUTH_TOKEN]/videos/[GROUP_ID]"
 URL_API_KEYS = "[AUTH_TOKEN]/api/[GROUP_ID]/list"
 URL_SOCKET_IO_V4 = "libs/js/socket.io.min.js"
 URL_UPDATE_MONITOR = "[AUTH_TOKEN]/configureMonitor/[GROUP_ID]/[MONITOR_ID]"
+URL_UPDATE_MODE = f"{URL_MONITORS}/[MONITOR_ID]"
 
 RESPONSE_CHECK = {
     URL_LOGIN: True,
@@ -159,6 +164,7 @@ ATTR_CAMERA_DETAILS_DETECTOR = "detector"
 ATTR_CAMERA_DETAILS_DETECTOR_AUDIO = "detector_audio"
 ATTR_CAMERA_MODE = "mode"
 ATTR_FPS = "fps"
+ATTR_DISABLED = "disabled"
 
 STREAM_PROTOCOL_SUFFIX = "://"
 
@@ -229,3 +235,20 @@ VIDEO_DETAILS_TIME_INVALID_CHAR = "z"
 VIDEO_DETAILS_MIME_TYPE = "mime-type"
 VIDEO_DETAILS_IDENTIFIER = "identifier"
 VIDEO_DETAILS_TITLE = "title"
+
+CAMERA_MODE_STOP = "stop"
+CAMERA_MODE_RECORD = "record"
+
+CAMERA_MODES = {
+    "stop": "Disabled",
+    "start": "Watch-Only",
+    "record": "Record"
+}
+
+ICON_CAMERA_MODES = {
+    "stop": "mdi:cctv-off",
+    "start": "mdi:cctv",
+    "record": "mdi:record-rec"
+}
+
+FEATURE_SET_CAMERA_MODE = "Camera Mode"

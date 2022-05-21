@@ -224,17 +224,16 @@ class HomeAssistantManager:
         _LOGGER.info(f"Current integration ({entry.title}) removed")
 
     def event_handler(self, event_type: Optional[str] = None, event_data: Optional[dict] = None):
-        _LOGGER.debug(f"Handle event: {event_type}")
+        if event_type is not None:
+            if event_type in PLUG_SENSOR_TYPE.keys():
+                self.entity_manager.update()
 
-        if event_type in PLUG_SENSOR_TYPE.keys():
-            self.entity_manager.update()
+                self._hass.async_create_task(self.dispatch_all())
 
-            self._hass.async_create_task(self.dispatch_all())
+            else:
+                event_name = f"{SHINOBI_EVENT}{event_type}"
 
-        else:
-            event_name = f"{SHINOBI_EVENT}{event_type}"
-
-            self._hass.bus.async_fire(event_name, event_data)
+                self._hass.bus.async_fire(event_name, event_data)
 
     async def async_update(self, event_time):
         if not self._is_initialized:
@@ -292,7 +291,7 @@ class HomeAssistantManager:
             _LOGGER.info("NOT INITIALIZED - Failed discovering components")
             return
 
-        for domain in SUPPORTED_DOMAINS:
+        for domain in SIGNALS:
             signal = SIGNALS.get(domain)
 
             async_dispatcher_send(self._hass, signal)

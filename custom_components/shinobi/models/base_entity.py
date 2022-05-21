@@ -2,10 +2,10 @@ import logging
 import sys
 from typing import Any, Callable, Optional
 
-from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity import Entity
 
 from ..api.shinobi_api import ShinobiApi
 from ..helpers import get_ha
@@ -40,7 +40,7 @@ async def async_setup_base_entry(
         _LOGGER.error(f"Failed to load {domain}, error: {ex}, line: {line_number}")
 
 
-class BaseEntity(SensorEntity):
+class BaseEntity(Entity):
     """Representation a binary sensor that is updated by Shinobi Video."""
 
     hass: HomeAssistant = None
@@ -143,5 +143,5 @@ class BaseEntity(SensorEntity):
     async def async_will_remove_from_hass_local(self):
         pass
 
-    def _immediate_update(self, previous_state: bool):
+    def _immediate_update(self, previous_state: str):
         self.async_schedule_update_ha_state(True)

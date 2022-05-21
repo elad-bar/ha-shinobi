@@ -67,7 +67,7 @@ class BaseBinarySensor(BinarySensorEntity, BaseEntity):
     async def async_added_to_hass_local(self):
         _LOGGER.info(f"Added new {self.name}")
 
-    def _immediate_update(self, previous_state: bool):
+    def _immediate_update(self, previous_state: str):
         is_on = self.entity.state == STATE_ON
         was_changed = self.state != previous_state
 

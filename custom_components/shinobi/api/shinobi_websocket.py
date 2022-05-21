@@ -19,7 +19,6 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from ..helpers.const import *
 from ..managers.configuration_manager import ConfigManager
 from ..managers.event_manager import EventManager
-from ..models.camera_data import CameraData
 from ..models.config_data import ConfigData
 from .shinobi_api import ShinobiApi
 
@@ -276,10 +275,8 @@ class ShinobiWebSocket:
         if monitor_id == "$USER" and log_type == "Websocket Connected":
             _LOGGER.debug(f"WebSocket Connected")
 
-            monitors = self.api.camera_list
-
-            for monitor in monitors:
-                await self.send_connect_monitor(monitor)
+            for camera_id in self.api.monitors:
+                await self.send_connect_monitor(camera_id)
 
     async def handle_detector_trigger(self, data):
         _LOGGER.debug(f"Payload received, Data: {data}")
@@ -323,14 +320,14 @@ class ShinobiWebSocket:
         if self.is_connected:
             await self._ws.ping(SHINOBI_WS_PING_MESSAGE)
 
-    async def send_connect_monitor(self, monitor: CameraData):
+    async def send_connect_monitor(self, camera_id: str):
         message_data = [
             "f",
             {
                 "auth": self.api.api_key,
                 "f": "monitor",
                 "ff": "watch_on",
-                "id": monitor.monitorId,
+                "id": camera_id,
                 ATTR_CAMERA_GROUP_ID: self.api.group_id,
                 "uid": self.api.user_id
             }

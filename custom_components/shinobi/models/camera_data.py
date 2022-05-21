@@ -6,7 +6,7 @@ from ..helpers.const import *
 _LOGGER = logging.getLogger(__name__)
 
 
-class CameraData:
+class MonitorData:
     monitorId: str
     name: str
     details: dict
@@ -55,14 +55,25 @@ class CameraData:
             line_number = tb.tb_lineno
 
             _LOGGER.error(
-                f"Failed to initialize CameraData: {camera}, Error: {ex}, Line: {line_number}"
+                f"Failed to initialize MonitorData: {camera}, Error: {ex}, Line: {line_number}"
             )
 
     @property
     def disabled(self):
-        is_disabled = self.mode == "stop"
+        is_disabled = self.mode == CAMERA_MODE_STOP
 
         return is_disabled
+
+    def is_sensor_active(self, sensor_type: BinarySensorDeviceClass):
+        result = False
+
+        if sensor_type.SOUND and self.has_audio and self.has_audio_detector:
+            result = True
+
+        if sensor_type.MOTION and self.has_motion_detector:
+            result = True
+
+        return result
 
     def __repr__(self):
         obj = {
@@ -76,7 +87,9 @@ class CameraData:
             MOTION_DETECTION: self.has_motion_detector,
             SOUND_DETECTION: self.has_audio_detector,
             TRIGGER_PLUG_DB: self.has_audio,
-            ATTR_FPS: self.fps
+            ATTR_FPS: self.fps,
+            ATTR_CAMERA_MODE: self.mode,
+            ATTR_DISABLED: self.disabled
         }
 
         to_string = f"{obj}"

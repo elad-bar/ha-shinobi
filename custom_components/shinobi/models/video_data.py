@@ -9,7 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from . import CameraNotFoundError
 from ..helpers.const import *
-from .camera_data import CameraData
+from .camera_data import MonitorData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class VideoData:
     time: str
     mime_type: str
 
-    def __init__(self, video: dict, camera_dict: dict[str, CameraData]):
+    def __init__(self, video: dict, camera_dict: dict[str, MonitorData]):
         try:
             camera_id = video.get(VIDEO_DETAILS_MONITOR_ID)
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.0
+
+- Add support to control camera mode using Select Entity, available options are Disabled (stop), Watch Only (start), Record (record)
+- When camera mode is Disabled, all entities will be removed (Camera and Binary Sensors), Mode Select Entity will remain available
+- When Motion detection is turned off, No Motion detection sensors will be available for the specific camera
+- When Sound detection is turned off, No sound detection sensors will be available for the specific camera
+- Fix camera state (calculated wrongly before)
+- Improved entity update mechanism (update only if relevant as opposed to update anyway)
+- Improved Shinobi Video events handler
+- Code cleanup
+
 ## 1.1.29
 
 - Fix video date and time parsing when TZ is not available

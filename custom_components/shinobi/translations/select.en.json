@@ -1,0 +1,9 @@
+{
+  "state": {
+    "shinobi__mode": {
+      "stop": "Disabled",
+      "start": "Watch-Only",
+      "record": "Record"
+    }
+  }
+}
