@@ -11,6 +11,8 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.components.camera import DOMAIN as DOMAIN_CAMERA
 from homeassistant.components.select import DOMAIN as DOMAIN_SELECT
+from homeassistant.components.stream import DOMAIN as DOMAIN_STREAM
+from homeassistant.components.switch import DOMAIN as DOMAIN_SWITCH
 from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
@@ -83,11 +85,13 @@ DISCOVERY = f"{DOMAIN}_discovery"
 UPDATE_SIGNAL_CAMERA = f"{DOMAIN}_{DOMAIN_CAMERA}_UPDATE_SIGNAL"
 UPDATE_SIGNAL_BINARY_SENSOR = f"{DOMAIN}_{DOMAIN_BINARY_SENSOR}_UPDATE_SIGNAL"
 UPDATE_SIGNAL_SELECT = f"{DOMAIN}_{DOMAIN_SELECT}_UPDATE_SIGNAL"
+UPDATE_SIGNAL_SWITCH = f"{DOMAIN}_{DOMAIN_SWITCH}_UPDATE_SIGNAL"
 
 SIGNALS = {
     DOMAIN_BINARY_SENSOR: UPDATE_SIGNAL_BINARY_SENSOR,
     DOMAIN_CAMERA: UPDATE_SIGNAL_CAMERA,
     DOMAIN_SELECT: UPDATE_SIGNAL_SELECT,
+    DOMAIN_SWITCH: UPDATE_SIGNAL_SWITCH,
 }
 
 ENTITY_ID = "id"

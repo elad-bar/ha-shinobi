@@ -349,8 +349,14 @@ class ShinobiApi:
 
         return result
 
-    async def async_set_motion_detection(self, monitor_id: str, motion_detection_enabled: bool):
-        _LOGGER.info(f"Updating monitor {monitor_id} motion detection state to {motion_detection_enabled}")
+    async def async_set_motion_detection(self, monitor_id: str, enabled: bool):
+        await self._async_set_detection_mode(monitor_id, ATTR_MONITOR_DETAILS_DETECTOR, enabled)
+
+    async def async_set_sound_detection(self, monitor_id: str, enabled: bool):
+        await self._async_set_detection_mode(monitor_id, ATTR_MONITOR_DETAILS_DETECTOR_AUDIO, enabled)
+
+    async def _async_set_detection_mode(self, monitor_id: str, detector: str, enabled: bool):
+        _LOGGER.info(f"Updating monitor {monitor_id} {detector} to {enabled}")
 
         url = f"{URL_MONITORS}/{monitor_id}"
 
@@ -359,7 +365,7 @@ class ShinobiApi:
         monitor_details_str = monitor_data.get(ATTR_MONITOR_DETAILS)
         details = json.loads(monitor_details_str)
 
-        details[ATTR_MONITOR_DETAILS_DETECTOR] = str(1 if motion_detection_enabled else 0)
+        details[detector] = str(1 if enabled else 0)
 
         monitor_data[ATTR_MONITOR_DETAILS] = details
 
@@ -367,4 +373,13 @@ class ShinobiApi:
             "data": monitor_data
         }
 
-        await self.async_post(URL_UPDATE_MONITOR, data, monitor_id, True)
+        response = await self.async_post(URL_UPDATE_MONITOR, data, monitor_id, True)
+
+        response_message = response.get("msg")
+
+        result = response.get("ok", False)
+
+        if result:
+            _LOGGER.info(f"{response_message} for {monitor_id}")
+        else:
+            _LOGGER.warning(f"{response_message} for {monitor_id}")

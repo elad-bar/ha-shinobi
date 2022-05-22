@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.2
+
+- Add support to control monitor motion / sound detection using switch per monitor
+  - Toggle off detector (motion / sound) will remove the entity
+  - Toggle on will restore the entity
+  - Switch for sound detection will not be available if monitor has no audio channel
+  - Any action will be logged with response from Shinobi Video Server
+
+- Unique ID is now being calculated automatically based on the entity's domain and name
+- Improved camera component creation
+  - Reduced the data of camera component
+  - Reduced the amount of updates for camera component
+
 ## 1.2.1
 
 - Align terminology of Shinobi Video (Camera for HA component, Monitor for Shinobi Video device)

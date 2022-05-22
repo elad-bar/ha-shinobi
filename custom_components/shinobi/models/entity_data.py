@@ -5,7 +5,6 @@ from ..helpers.const import *
 
 class EntityData:
     id: str
-    unique_id: str
     name: str
     state: str
     attributes: dict
@@ -19,7 +18,6 @@ class EntityData:
 
     def __init__(self):
         self.id = ""
-        self.unique_id = ""
         self.name = ""
         self.state = ""
         self.attributes = {}
@@ -30,6 +28,12 @@ class EntityData:
         self.details = {}
         self.disabled = False
         self.domain = ""
+
+    @property
+    def unique_id(self):
+        unique_id = f"{DOMAIN}-{self.domain}-{self.name}"
+
+        return unique_id
 
     def __repr__(self):
         obj = {

@@ -12,9 +12,10 @@ from typing import Optional
 import aiohttp
 import async_timeout
 
-from homeassistant.components.camera import SUPPORT_STREAM, Camera
+from homeassistant.components.camera import DEFAULT_CONTENT_TYPE, SUPPORT_STREAM, Camera
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import TemplateError
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .helpers.const import *
@@ -56,35 +57,61 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
     def __init__(self, hass, device_info):
         super().__init__()
         self.hass = hass
+        self._still_image_url = None
+        self._stream_source = None
+        self._frame_interval = 0
+        self._supported_features = 0
+        self.content_type = DEFAULT_CONTENT_TYPE
+        self._auth = None
+        self._last_url = None
+        self._last_image = None
+        self._limit_refetch = False
+        self.verify_ssl = False
 
-        stream_source = device_info.get(CONF_STREAM_SOURCE)
-        stream_support = device_info.get(CONF_SUPPORT_STREAM, False)
+    def initialize(
+        self,
+        hass: HomeAssistant,
+        integration_name: str,
+        entity: EntityData,
+        current_domain: str,
+    ):
+        super().initialize(hass, integration_name, entity, current_domain)
 
-        stream_support_flag = 0
+        config_data = self.ha.config_data
 
-        if stream_source and stream_support:
-            stream_support_flag = SUPPORT_STREAM
+        username = config_data.username
+        password = config_data.password_clear_text
+        use_original_stream = config_data.use_original_stream
 
-        self._still_image_url = device_info[CONF_STILL_IMAGE_URL]
+        monitor = self.api.monitors.get(self.entity.id)
+
+        snapshot = self.api.build_url(monitor.snapshot)
+        still_image_url_template = cv.template(snapshot)
+
+        stream_support = DOMAIN_STREAM in self.hass.data
+
+        stream_source = None
+
+        if not use_original_stream:
+            for stream in monitor.streams:
+                if stream is not None:
+                    stream_source = self.api.build_url(stream)
+                    break
+
+        if use_original_stream or stream_source is None:
+            stream_source = monitor.original_stream
+
+        stream_support_flag = SUPPORT_STREAM if stream_source and stream_support else 0
+
+        self._still_image_url = still_image_url_template
         self._still_image_url.hass = hass
 
-        self._stream_source = device_info[CONF_STREAM_SOURCE]
-        self._limit_refetch = device_info[CONF_LIMIT_REFETCH_TO_URL_CHANGE]
-        self._frame_interval = 1 / device_info[CONF_FRAMERATE]
+        self._stream_source = stream_source
+        self._frame_interval = 1 / monitor.fps
         self._supported_features = stream_support_flag
-        self.content_type = device_info[CONF_CONTENT_TYPE]
-        self.verify_ssl = device_info[CONF_VERIFY_SSL]
-
-        username = device_info.get(CONF_USERNAME)
-        password = device_info.get(CONF_PASSWORD)
 
         if username and password:
             self._auth = aiohttp.BasicAuth(username, password=password)
-        else:
-            self._auth = None
-
-        self._last_url = None
-        self._last_image = None
 
     def _immediate_update(self, previous_state: str):
         if previous_state != self.entity.state:

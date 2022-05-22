@@ -187,15 +187,16 @@ class EntityManager:
                 if entities_count > 0:
                     async_add_entities(entities_to_add)
 
-                    _LOGGER.info(f"{entities_count} were added for {domain}")
+                    _LOGGER.info(f"{entities_count} {domain} components created")
 
-            if len(entities_to_delete.keys()) > 0:
+            deleted_count = len(entities_to_delete.keys())
+            if deleted_count > 0:
                 for entity_id in entities_to_delete:
                     entity = entities_to_delete[entity_id]
 
                     await self._handle_deleted_entities(entity_id, entity)
 
-                _LOGGER.info(f"{entities_to_delete.keys()} were deleted")
+                _LOGGER.info(f"{deleted_count} components deleted")
 
         except Exception as ex:
             self.log_exception(ex, "Failed to update")
@@ -213,21 +214,17 @@ class EntityManager:
             self._load_binary_sensor_entity(monitor, BinarySensorDeviceClass.SOUND, device)
             self._load_binary_sensor_entity(monitor, BinarySensorDeviceClass.MOTION, device)
 
+            self._load_switch_entity(monitor, BinarySensorDeviceClass.SOUND, device)
+            self._load_switch_entity(monitor, BinarySensorDeviceClass.MOTION, device)
+
     def _load_camera_component(self, monitor: MonitorData, device: str):
         try:
             entity_name = f"{self.integration_title} {monitor.name}"
 
             if monitor.jpeg_api_enabled:
-                username = self.config_data.username
-                password = self.config_data.password_clear_text
                 use_original_stream = self.config_data.use_original_stream
 
-                unique_id = f"{DOMAIN}-{DOMAIN_CAMERA}-{entity_name}"
-
                 snapshot = self.api.build_url(monitor.snapshot)
-                still_image_url_template = cv.template(snapshot)
-
-                support_stream = DOMAIN_STREAM in self.hass.data
 
                 stream_source = None
 
@@ -239,21 +236,6 @@ class EntityManager:
 
                 if use_original_stream or stream_source is None:
                     stream_source = monitor.original_stream
-
-                entity_details = {
-                    CONF_NAME: f"{entity_name}",
-                    CONF_STILL_IMAGE_URL: still_image_url_template,
-                    CONF_STREAM_SOURCE: stream_source,
-                    CONF_LIMIT_REFETCH_TO_URL_CHANGE: False,
-                    CONF_FRAMERATE: monitor.fps,
-                    CONF_CONTENT_TYPE: DEFAULT_CONTENT_TYPE,
-                    CONF_VERIFY_SSL: False,
-                    CONF_USERNAME: username,
-                    CONF_PASSWORD: password,
-                    CONF_AUTHENTICATION: AUTHENTICATION_BASIC,
-                    CONF_SUPPORT_STREAM: support_stream,
-                    CONF_MOTION_DETECTION: monitor.has_motion_detector
-                }
 
                 attributes = {
                     ATTR_FRIENDLY_NAME: entity_name,
@@ -272,72 +254,72 @@ class EntityManager:
                     attributes[key_name] = monitor_details.get(key, "N/A")
 
                 entity = self.get_entity(DOMAIN_CAMERA, entity_name)
-                create = entity is None
-                modified = False
+                created = entity is None
 
-                if create:
+                if created:
                     entity = EntityData()
 
                     entity.id = monitor.id
-                    entity.unique_id = unique_id
                     entity.name = entity_name
                     entity.icon = DEFAULT_ICON
                     entity.domain = DOMAIN_CAMERA
 
-                if entity.state != monitor.mode \
-                        or entity.attributes != attributes \
-                        or entity.device_name != device \
-                        or entity.details != entity_details:
+                data = {
+                    "state": (entity.state, monitor.mode),
+                    "attributes": (entity.attributes, attributes),
+                    "device_name": (entity.device_name, device)
+                }
 
+                if created or self._compare_data(entity, data):
                     entity.state = monitor.mode
                     entity.attributes = attributes
                     entity.device_name = device
-                    entity.details = entity_details
 
-                    modified = True
+                    entity.status = ENTITY_STATUS_CREATED if created else ENTITY_STATUS_UPDATED
 
-                self._set_entity(entity, monitor, create, modified)
+                self._set_entity(entity, [monitor.disabled])
 
             else:
                 _LOGGER.warning(f"JPEG API is not enabled for {monitor.name}, Monitor will not be created")
 
         except Exception as ex:
-            self.log_exception(ex, f"Failed to get monitor for {monitor}")
+            self.log_exception(ex, f"Failed to load camera for {monitor}")
 
     def _load_select_component(self, monitor: MonitorData, device: str):
         try:
             entity_name = f"{self.integration_title} {monitor.name} {ATTR_MONITOR_MODE}"
-
-            unique_id = f"{DOMAIN}-{DOMAIN_SELECT}-{entity_name}"
 
             attributes = {
                 ATTR_FRIENDLY_NAME: entity_name,
             }
 
             entity = self.get_entity(DOMAIN_SELECT, entity_name)
-            create = entity is None
-            modified = False
+            created = entity is None
 
-            if entity is None:
+            if created:
                 entity = EntityData()
 
                 entity.id = monitor.id
-                entity.unique_id = unique_id
                 entity.name = entity_name
                 entity.attributes = attributes
                 entity.icon = DEFAULT_ICON
                 entity.domain = DOMAIN_SELECT
 
-            if entity.state != monitor.mode or entity.device_name != device:
+            data = {
+                "state": (entity.state, monitor.mode),
+                "device_name": (entity.device_name, device),
+            }
+
+            if created or self._compare_data(entity, data):
                 entity.device_name = device
                 entity.state = monitor.mode
 
-                modified = True
+                entity.status = ENTITY_STATUS_CREATED if created else ENTITY_STATUS_UPDATED
 
-            self._set_entity(entity, monitor, create, modified, True)
+            self._set_entity(entity)
 
         except Exception as ex:
-            self.log_exception(ex, f"Failed to get select for {monitor}")
+            self.log_exception(ex, f"Failed to load select for {monitor}")
 
     def _load_binary_sensor_entity(
             self,
@@ -347,7 +329,6 @@ class EntityManager:
     ):
         try:
             entity_name = f"{self.integration_title} {monitor.name} {sensor_type.capitalize()}"
-            unique_id = f"{DOMAIN}-{DOMAIN_BINARY_SENSOR}-{entity_name}"
 
             state_topic = f"{self.api.group_id}/{monitor.id}"
 
@@ -367,64 +348,129 @@ class EntityManager:
                     attributes[attr] = event_state.get(attr)
 
             entity = self.get_entity(DOMAIN_BINARY_SENSOR, entity_name)
-            create = entity is None
-            modified = False
+            created = entity is None
 
-            if create:
+            is_sound = sensor_type == BinarySensorDeviceClass.SOUND
+            detector_active = monitor.has_audio_detector if is_sound else monitor.has_motion_detector
+
+            if created:
                 entity = EntityData()
 
                 entity.id = monitor.id
-                entity.unique_id = unique_id
                 entity.name = entity_name
                 entity.icon = DEFAULT_ICON
                 entity.binary_sensor_device_class = sensor_type
                 entity.domain = DOMAIN_BINARY_SENSOR
 
-            if entity.state != state or entity.attributes != attributes or entity.device_name != device:
+            data = {
+                "state": (entity.state, str(state)),
+                "attributes": (entity.attributes, attributes),
+                "device_name": (entity.device_name, device),
+            }
+
+            if created or self._compare_data(entity, data):
                 entity.state = state
                 entity.attributes = attributes
                 entity.device_name = device
 
-                modified = True
+                entity.status = ENTITY_STATUS_CREATED if created else ENTITY_STATUS_UPDATED
 
-            self._set_entity(entity, monitor, create, modified)
+            self._set_entity(entity, [monitor.disabled, not detector_active])
+
         except Exception as ex:
             self.log_exception(
-                ex, f"Failed to get monitor for {monitor.name}"
+                ex, f"Failed to load binary sensor for {monitor.name}"
             )
+
+    def _load_switch_entity(
+            self,
+            monitor: MonitorData,
+            sensor_type: BinarySensorDeviceClass,
+            device: str
+    ):
+        try:
+            entity_name = f"{self.integration_title} {monitor.name} {sensor_type.capitalize()}"
+
+            state = monitor.has_motion_detector \
+                if sensor_type == BinarySensorDeviceClass.MOTION \
+                else monitor.has_audio_detector
+
+            attributes = {
+                ATTR_FRIENDLY_NAME: entity_name
+            }
+
+            entity = self.get_entity(DOMAIN_SWITCH, entity_name)
+            created = entity is None
+
+            is_sound = sensor_type == BinarySensorDeviceClass.SOUND
+
+            if created:
+                entity = EntityData()
+
+                entity.id = monitor.id
+                entity.name = entity_name
+                entity.icon = DEFAULT_ICON
+                entity.binary_sensor_device_class = sensor_type
+                entity.domain = DOMAIN_SWITCH
+
+            data = {
+                "state": (entity.state, str(state)),
+                "attributes": (entity.attributes, attributes),
+                "device_name": (entity.device_name, device),
+            }
+
+            if created or self._compare_data(entity, data):
+                entity.state = str(state)
+                entity.attributes = attributes
+                entity.device_name = device
+
+                entity.status = ENTITY_STATUS_CREATED if created else ENTITY_STATUS_UPDATED
+
+            self._set_entity(entity, [monitor.disabled, is_sound and not monitor.has_audio])
+        except Exception as ex:
+            self.log_exception(
+                ex, f"Failed to load switch for {monitor.name}"
+            )
+
+    @staticmethod
+    def _compare_data(entity: EntityData, data: dict[str, tuple]) -> bool:
+        modified = False
+        msgs = []
+
+        for data_key in data:
+            original, latest = data[data_key]
+
+            if original != latest:
+                msgs.append(f"{data_key} changed from {original} to {latest}")
+                modified = True
+
+        if modified:
+            full_message = " | ".join(msgs)
+
+            _LOGGER.debug(f"{entity.name} | {entity.domain} | {full_message}")
+
+        return modified
 
     def _set_entity(
             self,
             entity: EntityData,
-            monitor: MonitorData,
-            created: bool,
-            modified: bool,
-            ignore_monitor_state: bool = False
+            destructors: list[bool] = None
     ):
         try:
-            if created:
-                entity.status = ENTITY_STATUS_CREATED
+            if destructors is not None and True in destructors:
+                if entity.status == ENTITY_STATUS_CREATED:
+                    entity = None
 
-            if not created and modified:
-                entity.status = ENTITY_STATUS_UPDATED
+                else:
+                    entity.status = ENTITY_STATUS_DELETED
 
-            disabled = not ignore_monitor_state and monitor.disabled
+            if entity is not None:
+                self._check_domain(entity.domain)
 
-            if not disabled \
-                    and entity.domain == DOMAIN_BINARY_SENSOR \
-                    and not monitor.is_sensor_active(entity.binary_sensor_device_class):
+                self._entities[entity.domain][entity.name] = entity
 
-                disabled = True
-
-            if disabled:
-                entity.status = ENTITY_STATUS_DELETED
-
-            self._check_domain(entity.domain)
-
-            self._entities[entity.domain][entity.name] = entity
-
-            if entity.status != ENTITY_STATUS_READY:
-                _LOGGER.debug(f"{entity.name} {entity.status}, state: {entity.state}")
+                if entity.status != ENTITY_STATUS_READY:
+                    _LOGGER.debug(f"{entity.name} ({entity.domain}) {entity.status}, state: {entity.state}")
 
         except Exception as ex:
             self.log_exception(
@@ -436,8 +482,13 @@ class EntityManager:
 
         await self._ha.async_update(datetime.datetime.now)
 
-    async def async_set_motion_detection(self, monitor_id: str, motion_detection_enabled: bool):
-        await self.api.async_set_motion_detection(monitor_id, motion_detection_enabled)
+    async def async_set_motion_detection(self, monitor_id: str, enabled: bool):
+        await self.api.async_set_motion_detection(monitor_id, enabled)
+
+        await self._ha.async_update(datetime.datetime.now)
+
+    async def async_set_sound_detection(self, monitor_id: str, enabled: bool):
+        await self.api.async_set_sound_detection(monitor_id, enabled)
 
         await self._ha.async_update(datetime.datetime.now)
 

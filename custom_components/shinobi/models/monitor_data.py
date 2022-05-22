@@ -64,10 +64,10 @@ class MonitorData:
 
         return is_disabled
 
-    def is_sensor_active(self, sensor_type: BinarySensorDeviceClass):
+    def is_detector_active(self, sensor_type: BinarySensorDeviceClass):
         result = False
 
-        if sensor_type.SOUND and self.has_audio and self.has_audio_detector:
+        if sensor_type.SOUND and self.has_audio_detector:
             result = True
 
         if sensor_type.MOTION and self.has_motion_detector:

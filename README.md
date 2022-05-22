@@ -10,6 +10,7 @@ Integration with Shinobi Video NVR. Creates the following components:
 * Support SSL with self-signed certificate.
 * Support Face-Recognition plugin as an event
 * Select to set the monitor mode
+* Switch to set the monitor's detectors (motion / sound) - per-monitor defined.
 
 [Changelog](https://github.com/elad-bar/ha-shinobi/blob/master/CHANGELOG.md)
 
@@ -88,6 +89,23 @@ State: Idle
 | Mode       | stop (Disabled), start (Watch-Only), record (Record) |
 | Type       | H264, MJPEG,                                         |
 | FPS        | -                                                    |
+
+
+#### Select
+Allow to control the monitor mode:
+- stop (Disabled)
+- start (Watch-Only)
+- record (Record)
+
+#### Switch
+Each switch will have the name pattern - {Integration Title} {Monitor Name} {Sound / Motion}:
+- Toggle off detector (motion / sound) will remove the entity
+- Toggle on will restore the entity
+- Switch for sound detection will not be available if monitor has no audio channel
+
+#### Media Browser
+Recorded videos are available if Media Browser integration is configured,
+Supports up to 500 videos (total)
 
 ## Events
 
