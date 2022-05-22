@@ -3,11 +3,7 @@ import logging
 import sys
 from typing import Dict, List, Optional
 
-from homeassistant.components.camera import DEFAULT_CONTENT_TYPE
-from homeassistant.components.stream import DOMAIN as DOMAIN_STREAM
-from homeassistant.const import CONF_AUTHENTICATION
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity_registry import EntityRegistry, RegistryEntryDisabler
 
 from ..api.shinobi_api import ShinobiApi
