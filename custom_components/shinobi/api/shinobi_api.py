@@ -12,7 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from ..helpers.const import *
 from ..managers.configuration_manager import ConfigManager
-from ..models.camera_data import MonitorData
+from ..models.monitor_data import MonitorData
 from ..models.video_data import VideoData
 
 REQUIREMENTS = ["aiohttp"]
@@ -114,9 +114,9 @@ class ShinobiApi:
 
         return endpoint
 
-    async def async_post(self, endpoint, request_data: dict, camera_id: str = None, is_url_encoded: bool = False):
+    async def async_post(self, endpoint, request_data: dict, monitor_id: str = None, is_url_encoded: bool = False):
         result = None
-        url = self.build_url(endpoint, camera_id)
+        url = self.build_url(endpoint, monitor_id)
 
         try:
             _LOGGER.debug(f"POST {url}, Url Encoded: {is_url_encoded}")
@@ -178,7 +178,7 @@ class ShinobiApi:
     async def async_update(self):
         _LOGGER.info(f"Updating data from Shinobi Video Server ({self.config_data.name})")
 
-        await self.load_camera()
+        await self.load_monitors()
         await self.load_videos()
 
     async def login(self):
@@ -200,7 +200,7 @@ class ShinobiApi:
                 user_data = login_data.get("$user", {})
 
                 if user_data.get("ok", False):
-                    self.group_id = user_data.get(ATTR_CAMERA_GROUP_ID)
+                    self.group_id = user_data.get(ATTR_MONITOR_GROUP_ID)
                     temp_api_key = user_data.get("auth_token")
                     uid = user_data.get("uid")
 
@@ -256,8 +256,8 @@ class ShinobiApi:
 
         return version
 
-    async def load_camera(self):
-        _LOGGER.debug("Retrieving camera list")
+    async def load_monitors(self):
+        _LOGGER.debug("Retrieving monitors")
 
         response: dict = await self.async_get(URL_MONITORS)
 
@@ -274,24 +274,24 @@ class ShinobiApi:
             for monitor in monitors:
                 try:
                     if monitor is None:
-                        _LOGGER.warning(f"Invalid camera details found")
+                        _LOGGER.warning(f"Invalid monitor details found")
 
                     else:
-                        monitor_details_str = monitor.get("details")
+                        monitor_details_str = monitor.get(ATTR_MONITOR_DETAILS)
                         details = json.loads(monitor_details_str)
 
-                        monitor["details"] = details
+                        monitor[ATTR_MONITOR_DETAILS] = details
 
-                        camera = MonitorData(monitor)
+                        monitor_data = MonitorData(monitor)
 
-                        self.monitors[camera.monitorId] = camera
+                        self.monitors[monitor_data.id] = monitor_data
 
                 except Exception as ex:
                     exc_type, exc_obj, tb = sys.exc_info()
                     line_number = tb.tb_lineno
 
                     _LOGGER.error(
-                        f"Failed to load camera data: {monitor}, Error: {ex}, Line: {line_number}"
+                        f"Failed to load monitor data: {monitor}, Error: {ex}, Line: {line_number}"
                     )
 
     async def load_videos(self):
@@ -331,10 +331,10 @@ class ShinobiApi:
 
         self.video_list = video_list
 
-    async def async_set_camera_mode(self, camera_id: str, mode: str):
-        _LOGGER.info(f"Updating camera {camera_id} mode to {mode}")
+    async def async_set_monitor_mode(self, monitor_id: str, mode: str):
+        _LOGGER.info(f"Updating monitor {monitor_id} mode to {mode}")
 
-        endpoint = self.build_endpoint(f"{URL_UPDATE_MODE}/{mode}", camera_id)
+        endpoint = self.build_endpoint(f"{URL_UPDATE_MODE}/{mode}", monitor_id)
 
         response = await self.async_get(endpoint)
 
@@ -343,28 +343,28 @@ class ShinobiApi:
         result = response.get("ok", False)
 
         if result:
-            _LOGGER.info(f"{response_message} for {camera_id}")
+            _LOGGER.info(f"{response_message} for {monitor_id}")
         else:
-            _LOGGER.warning(f"{response_message} for {camera_id}")
+            _LOGGER.warning(f"{response_message} for {monitor_id}")
 
         return result
 
-    async def async_set_motion_detection(self, camera_id: str, motion_detection_enabled: bool):
-        _LOGGER.info(f"Updating camera {camera_id} motion detection state to {motion_detection_enabled}")
+    async def async_set_motion_detection(self, monitor_id: str, motion_detection_enabled: bool):
+        _LOGGER.info(f"Updating monitor {monitor_id} motion detection state to {motion_detection_enabled}")
 
-        url = f"{URL_MONITORS}/{camera_id}"
+        url = f"{URL_MONITORS}/{monitor_id}"
 
         response: dict = await self.async_get(url)
-        camera_data = response[0]
-        camera_details_str = camera_data.get("details")
-        details = json.loads(camera_details_str)
+        monitor_data = response[0]
+        monitor_details_str = monitor_data.get(ATTR_MONITOR_DETAILS)
+        details = json.loads(monitor_details_str)
 
-        details[ATTR_CAMERA_DETAILS_DETECTOR] = str(1 if motion_detection_enabled else 0)
+        details[ATTR_MONITOR_DETAILS_DETECTOR] = str(1 if motion_detection_enabled else 0)
 
-        camera_data["details"] = details
+        monitor_data[ATTR_MONITOR_DETAILS] = details
 
         data = {
-            "data": camera_data
+            "data": monitor_data
         }
 
-        await self.async_post(URL_UPDATE_MONITOR, data, camera_id, True)
+        await self.async_post(URL_UPDATE_MONITOR, data, monitor_id, True)

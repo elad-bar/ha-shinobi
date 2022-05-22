@@ -12,9 +12,9 @@ from homeassistant.helpers.entity_registry import EntityRegistry, RegistryEntryD
 
 from ..api.shinobi_api import ShinobiApi
 from ..helpers.const import *
-from ..models.camera_data import MonitorData
 from ..models.config_data import ConfigData
 from ..models.entity_data import EntityData
+from ..models.monitor_data import MonitorData
 from .configuration_manager import ConfigManager
 from .device_manager import DeviceManager
 from .event_manager import EventManager
@@ -203,28 +203,28 @@ class EntityManager:
     def _create_components(self):
         _LOGGER.debug("Creating components")
 
-        for camera_id in self.api.monitors:
-            camera = self.api.monitors.get(camera_id)
-            device = self.device_manager.get_camera_device_name(camera.monitorId)
+        for monitor_id in self.api.monitors:
+            monitor = self.api.monitors.get(monitor_id)
+            device = self.device_manager.get_monitor_device_name(monitor.id)
 
-            self._load_camera_component(camera, device)
-            self._load_select_component(camera, device)
+            self._load_camera_component(monitor, device)
+            self._load_select_component(monitor, device)
 
-            self._load_binary_sensor_entity(camera, BinarySensorDeviceClass.SOUND, device)
-            self._load_binary_sensor_entity(camera, BinarySensorDeviceClass.MOTION, device)
+            self._load_binary_sensor_entity(monitor, BinarySensorDeviceClass.SOUND, device)
+            self._load_binary_sensor_entity(monitor, BinarySensorDeviceClass.MOTION, device)
 
-    def _load_camera_component(self, camera: MonitorData, device: str):
+    def _load_camera_component(self, monitor: MonitorData, device: str):
         try:
-            entity_name = f"{self.integration_title} {camera.name}"
+            entity_name = f"{self.integration_title} {monitor.name}"
 
-            if camera.jpeg_api_enabled:
+            if monitor.jpeg_api_enabled:
                 username = self.config_data.username
                 password = self.config_data.password_clear_text
                 use_original_stream = self.config_data.use_original_stream
 
                 unique_id = f"{DOMAIN}-{DOMAIN_CAMERA}-{entity_name}"
 
-                snapshot = self.api.build_url(camera.snapshot)
+                snapshot = self.api.build_url(monitor.snapshot)
                 still_image_url_template = cv.template(snapshot)
 
                 support_stream = DOMAIN_STREAM in self.hass.data
@@ -232,27 +232,27 @@ class EntityManager:
                 stream_source = None
 
                 if not use_original_stream:
-                    for stream in camera.streams:
+                    for stream in monitor.streams:
                         if stream is not None:
                             stream_source = self.api.build_url(stream)
                             break
 
                 if use_original_stream or stream_source is None:
-                    stream_source = camera.original_stream
+                    stream_source = monitor.original_stream
 
-                camera_details = {
+                entity_details = {
                     CONF_NAME: f"{entity_name}",
                     CONF_STILL_IMAGE_URL: still_image_url_template,
                     CONF_STREAM_SOURCE: stream_source,
                     CONF_LIMIT_REFETCH_TO_URL_CHANGE: False,
-                    CONF_FRAMERATE: camera.fps,
+                    CONF_FRAMERATE: monitor.fps,
                     CONF_CONTENT_TYPE: DEFAULT_CONTENT_TYPE,
                     CONF_VERIFY_SSL: False,
                     CONF_USERNAME: username,
                     CONF_PASSWORD: password,
                     CONF_AUTHENTICATION: AUTHENTICATION_BASIC,
                     CONF_SUPPORT_STREAM: support_stream,
-                    CONF_MOTION_DETECTION: camera.has_motion_detector
+                    CONF_MOTION_DETECTION: monitor.has_motion_detector
                 }
 
                 attributes = {
@@ -261,14 +261,14 @@ class EntityManager:
                     CONF_STILL_IMAGE_URL: snapshot
                 }
 
-                for key in CAMERA_ATTRIBUTES:
-                    key_name = CAMERA_ATTRIBUTES[key]
-                    attributes[key_name] = camera.details.get(key, "N/A")
+                for key in MONITOR_ATTRIBUTES:
+                    key_name = MONITOR_ATTRIBUTES[key]
+                    attributes[key_name] = monitor.details.get(key, "N/A")
 
-                monitor_details = camera.details.get("details", {})
+                monitor_details = monitor.details.get(ATTR_MONITOR_DETAILS, {})
 
-                for key in CAMERA_DETAILS_ATTRIBUTES:
-                    key_name = CAMERA_DETAILS_ATTRIBUTES[key]
+                for key in MONITOR_DETAILS_ATTRIBUTES:
+                    key_name = MONITOR_DETAILS_ATTRIBUTES[key]
                     attributes[key_name] = monitor_details.get(key, "N/A")
 
                 entity = self.get_entity(DOMAIN_CAMERA, entity_name)
@@ -278,35 +278,35 @@ class EntityManager:
                 if create:
                     entity = EntityData()
 
-                    entity.id = camera.monitorId
+                    entity.id = monitor.id
                     entity.unique_id = unique_id
                     entity.name = entity_name
                     entity.icon = DEFAULT_ICON
                     entity.domain = DOMAIN_CAMERA
 
-                if entity.state != camera.mode \
+                if entity.state != monitor.mode \
                         or entity.attributes != attributes \
                         or entity.device_name != device \
-                        or entity.details != camera_details:
+                        or entity.details != entity_details:
 
-                    entity.state = camera.mode
+                    entity.state = monitor.mode
                     entity.attributes = attributes
                     entity.device_name = device
-                    entity.details = camera_details
+                    entity.details = entity_details
 
                     modified = True
 
-                self._set_entity(entity, camera, create, modified)
+                self._set_entity(entity, monitor, create, modified)
 
             else:
-                _LOGGER.warning(f"JPEG API is not enabled for {camera.name}, Camera will not be created")
+                _LOGGER.warning(f"JPEG API is not enabled for {monitor.name}, Monitor will not be created")
 
         except Exception as ex:
-            self.log_exception(ex, f"Failed to get camera for {camera}")
+            self.log_exception(ex, f"Failed to get monitor for {monitor}")
 
-    def _load_select_component(self, camera: MonitorData, device: str):
+    def _load_select_component(self, monitor: MonitorData, device: str):
         try:
-            entity_name = f"{self.integration_title} {camera.name} Mode"
+            entity_name = f"{self.integration_title} {monitor.name} {ATTR_MONITOR_MODE}"
 
             unique_id = f"{DOMAIN}-{DOMAIN_SELECT}-{entity_name}"
 
@@ -321,35 +321,35 @@ class EntityManager:
             if entity is None:
                 entity = EntityData()
 
-                entity.id = camera.monitorId
+                entity.id = monitor.id
                 entity.unique_id = unique_id
                 entity.name = entity_name
                 entity.attributes = attributes
                 entity.icon = DEFAULT_ICON
                 entity.domain = DOMAIN_SELECT
 
-            if entity.state != camera.mode or entity.device_name != device:
+            if entity.state != monitor.mode or entity.device_name != device:
                 entity.device_name = device
-                entity.state = camera.mode
+                entity.state = monitor.mode
 
                 modified = True
 
-            self._set_entity(entity, camera, create, modified, True)
+            self._set_entity(entity, monitor, create, modified, True)
 
         except Exception as ex:
-            self.log_exception(ex, f"Failed to get select for {camera}")
+            self.log_exception(ex, f"Failed to get select for {monitor}")
 
     def _load_binary_sensor_entity(
             self,
-            camera: MonitorData,
+            monitor: MonitorData,
             sensor_type: BinarySensorDeviceClass,
             device: str
     ):
         try:
-            entity_name = f"{self.integration_title} {camera.name} {sensor_type.capitalize()}"
+            entity_name = f"{self.integration_title} {monitor.name} {sensor_type.capitalize()}"
             unique_id = f"{DOMAIN}-{DOMAIN_BINARY_SENSOR}-{entity_name}"
 
-            state_topic = f"{self.api.group_id}/{camera.monitorId}"
+            state_topic = f"{self.api.group_id}/{monitor.id}"
 
             state = STATE_OFF
             event_state = TRIGGER_DEFAULT
@@ -373,7 +373,7 @@ class EntityManager:
             if create:
                 entity = EntityData()
 
-                entity.id = camera.monitorId
+                entity.id = monitor.id
                 entity.unique_id = unique_id
                 entity.name = entity_name
                 entity.icon = DEFAULT_ICON
@@ -387,19 +387,19 @@ class EntityManager:
 
                 modified = True
 
-            self._set_entity(entity, camera, create, modified)
+            self._set_entity(entity, monitor, create, modified)
         except Exception as ex:
             self.log_exception(
-                ex, f"Failed to get camera for {camera.name}"
+                ex, f"Failed to get monitor for {monitor.name}"
             )
 
     def _set_entity(
             self,
             entity: EntityData,
-            camera: MonitorData,
+            monitor: MonitorData,
             created: bool,
             modified: bool,
-            ignore_camera_state: bool = False
+            ignore_monitor_state: bool = False
     ):
         try:
             if created:
@@ -408,11 +408,11 @@ class EntityManager:
             if not created and modified:
                 entity.status = ENTITY_STATUS_UPDATED
 
-            disabled = not ignore_camera_state and camera.disabled
+            disabled = not ignore_monitor_state and monitor.disabled
 
             if not disabled \
                     and entity.domain == DOMAIN_BINARY_SENSOR \
-                    and not camera.is_sensor_active(entity.binary_sensor_device_class):
+                    and not monitor.is_sensor_active(entity.binary_sensor_device_class):
 
                 disabled = True
 
@@ -431,13 +431,13 @@ class EntityManager:
                 ex, f"Failed to set entity, domain: {entity.domain}, name: {entity.name}"
             )
 
-    async def async_set_camera_mode(self, camera_id: str, mode: str):
-        await self.api.async_set_camera_mode(camera_id, mode)
+    async def async_set_monitor_mode(self, monitor_id: str, mode: str):
+        await self.api.async_set_monitor_mode(monitor_id, mode)
 
         await self._ha.async_update(datetime.datetime.now)
 
-    async def async_set_motion_detection(self, camera_id: str, motion_detection_enabled: bool):
-        await self.api.async_set_motion_detection(camera_id, motion_detection_enabled)
+    async def async_set_motion_detection(self, monitor_id: str, motion_detection_enabled: bool):
+        await self.api.async_set_motion_detection(monitor_id, motion_detection_enabled)
 
         await self._ha.async_update(datetime.datetime.now)
 

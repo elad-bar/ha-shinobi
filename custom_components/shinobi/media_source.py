@@ -87,7 +87,7 @@ class ShinobiMediaSource(MediaSource, ABC):
             can_expand=True,
             children_media_class=MEDIA_CLASS_DIRECTORY,
             children=[
-                *await self._async_build_by_camera(item),
+                *await self._async_build_by_monitor(item),
             ],
         )
 
@@ -116,46 +116,46 @@ class ShinobiMediaSource(MediaSource, ABC):
 
         return items
 
-    async def _async_build_by_camera(
+    async def _async_build_by_monitor(
         self, item: MediaSourceItem
     ) -> list[BrowseMediaSource]:
         """Handle browsing radio stations by country."""
         video_list = self.api.video_list
         result: list[BrowseMediaSource] = []
 
-        category, _, camera_id = (item.identifier or "").partition("/")
+        category, _, monitor_id = (item.identifier or "").partition("/")
 
-        if camera_id:
+        if monitor_id:
             videos = []
 
             for video in video_list:
-                if video.monitor_id == camera_id:
+                if video.monitor_id == monitor_id:
                     videos.append(video)
 
             result = self._async_build_videos(videos)
 
             _LOGGER.info(
-                f"Build media source list for camera: {camera_id}, "
+                f"Build media source list for monitor: {monitor_id}, "
                 f"Total videos: {len(video_list)}, "
                 f"Relevant videos: {len(videos)}, "
                 f"Media items: {len(result)}"
             )
 
         else:
-            # We show camera in the root additionally, when there is no item
+            # We show monitor in the root additionally, when there is no item
             if not item.identifier or category == DOMAIN_CAMERA:
-                for camera_id in self.api.monitors:
-                    camera = self.api.monitors.get(camera_id)
+                for monitor_id in self.api.monitors:
+                    monitor = self.api.monitors.get(monitor_id)
 
                     item = BrowseMediaSource(
                         domain=DOMAIN,
-                        identifier=f"{DOMAIN_CAMERA}/{camera.monitorId}",
+                        identifier=f"{DOMAIN_CAMERA}/{monitor.id}",
                         media_class=MEDIA_CLASS_DIRECTORY,
                         media_content_type=MEDIA_TYPE_VIDEO,
-                        title=camera.name,
+                        title=monitor.name,
                         can_play=False,
                         can_expand=True,
-                        thumbnail=self.api.build_url(camera.snapshot),
+                        thumbnail=self.api.build_url(monitor.snapshot),
                     )
 
                     result.append(item)

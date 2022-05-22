@@ -100,7 +100,7 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
 
     @property
     def is_recording(self) -> bool:
-        return self.entity.state == CAMERA_MODE_RECORD
+        return self.entity.state == MONITOR_MODE_RECORD
 
     @property
     def motion_detection_enabled(self):

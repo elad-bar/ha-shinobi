@@ -127,7 +127,7 @@ class ShinobiWebSocket:
 
         return result
 
-    async def async_send_heartbeat(self, timestamp):
+    async def async_send_heartbeat(self):
         await self.send_ping_message()
 
     async def listen(self):
@@ -268,21 +268,21 @@ class ShinobiWebSocket:
                 _LOGGER.debug(f"Ignoring unsupported event message, Key: {key}, Data: {unsupported_data}")
 
     async def handle_log(self, data):
-        monitor_id = data.get(ATTR_CAMERA_MONITOR_ID)
+        monitor_id = data.get(ATTR_MONITOR_ID)
         log = data.get("log", {})
         log_type = log.get("type")
 
         if monitor_id == "$USER" and log_type == "Websocket Connected":
             _LOGGER.debug(f"WebSocket Connected")
 
-            for camera_id in self.api.monitors:
-                await self.send_connect_monitor(camera_id)
+            for monitor_id in self.api.monitors:
+                await self.send_connect_monitor(monitor_id)
 
     async def handle_detector_trigger(self, data):
         _LOGGER.debug(f"Payload received, Data: {data}")
 
         monitor_id = data.get("id")
-        group_id = data.get(ATTR_CAMERA_GROUP_ID)
+        group_id = data.get(ATTR_MONITOR_GROUP_ID)
 
         topic = f"{group_id}/{monitor_id}"
 
@@ -294,7 +294,7 @@ class ShinobiWebSocket:
             {
                 "auth": self.api.api_key,
                 "f": "init",
-                ATTR_CAMERA_GROUP_ID: self.api.group_id,
+                ATTR_MONITOR_GROUP_ID: self.api.group_id,
                 "uid": self.api.user_id
             }
         ]
@@ -320,15 +320,15 @@ class ShinobiWebSocket:
         if self.is_connected:
             await self._ws.ping(SHINOBI_WS_PING_MESSAGE)
 
-    async def send_connect_monitor(self, camera_id: str):
+    async def send_connect_monitor(self, monitor_id: str):
         message_data = [
             "f",
             {
                 "auth": self.api.api_key,
                 "f": "monitor",
                 "ff": "watch_on",
-                "id": camera_id,
-                ATTR_CAMERA_GROUP_ID: self.api.group_id,
+                "id": monitor_id,
+                ATTR_MONITOR_GROUP_ID: self.api.group_id,
                 "uid": self.api.user_id
             }
         ]

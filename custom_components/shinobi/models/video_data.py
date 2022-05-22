@@ -7,49 +7,49 @@ import sys
 
 from homeassistant.exceptions import HomeAssistantError
 
-from . import CameraNotFoundError
+from . import MonitorNotFoundError
 from ..helpers.const import *
-from .camera_data import MonitorData
+from .monitor_data import MonitorData
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class VideoData:
     monitor_id: str
-    camera_name: str
+    monitor_name: str
     action_url: str
     time: str
     mime_type: str
 
-    def __init__(self, video: dict, camera_dict: dict[str, MonitorData]):
+    def __init__(self, video: dict, monitors: dict[str, MonitorData]):
         try:
-            camera_id = video.get(VIDEO_DETAILS_MONITOR_ID)
+            monitor_id = video.get(VIDEO_DETAILS_MONITOR_ID)
 
-            if camera_id is None:
+            if monitor_id is None:
                 raise HomeAssistantError()
 
-            camera = camera_dict.get(camera_id)
+            monitor = monitors.get(monitor_id)
 
-            if camera is None:
-                raise CameraNotFoundError(camera_id)
+            if monitor is None:
+                raise MonitorNotFoundError(monitor_id)
 
             extension = video.get(VIDEO_DETAILS_EXTENSION)
             video_time: str = video.get(VIDEO_DETAILS_TIME)
 
-            self.monitor_id = camera_id
-            self.camera_name = camera.name
+            self.monitor_id = monitor.id
+            self.monitor_name = monitor.name
             self.action_url = video.get(VIDEO_DETAILS_URL)
             self.mime_type = self.get_video_mime_type(extension)
             self.time = self._get_video_timestamp(video_time)
 
-        except CameraNotFoundError as cnfex:
+        except MonitorNotFoundError as cnfex:
             _LOGGER.error(
-                f"Failed to find camera: {cnfex.camera_id} for video: {video}"
+                f"Failed to find monitor: {cnfex.monitor_id} for video: {video}"
             )
 
         except HomeAssistantError:
             _LOGGER.error(
-                f"Failed to extract camera ID for video: {video}"
+                f"Failed to extract monitor ID for video: {video}"
             )
 
         except Exception as ex:
@@ -62,7 +62,7 @@ class VideoData:
 
     @property
     def title(self):
-        title = f"{self.camera_name} {self.time}"
+        title = f"{self.monitor_name} {self.time}"
 
         return title
 
@@ -100,8 +100,8 @@ class VideoData:
 
     def __repr__(self):
         obj = {
-            ATTR_CAMERA_MONITOR_ID: self.monitor_id,
-            ATTR_CAMERA_NAME: self.camera_name,
+            ATTR_MONITOR_ID: self.monitor_id,
+            ATTR_MONITOR_NAME: self.monitor_name,
             VIDEO_DETAILS_URL: self.action_url,
             VIDEO_DETAILS_MIME_TYPE: self.mime_type,
             VIDEO_DETAILS_TIME: self.time,

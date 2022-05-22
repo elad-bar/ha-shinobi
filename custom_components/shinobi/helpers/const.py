@@ -98,7 +98,7 @@ ENTITY_ICON = "icon"
 ENTITY_UNIQUE_ID = "unique-id"
 ENTITY_BINARY_SENSOR_DEVICE_CLASS = "binary-sensor-device-class"
 ENTITY_DEVICE_NAME = "device-name"
-ENTITY_CAMERA_DETAILS = "camera-details"
+ENTITY_MONITOR_DETAILS = "monitor-details"
 ENTITY_DISABLED = "disabled"
 ENTITY_DOMAIN = "domain"
 ENTITY_STATUS = "status"
@@ -148,34 +148,34 @@ DEFAULT_ACCESS_DETAILS = {
                 "delete_videos": False
             }
 
-ATTR_CAMERA_MONITOR_ID = "mid"
-ATTR_CAMERA_GROUP_ID = "ke"
-ATTR_CAMERA_NAME = "name"
-ATTR_CAMERA_STATUS = "status"
+ATTR_MONITOR_ID = "mid"
+ATTR_MONITOR_GROUP_ID = "ke"
+ATTR_MONITOR_NAME = "name"
+ATTR_MONITOR_STATUS = "status"
 ATTR_ORIGINAL_STREAM = "auto_host"
 ATTR_STREAM_PASSWORD = "mpass"
 ATTR_STREAM_USERNAME = "muser"
-ATTR_CAMERA_SNAPSHOT = "snapshot"
-ATTR_CAMERA_STREAMS = "streams"
-ATTR_CAMERA_DETAILS = "details"
-ATTR_CAMERA_DETAILS_FPS = "stream_fps"
-ATTR_CAMERA_DETAILS_AUDIO_CODEC = "acodec"
-ATTR_CAMERA_DETAILS_DETECTOR = "detector"
-ATTR_CAMERA_DETAILS_DETECTOR_AUDIO = "detector_audio"
-ATTR_CAMERA_MODE = "mode"
+ATTR_MONITOR_SNAPSHOT = "snapshot"
+ATTR_MONITOR_STREAMS = "streams"
+ATTR_MONITOR_DETAILS = "details"
+ATTR_MONITOR_DETAILS_FPS = "stream_fps"
+ATTR_MONITOR_DETAILS_AUDIO_CODEC = "acodec"
+ATTR_MONITOR_DETAILS_DETECTOR = "detector"
+ATTR_MONITOR_DETAILS_DETECTOR_AUDIO = "detector_audio"
+ATTR_MONITOR_MODE = "mode"
 ATTR_FPS = "fps"
 ATTR_DISABLED = "disabled"
 
 STREAM_PROTOCOL_SUFFIX = "://"
 
-CAMERA_ATTRIBUTES = {
+MONITOR_ATTRIBUTES = {
     "status": "Status",
     "mode": "Mode",
     "type": "Type"
 }
 
-CAMERA_DETAILS_ATTRIBUTES = {
-    ATTR_CAMERA_DETAILS_FPS: ATTR_FPS
+MONITOR_DETAILS_ATTRIBUTES = {
+    ATTR_MONITOR_DETAILS_FPS: ATTR_FPS
 }
 
 TRIGGER_STARTS_WITH = "[\"f\",{\"f\":\""
@@ -236,19 +236,12 @@ VIDEO_DETAILS_MIME_TYPE = "mime-type"
 VIDEO_DETAILS_IDENTIFIER = "identifier"
 VIDEO_DETAILS_TITLE = "title"
 
-CAMERA_MODE_STOP = "stop"
-CAMERA_MODE_RECORD = "record"
+MONITOR_MODE_STOP = "stop"
+MONITOR_MODE_START = "start"
+MONITOR_MODE_RECORD = "record"
 
-CAMERA_MODES = {
-    "stop": "Disabled",
-    "start": "Watch-Only",
-    "record": "Record"
+ICON_MONITOR_MODES = {
+    MONITOR_MODE_STOP: "mdi:cctv-off",
+    MONITOR_MODE_START: "mdi:cctv",
+    MONITOR_MODE_RECORD: "mdi:record-rec"
 }
-
-ICON_CAMERA_MODES = {
-    "stop": "mdi:cctv-off",
-    "start": "mdi:cctv",
-    "record": "mdi:record-rec"
-}
-
-FEATURE_SET_CAMERA_MODE = "Camera Mode"

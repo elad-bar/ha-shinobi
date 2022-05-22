@@ -25,7 +25,7 @@ CURRENT_DOMAIN = DOMAIN_SELECT
 
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
-    """Set up the Shinobi Video Camera."""
+    """Set up the Shinobi Video Monitor Mode."""
     await async_setup_base_entry(
         hass, config_entry, async_add_devices, CURRENT_DOMAIN, get_select
     )
@@ -52,21 +52,21 @@ class ShinobiVideoModeSelectDescription(SelectEntityDescription):
 
 
 SELECTOR_TYPES = {
-    FEATURE_SET_CAMERA_MODE: ShinobiVideoModeSelectDescription(
-        key=ATTR_CAMERA_MODE,
-        name="Camera Mode",
+    ATTR_MONITOR_MODE: ShinobiVideoModeSelectDescription(
+        key=ATTR_MONITOR_MODE,
+        name=ATTR_MONITOR_MODE,
         icon="mdi:cctv",
         device_class="shinobi__mode",
-        options=tuple(ICON_CAMERA_MODES.keys()),
+        options=tuple(ICON_MONITOR_MODES.keys()),
         entity_category=EntityCategory.CONFIG,
     ),
 }
 
 
 class ShinobiSelect(SelectEntity, BaseEntity, ABC):
-    """ Shinobi Video Camera Mode Control """
+    """ Shinobi Video Monitor Mode Control """
 
-    entity_description = SELECTOR_TYPES[FEATURE_SET_CAMERA_MODE]
+    entity_description = SELECTOR_TYPES[ATTR_MONITOR_MODE]
     _attr_options = list(entity_description.options)
 
     @property
@@ -77,10 +77,10 @@ class ShinobiSelect(SelectEntity, BaseEntity, ABC):
     @property
     def icon(self) -> str | None:
         """Return the icon to use in the frontend, if any."""
-        icon = ICON_CAMERA_MODES.get(self.entity.state, "mdi:cctv")
+        icon = ICON_MONITOR_MODES.get(self.entity.state, "mdi:cctv")
 
         return icon
 
     async def async_select_option(self, option: str) -> None:
-        """Select lamp mode."""
-        await self.entity_manager.async_set_camera_mode(self.entity.id, option)
+        """Select monitor mode."""
+        await self.entity_manager.async_set_monitor_mode(self.entity.id, option)

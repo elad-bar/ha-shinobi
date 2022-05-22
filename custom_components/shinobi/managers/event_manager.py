@@ -11,12 +11,6 @@ from homeassistant.helpers.event import async_track_time_interval
 _LOGGER = logging.getLogger(__name__)
 
 
-def _get_camera_binary_sensor_key(topic, event_type):
-    key = f"{topic}_{event_type}".lower()
-
-    return key
-
-
 class EventManager:
     remove_subscription = None
     hass: Optional[HomeAssistant] = None
@@ -47,7 +41,6 @@ class EventManager:
             trigger_reason = trigger_details.get(TRIGGER_DETAILS_REASON)
 
             sensor_type = PLUG_SENSOR_TYPE.get(trigger_reason, None)
-            event_type = None
 
             if sensor_type is None:
                 event_name = f"{SHINOBI_EVENT}{trigger_reason}"
@@ -126,7 +119,7 @@ class EventManager:
             )
 
     def get_state(self, topic, event_type):
-        key = _get_camera_binary_sensor_key(topic, event_type)
+        key = self._get_binary_sensor_key(topic, event_type)
 
         state = self.states.get(key, TRIGGER_DEFAULT)
 
@@ -135,6 +128,12 @@ class EventManager:
     def set_state(self, topic, event_type, value):
         _LOGGER.debug(f"Set {event_type} state: {value} for {topic}")
 
-        key = _get_camera_binary_sensor_key(topic, event_type)
+        key = self._get_binary_sensor_key(topic, event_type)
 
         self.states[key] = value
+
+    @staticmethod
+    def _get_binary_sensor_key(topic, event_type):
+        key = f"{topic}_{event_type}".lower()
+
+        return key

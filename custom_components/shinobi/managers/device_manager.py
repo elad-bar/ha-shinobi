@@ -53,8 +53,8 @@ class DeviceManager:
     def update(self):
         self.generate_system_device()
 
-        for camera_id in self._api.monitors:
-            self.generate_camera_device(camera_id)
+        for monitor_id in self._api.monitors:
+            self.generate_monitor_device(monitor_id)
 
     def get_system_device_name(self):
         title = self.config_manager.config_entry.title
@@ -63,11 +63,11 @@ class DeviceManager:
 
         return device_name
 
-    def get_camera_device_name(self, camera_id: str):
+    def get_monitor_device_name(self, monitor_id: str):
         title = self.config_manager.config_entry.title
-        camera = self._api.monitors.get(camera_id)
+        monitor = self._api.monitors.get(monitor_id)
 
-        device_name = f"{title} {camera.name} ({camera.monitorId})"
+        device_name = f"{title} {monitor.name} ({monitor.id})"
 
         return device_name
 
@@ -83,8 +83,8 @@ class DeviceManager:
 
         self.set(device_name, device_info)
 
-    def generate_camera_device(self, camera_id: str):
-        device_name = self.get_camera_device_name(camera_id)
+    def generate_monitor_device(self, monitor_id: str):
+        device_name = self.get_monitor_device_name(monitor_id)
 
         device_info = {
             "identifiers": {(DEFAULT_NAME, device_name)},

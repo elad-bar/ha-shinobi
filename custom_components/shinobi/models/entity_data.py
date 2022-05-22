@@ -42,7 +42,7 @@ class EntityData:
             ENTITY_DEVICE_NAME: self.device_name,
             ENTITY_STATUS: self.status,
             ENTITY_BINARY_SENSOR_DEVICE_CLASS: self.binary_sensor_device_class,
-            ENTITY_CAMERA_DETAILS: self.details,
+            ENTITY_MONITOR_DETAILS: self.details,
             ENTITY_DISABLED: self.disabled,
             ENTITY_DOMAIN: self.domain
         }

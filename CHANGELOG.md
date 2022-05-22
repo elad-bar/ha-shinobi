@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- Align terminology of Shinobi Video (Camera for HA component, Monitor for Shinobi Video device)
+
 ## 1.2.0
 
 - Add support to control camera mode using Select Entity, available options are Disabled (stop), Watch Only (start), Record (record)
@@ -123,7 +127,7 @@
 - Fix motion binary sensor is now relying on detector_pam settings [#10](https://github.com/elad-bar/ha-shinobi/issues/10)
 - JPEG API must be enabled to create camera entity [#7](https://github.com/elad-bar/ha-shinobi/issues/7), in addition, will present warning log message:
 
-  `JPEG API is not enabled for {camera.name}, Camera will not be created`
+  `JPEG API is not enabled for {monitor.name}, Camera will not be created`
 
 ## 1.1.4
 

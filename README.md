@@ -4,11 +4,12 @@
 
 Integration with Shinobi Video NVR. Creates the following components:
 
-* Camera - per-camera defined.
-* Binary Sensors (MOTION, SOUND) - per-camera defined.
+* Camera - per-monitor defined.
+* Binary Sensors (MOTION, SOUND) - per-monitor defined.
 * Support HLS Streams instead of H264.
 * Support SSL with self-signed certificate.
 * Support Face-Recognition plugin as an event
+* Select to set the monitor mode
 
 [Changelog](https://github.com/elad-bar/ha-shinobi/blob/master/CHANGELOG.md)
 
@@ -31,24 +32,24 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 
 #### Integration settings
 ###### Basic configuration (Configuration -> Integrations -> Add Shinobi Video NVR)
-Fields name | Type | Required | Default | Description
---- | --- | --- | --- | --- |
-Host | Texbox | + | None | Hostname or IP address of the Shinobi Video server
-Port | Textbox | + | 0 | HTTP Port to access Shinobi Video server
-SSL | Check-box | + | Unchecked | Is SSL supported?
-Username | Textbox | - | | Username of dashboard user for Shinobi Video server
-Password | Textbox | - | | Password of dashboard user for Shinobi Video server
-Use original stream | Check-box | - | Unchecked | If checked will use the original stream directly from the camera, otherwise, will use the stream from Shinobi Video (Default)
+| Fields name         | Type      | Required | Default   | Description                                                                                                                   |
+|---------------------|-----------|----------|-----------|-------------------------------------------------------------------------------------------------------------------------------|
+| Host                | Texbox    | +        | None      | Hostname or IP address of the Shinobi Video server                                                                            |
+| Port                | Textbox   | +        | 0         | HTTP Port to access Shinobi Video server                                                                                      |
+| SSL                 | Check-box | +        | Unchecked | Is SSL supported?                                                                                                             |
+| Username            | Textbox   | -        |           | Username of dashboard user for Shinobi Video server                                                                           |
+| Password            | Textbox   | -        |           | Password of dashboard user for Shinobi Video server                                                                           |
+| Use original stream | Check-box | -        | Unchecked | If checked will use the original stream directly from the camera, otherwise, will use the stream from Shinobi Video (Default) |
 
 ###### Integration options (Configuration -> Integrations -> Shinobi Video NVR Integration -> Options)
-Fields name | Type | Required | Default | Description
---- | --- | --- | --- | --- |
-Host | Texbox | + | ast stored hostname | Hostname or IP address of the Shinobi Video server
-Port | Textbox | + | 0ast stored port | HTTP Port to access Shinobi Video server
-SSL | Check-box | + | Last stored SSL flag | Is SSL supported?
-Username | Textbox | - | Last stored username | Username of dashboard user for Shinobi Video server
-Password | Textbox | - | Last stored password | Password of dashboard user for Shinobi Video server
-Use original stream | Check-box | - | Unchecked | If checked will use the original stream directly from the camera, otherwise, will use the stream from Shinobi Video (Default)
+| Fields name         | Type      | Required | Default              | Description                                                                                                                   |
+|---------------------|-----------|----------|----------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| Host                | Texbox    | +        | ast stored hostname  | Hostname or IP address of the Shinobi Video server                                                                            |
+| Port                | Textbox   | +        | 0ast stored port     | HTTP Port to access Shinobi Video server                                                                                      |
+| SSL                 | Check-box | +        | Last stored SSL flag | Is SSL supported?                                                                                                             |
+| Username            | Textbox   | -        | Last stored username | Username of dashboard user for Shinobi Video server                                                                           |
+| Password            | Textbox   | -        | Last stored password | Password of dashboard user for Shinobi Video server                                                                           |
+| Use original stream | Check-box | -        | Unchecked            | If checked will use the original stream directly from the camera, otherwise, will use the stream from Shinobi Video (Default) |
 
 ###### Configuration validations
 Upon submitting the form of creating an integration or updating options,
@@ -69,24 +70,24 @@ Please remove the integration and re-add it to make it work again.
 ## Components
 
 #### Binary Sensors
-Each binary sensor will have the name pattern - {Integration Title} {Camera Name} {Sound / Motion},
+Each binary sensor will have the name pattern - {Integration Title} {Monitor Name} {Sound / Motion},
 Once triggered, the following details will be added to the attributes of the binary sensor:
 
 ###### Audio
-Represents whether the camera is triggered for noise or not
+Represents whether the monitor is triggered for noise or not
 
 ###### Motion
-Represents whether the camera is triggered for motion or not
+Represents whether the monitor is triggered for motion or not
 
 ###### Camera
 State: Idle
 
-Attributes | Available values |
---- | --- |
-Status | Recording,
-Mode | stop (Disabled), start (Watch-Only), record (Record)
-Type | H264, MJPEG,
-FPS | -
+| Attributes | Available values                                     |
+|------------|------------------------------------------------------|
+| Status     | Recording,                                           |
+| Mode       | stop (Disabled), start (Watch-Only), record (Record) |
+| Type       | H264, MJPEG,                                         |
+| FPS        | -                                                    |
 
 ## Events
 
@@ -104,7 +105,7 @@ Payload:
   "ke": "GroupID",
   "details": {
     "plug": "Plugin Name",
-    "name": "Camera Name",
+    "name": "Monitor Name",
     "reason": "face",
     "matrices": [
       {
@@ -137,7 +138,7 @@ Payload:
   "ke": "GroupID",
   "details": {
     "plug": "Plugin Name",
-    "name": "Camera Name",
+    "name": "Monitor Name",
     "reason": "object",
     "matrices": [
       {

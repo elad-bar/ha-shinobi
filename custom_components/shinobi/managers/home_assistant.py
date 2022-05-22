@@ -56,7 +56,7 @@ class HomeAssistantManager:
         self._config_manager = ConfigManager(password_manager)
 
         def _send_heartbeat(internal_now):
-            self._hass.async_create_task(self._ws.async_send_heartbeat(internal_now))
+            self._hass.async_create_task(self._ws.async_send_heartbeat())
 
         self._send_heartbeat = _send_heartbeat
 
