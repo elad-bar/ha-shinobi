@@ -28,7 +28,7 @@ class ShinobiApi:
     user_id: Optional[str]
     api_key: Optional[str]
     session: Optional[ClientSession]
-    video_list: List[VideoData]
+    video_list: list[VideoData]
     hass: HomeAssistant
     config_manager: ConfigManager
     base_url: Optional[str]
@@ -269,7 +269,7 @@ class ShinobiApi:
                 monitors = response
 
             else:
-                monitors: List = [response]
+                monitors: list = [response]
 
             for monitor in monitors:
                 try:

@@ -60,7 +60,7 @@ class ShinobiMediaSource(MediaSource, ABC):
         self.api = self.ha.api
 
     @property
-    def videos(self) -> List[VideoData] | None:
+    def videos(self) -> list[VideoData] | None:
         """Return the radio browser."""
         return self.api.video_list
 

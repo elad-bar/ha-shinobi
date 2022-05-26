@@ -93,7 +93,7 @@ class ConfigFlowManager:
 
     def _get_default_fields(
         self, flow, config_data: Optional[ConfigData] = None
-    ) -> Dict[vol.Marker, Any]:
+    ) -> dict[vol.Marker, Any]:
         _LOGGER.debug(f"Get default fields for {flow}, config_data: {config_data}")
 
         if config_data is None:

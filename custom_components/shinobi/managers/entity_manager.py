@@ -71,7 +71,7 @@ class EntityManager:
 
         return result
 
-    def get_all_entities(self) -> List[EntityData]:
+    def get_all_entities(self) -> list[EntityData]:
         entities = []
         for domain in self._entities:
             for name in self._entities[domain]:
@@ -85,7 +85,7 @@ class EntityManager:
         if domain not in self._entities:
             self._entities[domain] = {}
 
-    def _get_entities(self, domain) -> Dict[str, EntityData]:
+    def _get_entities(self, domain) -> dict[str, EntityData]:
         self._check_domain(domain)
 
         return self._entities[domain]
