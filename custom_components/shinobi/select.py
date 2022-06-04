@@ -14,7 +14,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
 from .component.helpers.const import *
-from .core.models.base_entity import BaseEntity, async_setup_base_entry
+from .component.models.shinobi_entity import ShinobiEntity
+from .core.models.base_entity import async_setup_base_entry
 from .core.models.entity_data import EntityData
 
 DEPENDENCIES = [DOMAIN]
@@ -63,7 +64,7 @@ SELECTOR_TYPES = {
 }
 
 
-class ShinobiSelect(SelectEntity, BaseEntity, ABC):
+class ShinobiSelect(SelectEntity, ShinobiEntity, ABC):
     """ Shinobi Video Monitor Mode Control """
 
     entity_description = SELECTOR_TYPES[ATTR_MONITOR_MODE]

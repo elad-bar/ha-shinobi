@@ -1,16 +1,6 @@
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_NAME,
-    CONF_PASSWORD,
-    CONF_PATH,
-    CONF_PORT,
-    CONF_SSL,
-    CONF_USERNAME,
-    STATE_OFF,
-    STATE_ON,
-)
+from ...configuration.helpers.const import *
 
-from .component_overrides.const import *
+PLATFORMS = {domain: f"{DOMAIN}_{domain}_UPDATE_SIGNAL" for domain in SUPPORTED_PLATFORMS}
 
 ENTITY_ID = "id"
 ENTITY_NAME = "name"
@@ -26,17 +16,7 @@ ENTITY_DOMAIN = "domain"
 ENTITY_STATUS = "status"
 ENTITY_CONFIG_ENTRY_ID = "entry_id"
 
-CONFIG_FLOW_DATA = "config_flow_data"
-CONFIG_FLOW_OPTIONS = "config_flow_options"
-CONFIG_FLOW_INIT = "config_flow_init"
-
-CONF_USE_ORIGINAL_STREAM = "use_original_stream"
-
-CONF_ARR = [CONF_USERNAME, CONF_PASSWORD, CONF_HOST, CONF_PORT, CONF_SSL, CONF_PATH, CONF_USE_ORIGINAL_STREAM]
-
 STORAGE_VERSION = 1
-
-DEFAULT_PORT = 8080
 
 PASSWORD_MANAGER = f"pm_{DOMAIN}"
 DATA = f"data_{DOMAIN}"

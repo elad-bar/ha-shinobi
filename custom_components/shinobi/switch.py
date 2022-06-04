@@ -12,7 +12,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
 from .component.helpers.const import *
-from .core.models.base_entity import BaseEntity, async_setup_base_entry
+from .component.models.shinobi_entity import ShinobiEntity
+from .core.models.base_entity import async_setup_base_entry
 from .core.models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ def get_switch(hass: HomeAssistant, entity: EntityData):
     return switch
 
 
-class ShinobiSwitch(SwitchEntity, BaseEntity):
+class ShinobiSwitch(SwitchEntity, ShinobiEntity):
     """Class for a Shinobi Video switch."""
 
     _attr_entity_category = EntityCategory.CONFIG

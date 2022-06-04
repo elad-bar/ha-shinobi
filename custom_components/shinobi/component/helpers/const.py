@@ -5,6 +5,8 @@ https://home-assistant.io/components/switch.shinobi/
 """
 from datetime import timedelta
 
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+
 from ...core.helpers.const import *
 
 CONF_SUPPORT_STREAM = "support_stream"

@@ -10,59 +10,34 @@ import datetime
 import logging
 import sys
 
-from cryptography.fernet import InvalidToken
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.entity_registry import EntityRegistry, async_get
-from homeassistant.helpers.event import async_track_time_interval
 
 from ...component.api.shinobi_api import ShinobiApi
 from ...component.api.shinobi_websocket import ShinobiWebSocket
 from ...component.helpers.const import *
+from ...component.helpers.enums import ConnectivityStatus
+from ...component.managers.event_manager import ShinobiEventManager
 from ...component.models.monitor_data import MonitorData
-from ...core.managers.device_manager import DeviceManager
-from ...core.managers.entity_manager import EntityManager
-from ...core.managers.password_manager import PasswordManager
-from ...core.managers.storage_manager import StorageManager
-from ...core.models.config_data import ConfigData, get_config_data_from_entry
-from ..helpers.enums import ConnectivityStatus
-from .event_manager import EventManager
+from ...configuration.managers.configuration_manager import (
+    ConfigurationManager,
+    async_get_configuration_manager,
+)
+from ...configuration.models.config_data import ConfigData
+from ...core.managers.home_assistant import HomeAssistantManager
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class HomeAssistantManager:
-    def __init__(self, hass: HomeAssistant, password_manager: PasswordManager):
-        self._hass = hass
-        self._password_manager = password_manager
-
-        self._is_initialized = False
-        self._is_updating = False
-
-        self._entity_registry = None
+class ShinobiHomeAssistantManager(HomeAssistantManager):
+    def __init__(self, hass: HomeAssistant):
+        super().__init__(hass, SCAN_INTERVAL, HEARTBEAT_INTERVAL_SECONDS)
 
         self._api: ShinobiApi | None = None
         self._ws: ShinobiWebSocket | None = None
-        self.config_data: ConfigData | None = None
+        self._config_manager: ConfigurationManager | None = None
 
-        self._storage_manager = StorageManager(self._hass)
-        self._event_manager = EventManager(self._hass, self._update)
-        self._entity_manager = EntityManager(self._hass, self)
-        self._device_manager = DeviceManager(self._hass, self)
-
-        self._entity_registry = async_get(self._hass)
-
-        self._async_track_time_handlers = []
-        self._last_heartbeat = None
-
-        def _send_heartbeat(internal_now):
-            self._last_heartbeat = internal_now
-
-            self._hass.async_create_task(self._ws.async_send_heartbeat())
-
-        self._send_heartbeat = _send_heartbeat
+        self._event_manager = ShinobiEventManager(self._hass, super().update)
 
     @property
     def api(self) -> ShinobiApi:
@@ -73,97 +48,34 @@ class HomeAssistantManager:
         return self._ws
 
     @property
-    def entity_manager(self) -> EntityManager:
-        return self._entity_manager
-
-    @property
-    def device_manager(self) -> DeviceManager:
-        return self._device_manager
-
-    @property
-    def entity_registry(self) -> EntityRegistry:
-        return self._entity_registry
-
-    @property
-    def storage_manager(self) -> StorageManager:
-        return self._storage_manager
-
-    @property
-    def event_manager(self) -> EventManager:
+    def event_manager(self) -> ShinobiEventManager:
         return self._event_manager
 
     @property
-    def entry_id(self) -> str:
-        return self.config_data.entry.entry_id
+    def config_data(self) -> ConfigData:
+        return self._config_manager.get(self.entry_id)
 
-    @property
-    def entry_title(self) -> str:
-        return self.config_data.entry.title
+    async def async_send_heartbeat(self):
+        """ Must be implemented to be able to send heartbeat to API """
+        await self._ws.async_send_heartbeat()
 
-    async def async_init(self, entry: ConfigEntry):
+    async def async_component_initialize(self, entry: ConfigEntry):
         try:
-            self.config_data = get_config_data_from_entry(entry, self._password_manager.get)
+            self._config_manager = async_get_configuration_manager(self._hass)
+            await self._config_manager.load(entry)
 
             await self.event_manager.initialize()
 
             self._api = ShinobiApi(self._hass, self.config_data)
             self._ws = ShinobiWebSocket(self._hass, self._api, self.config_data, self._event_manager)
 
-            self._hass.loop.create_task(self._async_load_platforms())
-
-        except InvalidToken:
-            error_message = "Encryption key got corrupted, please remove the integration and re-add it"
-
-            _LOGGER.error(error_message)
-
-            data = await self._storage_manager.async_load_from_store()
-            data.key = None
-
-            await self._storage_manager.async_save_to_store(data)
-
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
-            _LOGGER.error(f"Failed to async_init, error: {ex}, line: {line_number}")
+            _LOGGER.error(f"Failed to async_component_initialize, error: {ex}, line: {line_number}")
 
-    async def _async_load_platforms(self):
-        load = self._hass.config_entries.async_forward_entry_setup
-
-        for domain in PLATFORMS:
-            await load(self.config_data.entry, domain)
-
-        self._is_initialized = True
-
-        await self.async_update_entry()
-
-    def _update_entities(self, now):
-        self._hass.async_create_task(self.async_update(now))
-
-    async def async_update_entry(self, entry: ConfigEntry = None):
-        entry_changed = entry is not None
-
-        if entry_changed:
-            self.config_data = get_config_data_from_entry(entry, self._password_manager.get)
-
-            _LOGGER.info(f"Handling ConfigEntry load: {entry.as_dict()}")
-
-        else:
-            entry = self.config_data.entry
-
-            remove_async_track_time = async_track_time_interval(
-                self._hass, self._update_entities, SCAN_INTERVAL
-            )
-
-            remove_async_heartbeat_track_time = async_track_time_interval(
-                self._hass, self._send_heartbeat, HEARTBEAT_INTERVAL_SECONDS
-            )
-
-            self._async_track_time_handlers.append(remove_async_track_time)
-            self._async_track_time_handlers.append(remove_async_heartbeat_track_time)
-
-            _LOGGER.info(f"Handling ConfigEntry change: {entry.as_dict()}")
-
+    async def async_initialize_data_providers(self, entry: ConfigEntry | None = None):
         await self.api.initialize(self.config_data)
 
         if self.api.status == ConnectivityStatus.Connected:
@@ -180,55 +92,13 @@ class HomeAssistantManager:
                 if not self.ws.is_aborted:
                     await asyncio.sleep(RECONNECT_INTERVAL)
 
-    async def async_unload(self):
-        _LOGGER.info(f"HA was stopped")
-
+    async def async_stop_data_providers(self):
+        self.event_manager.terminate()
         await self.api.terminate()
         await self.ws.terminate()
 
-    async def async_remove(self, entry: ConfigEntry):
-        _LOGGER.info(f"Removing current integration - {entry.title}")
-
-        for handler in self._async_track_time_handlers:
-            if handler is not None:
-                handler()
-
-        self._async_track_time_handlers.clear()
-
-        self.event_manager.terminate()
-
-        await self.ws.terminate()
-
-        unload = self._hass.config_entries.async_forward_entry_unload
-
-        for domain in PLATFORMS:
-            await unload(entry, domain)
-
-        await self._device_manager.async_remove()
-
-        _LOGGER.info(f"Current integration ({entry.title}) removed")
-
-    def _update(self):
-        self._load_entities()
-
-        self.entity_manager.update()
-
-        self._hass.async_create_task(self.dispatch_all())
-
-    async def async_update(self, event_time):
-        if not self._is_initialized:
-            _LOGGER.info(f"NOT INITIALIZED - Failed updating @{event_time}")
-            return
-
+    async def async_update_data_providers(self):
         try:
-            if self._is_updating:
-                _LOGGER.debug(f"Skip updating @{event_time}")
-                return
-
-            _LOGGER.debug(f"Updating @{event_time}")
-
-            self._is_updating = True
-
             await self._api.async_update()
 
             self.device_manager.generate_device(f"{self.entry_title} Server", "System")
@@ -238,64 +108,30 @@ class HomeAssistantManager:
                 device_name = self._get_monitor_device_name(monitor)
 
                 self.device_manager.generate_device(device_name, "Camera")
-
-            self._update()
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
-            _LOGGER.error(f"Failed to async_update, Error: {ex}, Line: {line_number}")
+            _LOGGER.error(f"Failed to async_update_data_providers, Error: {ex}, Line: {line_number}")
 
-        self._is_updating = False
+    def load_entities(self):
+        for monitor_id in self.api.monitors:
+            monitor = self.api.monitors.get(monitor_id)
+            device = self._get_monitor_device_name(monitor)
+
+            self._load_camera_component(monitor, device)
+            self._load_select_component(monitor, device)
+
+            self._load_binary_sensor_entity(monitor, BinarySensorDeviceClass.SOUND, device)
+            self._load_binary_sensor_entity(monitor, BinarySensorDeviceClass.MOTION, device)
+
+            self._load_switch_entity(monitor, BinarySensorDeviceClass.SOUND, device)
+            self._load_switch_entity(monitor, BinarySensorDeviceClass.MOTION, device)
 
     def _get_monitor_device_name(self, monitor: MonitorData):
         device_name = f"{self.entry_title} {monitor.name} ({monitor.id})"
 
         return device_name
-
-    async def delete_entity(self, domain, name):
-        try:
-            available_domains = self.entity_manager.available_domains
-            domain_data = self.entity_manager.get_domain_data(domain)
-
-            entity = domain_data.get_entity(name)
-            device_name = entity.device_name
-            unique_id = entity.unique_id
-
-            domain_data.delete_entity(name)
-
-            device_in_use = False
-
-            for domain_name in available_domains:
-                if domain_name != domain:
-                    domain_data = self.entity_manager.get_domain_data(domain_name)
-
-                    if device_name in domain_data.entities:
-                        device_in_use = True
-                        break
-
-            entity_id = self.entity_registry.async_get_entity_id(
-                domain, DOMAIN, unique_id
-            )
-            self.entity_registry.async_remove(entity_id)
-
-            if not device_in_use:
-                await self.device_manager.delete_device(device_name)
-        except Exception as ex:
-            exc_type, exc_obj, tb = sys.exc_info()
-            line_number = tb.tb_lineno
-
-            _LOGGER.error(f"Failed to delete_entity, Error: {ex}, Line: {line_number}")
-
-    async def dispatch_all(self):
-        if not self._is_initialized:
-            _LOGGER.info("NOT INITIALIZED - Failed discovering components")
-            return
-
-        for domain in PLATFORMS:
-            signal = PLATFORMS.get(domain)
-
-            async_dispatcher_send(self._hass, signal)
 
     async def async_set_monitor_mode(self, monitor_id: str, mode: str):
         await self.api.async_set_monitor_mode(monitor_id, mode)
@@ -311,20 +147,6 @@ class HomeAssistantManager:
         await self.api.async_set_sound_detection(monitor_id, enabled)
 
         await self.async_update(datetime.datetime.now)
-
-    def _load_entities(self):
-        for monitor_id in self.api.monitors:
-            monitor = self.api.monitors.get(monitor_id)
-            device = self._get_monitor_device_name(monitor)
-
-            self._load_camera_component(monitor, device)
-            self._load_select_component(monitor, device)
-
-            self._load_binary_sensor_entity(monitor, BinarySensorDeviceClass.SOUND, device)
-            self._load_binary_sensor_entity(monitor, BinarySensorDeviceClass.MOTION, device)
-
-            self._load_switch_entity(monitor, BinarySensorDeviceClass.SOUND, device)
-            self._load_switch_entity(monitor, BinarySensorDeviceClass.MOTION, device)
 
     def _load_camera_component(self, monitor: MonitorData, device: str):
         try:

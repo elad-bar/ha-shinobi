@@ -21,7 +21,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .component.api.shinobi_api import ShinobiApi
 from .component.helpers.const import *
-from .core.models.base_entity import BaseEntity, async_setup_base_entry
+from .component.models.shinobi_entity import ShinobiEntity
+from .core.models.base_entity import async_setup_base_entry
 from .core.models.entity_data import EntityData
 
 DEPENDENCIES = [DOMAIN]
@@ -53,7 +54,7 @@ def get_camera(hass: HomeAssistant, entity: EntityData):
     return camera
 
 
-class ShinobiCamera(Camera, BaseEntity, ABC):
+class ShinobiCamera(Camera, ShinobiEntity, ABC):
     """ Shinobi Video Camera """
 
     def __init__(self, hass, device_info):
@@ -85,7 +86,7 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
         config_data = self.ha.config_data
 
         username = config_data.username
-        password = config_data.password_clear_text
+        password = config_data.password
         use_original_stream = config_data.use_original_stream
 
         monitor = self.api.monitors.get(self.entity.id)

@@ -13,7 +13,7 @@ from ...component.helpers.const import *
 _LOGGER = logging.getLogger(__name__)
 
 
-class EventManager:
+class ShinobiEventManager:
     hass: HomeAssistant | None = None
     states: dict[str, dict]
     callback: Callable[[], None]

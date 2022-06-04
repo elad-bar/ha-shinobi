@@ -12,10 +12,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from ...component.helpers.const import *
-from ...component.helpers.exceptions import APIValidationException, LoginError
+from ...component.helpers.exceptions import APIValidationException
 from ...component.models.monitor_data import MonitorData
 from ...component.models.video_data import VideoData
-from ...core.models.config_data import ConfigData
+from ...configuration.models.config_data import ConfigData
 from ..helpers.enums import ConnectivityStatus
 
 REQUIREMENTS = ["aiohttp"]
@@ -244,7 +244,7 @@ class ShinobiApi:
 
             data = {
                 LOGIN_USERNAME: config_data.username,
-                LOGIN_PASSWORD: config_data.password_clear_text
+                LOGIN_PASSWORD: config_data.password
             }
 
             login_data = await self.async_post(URL_LOGIN, data)
@@ -439,15 +439,3 @@ class ShinobiApi:
             _LOGGER.info(f"{response_message} for {monitor_id}")
         else:
             _LOGGER.warning(f"{response_message} for {monitor_id}")
-
-
-async def validate_api_login(hass, config_data: ConfigData):
-    _LOGGER.debug("Validate login")
-
-    api = ShinobiApi(hass, config_data)
-    await api.initialize()
-
-    errors = ConnectivityStatus.get_config_errors(api.status)
-
-    if errors is not None:
-        raise LoginError(errors)

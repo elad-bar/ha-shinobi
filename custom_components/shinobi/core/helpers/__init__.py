@@ -1,13 +1,6 @@
 from homeassistant.core import HomeAssistant
 
-from .const import *
-
-
-def clear_ha(hass: HomeAssistant, entry_id):
-    if DATA not in hass.data:
-        hass.data[DATA] = dict()
-
-    del hass.data[DATA][entry_id]
+from ...core.helpers.const import *
 
 
 def get_ha(hass: HomeAssistant, entry_id):

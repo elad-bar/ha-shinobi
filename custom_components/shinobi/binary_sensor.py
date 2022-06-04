@@ -11,7 +11,8 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.core import HomeAssistant
 
 from .component.helpers.const import *
-from .core.models.base_entity import BaseEntity, async_setup_base_entry
+from .component.models.shinobi_entity import ShinobiEntity
+from .core.models.base_entity import async_setup_base_entry
 from .core.models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ async def async_unload_entry(hass, config_entry):
     return True
 
 
-class BaseBinarySensor(BinarySensorEntity, BaseEntity):
+class BaseBinarySensor(BinarySensorEntity, ShinobiEntity):
     """Representation a binary sensor that is updated."""
 
     @property

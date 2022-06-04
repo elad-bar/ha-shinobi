@@ -1,5 +1,6 @@
-from custom_components.shinobi.component.helpers.enums import ConnectivityStatus
 from homeassistant.exceptions import HomeAssistantError
+
+from ...component.helpers.enums import ConnectivityStatus
 
 
 class MonitorNotFoundError(HomeAssistantError):
@@ -7,20 +8,6 @@ class MonitorNotFoundError(HomeAssistantError):
 
     def __init__(self, monitor_id: str):
         self.monitor_id = monitor_id
-
-
-class AlreadyExistsError(HomeAssistantError):
-    title: str
-
-    def __init__(self, title: str):
-        self.title = title
-
-
-class LoginError(HomeAssistantError):
-    errors: dict
-
-    def __init__(self, errors):
-        self.errors = errors
 
 
 class APIRequestException(Exception):

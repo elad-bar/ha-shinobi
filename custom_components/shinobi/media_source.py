@@ -20,9 +20,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
 from .component.api.shinobi_api import ShinobiApi
+from .component.helpers import get_ha
 from .component.helpers.const import *
 from .component.models.video_data import VideoData
-from .core.helpers import get_ha
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,7 +43,6 @@ class ShinobiMediaSource(MediaSource, ABC):
     hass: HomeAssistant = None
 
     ha = None
-    api: ShinobiApi = None
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize CameraMediaSource."""
@@ -56,7 +55,10 @@ class ShinobiMediaSource(MediaSource, ABC):
         self.hass = hass
 
         self.ha = get_ha(self.hass, entry.entry_id)
-        self.api = self.ha.api
+
+    @property
+    def api(self) -> ShinobiApi:
+        return self.ha.api
 
     @property
     def videos(self) -> list[VideoData] | None:

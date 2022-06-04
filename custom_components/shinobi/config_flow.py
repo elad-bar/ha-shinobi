@@ -1,13 +1,21 @@
 """Config flow to configure Shinobi Video."""
+from __future__ import annotations
+
 import logging
+
+from cryptography.fernet import InvalidToken
+import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 
 from .component.helpers.const import *
-from .component.helpers.exceptions import AlreadyExistsError, LoginError
-from .core.managers.config_flow_manager import ConfigFlowManager
+from .configuration.helpers.exceptions import AlreadyExistsError, LoginError
+from .configuration.managers.configuration_manager import (
+    ConfigurationManager,
+    async_get_configuration_manager,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +30,7 @@ class DomainFlowHandler(config_entries.ConfigFlow):
     def __init__(self):
         super().__init__()
 
-        self._config_flow = ConfigFlowManager()
+        self._config_manager: ConfigurationManager | None = None
 
     @staticmethod
     @callback
@@ -34,39 +42,41 @@ class DomainFlowHandler(config_entries.ConfigFlow):
         """Handle a flow start."""
         _LOGGER.debug(f"Starting async_step_user of {DEFAULT_NAME}")
 
+        self._config_manager = async_get_configuration_manager(self.hass)
+
+        await self._config_manager.initialize()
+
         errors = None
-
-        await self._config_flow.initialize(self.hass)
-
-        new_user_input = self._config_flow.clone_items(user_input)
 
         if user_input is not None:
             try:
-                data = await self._config_flow.update_data(user_input, CONFIG_FLOW_DATA)
+                await self._config_manager.validate(user_input)
 
-                _LOGGER.debug("Completed")
+                _LOGGER.debug("User inputs are valid")
 
-                return self.async_create_entry(title=self._config_flow.title, data=data)
+                return self.async_create_entry(title=DEFAULT_NAME, data=user_input)
             except LoginError as lex:
-                del new_user_input[CONF_PASSWORD]
-
                 errors = lex.errors
+
+            except InvalidToken as itex:
+                errors = {"base": "corrupted_encryption_key"}
 
             except AlreadyExistsError as aeex:
                 errors = {"base": "already_configured"}
 
-        if errors is not None:
-            error_message = errors.get("base")
+            if errors is not None:
+                error_message = errors.get("base")
 
-            _LOGGER.warning(f"Failed to create integration, Error: {error_message}")
+                _LOGGER.warning(f"Failed to create integration, Error: {error_message}")
 
-        schema = await self._config_flow.get_default_data(new_user_input)
+        new_user_input = self._config_manager.get_data_fields(user_input)
+
+        schema = vol.Schema(new_user_input)
 
         return self.async_show_form(
             step_id="user",
             data_schema=schema,
-            errors=errors,
-            description_placeholders=new_user_input,
+            errors=errors
         )
 
     async def async_step_import(self, info):
@@ -86,8 +96,7 @@ class DomainOptionsFlowHandler(config_entries.OptionsFlow):
         super().__init__()
 
         self._config_entry = config_entry
-
-        self._config_flow = ConfigFlowManager()
+        self._config_manager: ConfigurationManager | None = None
 
     async def async_step_init(self, user_input=None):
         """Manage the domain options."""
@@ -95,37 +104,41 @@ class DomainOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_shinobi_additional_settings(self, user_input=None):
         _LOGGER.info(f"Starting additional settings step: {user_input}")
-        errors = None
 
-        await self._config_flow.initialize(self.hass, self._config_entry)
+        self._config_manager = async_get_configuration_manager(self.hass)
+        await self._config_manager.initialize()
+
+        errors = None
 
         if user_input is not None:
             try:
-                options = await self._config_flow.update_options(
-                    user_input, CONFIG_FLOW_OPTIONS
-                )
+                await self._config_manager.validate(user_input)
 
-                return self.async_create_entry(
-                    title=self._config_flow.title, data=options
-                )
+                _LOGGER.debug("User inputs are valid")
+
+                options = self._config_manager.remap_entry_data(self._config_entry, user_input)
+
+                return self.async_create_entry(title=self._config_entry.title, data=options)
             except LoginError as lex:
-                del user_input[CONF_PASSWORD]
-
                 errors = lex.errors
+
+            except InvalidToken as itex:
+                errors = {"base": "corrupted_encryption_key"}
 
             except AlreadyExistsError as aeex:
                 errors = {"base": "already_configured"}
 
-        if errors is not None:
-            error_message = errors.get("base")
+            if errors is not None:
+                error_message = errors.get("base")
 
-            _LOGGER.warning(f"Failed to update integration, Error: {error_message}")
+                _LOGGER.warning(f"Failed to create integration, Error: {error_message}")
 
-        schema = self._config_flow.get_default_options()
+        new_user_input = self._config_manager.get_options_fields(self._config_entry.data)
+
+        schema = vol.Schema(new_user_input)
 
         return self.async_show_form(
             step_id="shinobi_additional_settings",
             data_schema=schema,
-            errors=errors,
-            description_placeholders=user_input,
+            errors=errors
         )

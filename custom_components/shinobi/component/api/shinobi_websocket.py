@@ -18,10 +18,10 @@ from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
+from ...component.api.shinobi_api import ShinobiApi
 from ...component.helpers.const import *
-from ...component.managers.event_manager import EventManager
-from ...core.models.config_data import ConfigData
-from .shinobi_api import ShinobiApi
+from ...component.managers.event_manager import ShinobiEventManager
+from ...configuration.models.config_data import ConfigData
 
 REQUIREMENTS = ["aiohttp"]
 
@@ -34,7 +34,7 @@ class ShinobiWebSocket:
     session: ClientSession | None
     hass: HomeAssistant
     config_data: ConfigData
-    event_manager: EventManager
+    event_manager: ShinobiEventManager
     is_aborted: bool
     version: int
 
@@ -42,7 +42,7 @@ class ShinobiWebSocket:
                  hass: HomeAssistant,
                  api: ShinobiApi,
                  config_data: ConfigData,
-                 event_manager: EventManager):
+                 event_manager: ShinobiEventManager):
 
         self.config_data = config_data
         self._last_update = datetime.now()

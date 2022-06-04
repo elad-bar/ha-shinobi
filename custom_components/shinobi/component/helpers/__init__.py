@@ -5,9 +5,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant
 
-from ...component.managers.home_assistant import HomeAssistantManager
-from ...core.helpers.const import *
-from ...core.managers.password_manager import async_get_password_manager
+from ...component.helpers.const import *
+from ...component.managers.home_assistant import ShinobiHomeAssistantManager
+from ...configuration.managers.configuration_manager import (
+    async_get_configuration_manager,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -15,11 +17,9 @@ _LOGGER = logging.getLogger(__name__)
 async def async_set_ha(hass: HomeAssistant, entry: ConfigEntry):
     try:
         if DATA not in hass.data:
-            hass.data[DATA] = dict()
+            hass.data[DATA] = {}
 
-        password_manager = await async_get_password_manager(hass)
-
-        instance = HomeAssistantManager(hass, password_manager)
+        instance = ShinobiHomeAssistantManager(hass)
 
         await instance.async_init(entry)
 
@@ -38,3 +38,17 @@ async def async_set_ha(hass: HomeAssistant, entry: ConfigEntry):
         line_number = tb.tb_lineno
 
         _LOGGER.error(f"Failed to async_set_ha, error: {ex}, line: {line_number}")
+
+
+def get_ha(hass: HomeAssistant, entry_id) -> ShinobiHomeAssistantManager:
+    ha_data = hass.data.get(DATA, dict())
+    ha = ha_data.get(entry_id)
+
+    return ha
+
+
+def clear_ha(hass: HomeAssistant, entry_id):
+    if DATA not in hass.data:
+        hass.data[DATA] = dict()
+
+    del hass.data[DATA][entry_id]
