@@ -10,9 +10,9 @@ import logging
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.core import HomeAssistant
 
-from .helpers.const import *
-from .models.base_entity import BaseEntity, async_setup_base_entry
-from .models.entity_data import EntityData
+from .component.helpers.const import *
+from .core.models.base_entity import BaseEntity, async_setup_base_entry
+from .core.models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,9 +21,9 @@ DEPENDENCIES = [DOMAIN]
 CURRENT_DOMAIN = DOMAIN_BINARY_SENSOR
 
 
-def get_binary_sensor(hass: HomeAssistant, host: str, entity: EntityData):
+def get_binary_sensor(hass: HomeAssistant, entity: EntityData):
     binary_sensor = BaseBinarySensor()
-    binary_sensor.initialize(hass, host, entity, CURRENT_DOMAIN)
+    binary_sensor.initialize(hass, entity, CURRENT_DOMAIN)
 
     return binary_sensor
 
@@ -36,7 +36,7 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
 
 async def async_unload_entry(hass, config_entry):
-    _LOGGER.info(f"async_unload_entry {CURRENT_DOMAIN}: {config_entry}")
+    _LOGGER.info(f"Unload entry for {CURRENT_DOMAIN} domain: {config_entry}")
 
     return True
 

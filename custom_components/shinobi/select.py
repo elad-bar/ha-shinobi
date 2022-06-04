@@ -13,9 +13,9 @@ from homeassistant.components.select import SelectEntity, SelectEntityDescriptio
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
-from .helpers.const import *
-from .models.base_entity import BaseEntity, async_setup_base_entry
-from .models.entity_data import EntityData
+from .component.helpers.const import *
+from .core.models.base_entity import BaseEntity, async_setup_base_entry
+from .core.models.entity_data import EntityData
 
 DEPENDENCIES = [DOMAIN]
 
@@ -32,14 +32,14 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
 
 async def async_unload_entry(hass, config_entry):
-    _LOGGER.info(f"async_unload_entry {CURRENT_DOMAIN}: {config_entry}")
+    _LOGGER.info(f"Unload entry for {CURRENT_DOMAIN} domain: {config_entry}")
 
     return True
 
 
-def get_select(hass: HomeAssistant, host: str, entity: EntityData):
+def get_select(hass: HomeAssistant, entity: EntityData):
     select = ShinobiSelect()
-    select.initialize(hass, host, entity, CURRENT_DOMAIN)
+    select.initialize(hass, entity, CURRENT_DOMAIN)
 
     return select
 
@@ -83,4 +83,4 @@ class ShinobiSelect(SelectEntity, BaseEntity, ABC):
 
     async def async_select_option(self, option: str) -> None:
         """Select monitor mode."""
-        await self.entity_manager.async_set_monitor_mode(self.entity.id, option)
+        await self.ha.async_set_monitor_mode(self.entity.id, option)

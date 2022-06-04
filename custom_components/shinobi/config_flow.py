@@ -5,9 +5,9 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 
-from .helpers.const import *
-from .managers.config_flow_manager import ConfigFlowManager
-from .models import AlreadyExistsError, LoginError
+from .component.helpers.const import *
+from .component.helpers.exceptions import AlreadyExistsError, LoginError
+from .core.managers.config_flow_manager import ConfigFlowManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,16 +50,15 @@ class DomainFlowHandler(config_entries.ConfigFlow):
             except LoginError as lex:
                 del new_user_input[CONF_PASSWORD]
 
-                _LOGGER.warning("Cannot complete login")
-
                 errors = lex.errors
 
             except AlreadyExistsError as aeex:
-                _LOGGER.warning(
-                    f"{DEFAULT_NAME} with {ENTRY_PRIMARY_KEY}: {aeex.title} already exists"
-                )
-
                 errors = {"base": "already_configured"}
+
+        if errors is not None:
+            error_message = errors.get("base")
+
+            _LOGGER.warning(f"Failed to create integration, Error: {error_message}")
 
         schema = await self._config_flow.get_default_data(new_user_input)
 
@@ -112,16 +111,15 @@ class DomainOptionsFlowHandler(config_entries.OptionsFlow):
             except LoginError as lex:
                 del user_input[CONF_PASSWORD]
 
-                _LOGGER.warning("Cannot complete login")
-
                 errors = lex.errors
 
             except AlreadyExistsError as aeex:
-                _LOGGER.warning(
-                    f"{DEFAULT_NAME} with {ENTRY_PRIMARY_KEY}: {aeex.title} already exists"
-                )
-
                 errors = {"base": "already_configured"}
+
+        if errors is not None:
+            error_message = errors.get("base")
+
+            _LOGGER.warning(f"Failed to update integration, Error: {error_message}")
 
         schema = self._config_flow.get_default_options()
 

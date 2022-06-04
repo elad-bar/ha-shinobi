@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+- Code reorganize
+
 ## 1.2.3
 
 - Device and Entity registry - `async_get_registry` is deprecated, change to `async_get`

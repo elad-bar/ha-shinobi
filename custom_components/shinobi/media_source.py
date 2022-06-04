@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from abc import ABC
 import logging
-from typing import List
 
 from homeassistant.components.media_player.const import (
     MEDIA_CLASS_CHANNEL,
@@ -20,10 +19,10 @@ from homeassistant.components.media_source.models import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
-from . import get_ha
-from .api.shinobi_api import ShinobiApi
-from .helpers.const import *
-from .models.video_data import VideoData
+from .component.api.shinobi_api import ShinobiApi
+from .component.helpers.const import *
+from .component.models.video_data import VideoData
+from .core.helpers import get_ha
 
 _LOGGER = logging.getLogger(__name__)
 

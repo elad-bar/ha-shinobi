@@ -3,11 +3,12 @@ Support for Shinobi Video.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/camera.shinobi/
 """
+from __future__ import annotations
+
 from abc import ABC
 import asyncio
 from datetime import datetime
 import logging
-from typing import Optional
 
 import aiohttp
 import async_timeout
@@ -18,9 +19,10 @@ from homeassistant.exceptions import TemplateError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .helpers.const import *
-from .models.base_entity import BaseEntity, async_setup_base_entry
-from .models.entity_data import EntityData
+from .component.api.shinobi_api import ShinobiApi
+from .component.helpers.const import *
+from .core.models.base_entity import BaseEntity, async_setup_base_entry
+from .core.models.entity_data import EntityData
 
 DEPENDENCIES = [DOMAIN]
 
@@ -37,16 +39,16 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
 
 async def async_unload_entry(hass, config_entry):
-    _LOGGER.info(f"async_unload_entry {CURRENT_DOMAIN}: {config_entry}")
+    _LOGGER.info(f"Unload entry for {CURRENT_DOMAIN} domain: {config_entry}")
 
     return True
 
 
-def get_camera(hass: HomeAssistant, host: str, entity: EntityData):
+def get_camera(hass: HomeAssistant, entity: EntityData):
     device_info = entity.details
 
     camera = ShinobiCamera(hass, device_info)
-    camera.initialize(hass, host, entity, CURRENT_DOMAIN)
+    camera.initialize(hass, entity, CURRENT_DOMAIN)
 
     return camera
 
@@ -68,14 +70,17 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
         self._limit_refetch = False
         self.verify_ssl = False
 
+    @property
+    def api(self) -> ShinobiApi:
+        return self.ha.api
+
     def initialize(
         self,
         hass: HomeAssistant,
-        integration_name: str,
         entity: EntityData,
         current_domain: str,
     ):
-        super().initialize(hass, integration_name, entity, current_domain)
+        super().initialize(hass, entity, current_domain)
 
         config_data = self.ha.config_data
 
@@ -143,13 +148,13 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
         """Return the interval between frames of the mjpeg stream."""
         return self._frame_interval
 
-    def camera_image(self, width: Optional[int] = None, height: Optional[int] = None) -> Optional[bytes]:
+    def camera_image(self, width: int | None = None, height: int | None = None) -> bytes | None:
         """Return bytes of camera image."""
         return asyncio.run_coroutine_threadsafe(
             self.async_camera_image(), self.hass.loop
         ).result()
 
-    async def async_camera_image(self, width: Optional[int] = None, height: Optional[int] = None) -> Optional[bytes]:
+    async def async_camera_image(self, width: int | None = None, height: int | None = None) -> bytes | None:
         """Return a still image response from the camera."""
         try:
             url = self._still_image_url.async_render()
@@ -189,12 +194,12 @@ class ShinobiCamera(Camera, BaseEntity, ABC):
             _LOGGER.error(f"{self.name} - motion detection already enabled'")
 
         else:
-            await self.entity_manager.async_set_motion_detection(self.entity.id, True)
+            await self.ha.async_set_motion_detection(self.entity.id, True)
 
     async def async_disable_motion_detection(self) -> None:
         """Disable motion detection in camera."""
         if self.motion_detection_enabled:
-            await self.entity_manager.async_set_motion_detection(self.entity.id, False)
+            await self.ha.async_set_motion_detection(self.entity.id, False)
 
         else:
             _LOGGER.error(f"{self.name} - motion detection already disabled'")

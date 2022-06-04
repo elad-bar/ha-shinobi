@@ -11,9 +11,9 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
-from .helpers.const import *
-from .models.base_entity import BaseEntity, async_setup_base_entry
-from .models.entity_data import EntityData
+from .component.helpers.const import *
+from .core.models.base_entity import BaseEntity, async_setup_base_entry
+from .core.models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,14 +30,14 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
 
 async def async_unload_entry(hass, config_entry):
-    _LOGGER.info(f"async_unload_entry {CURRENT_DOMAIN}: {config_entry}")
+    _LOGGER.info(f"Unload entry for {CURRENT_DOMAIN} domain: {config_entry}")
 
     return True
 
 
-def get_switch(hass: HomeAssistant, host: str, entity: EntityData):
+def get_switch(hass: HomeAssistant, entity: EntityData):
     switch = ShinobiSwitch()
-    switch.initialize(hass, host, entity, CURRENT_DOMAIN)
+    switch.initialize(hass, entity, CURRENT_DOMAIN)
 
     return switch
 
@@ -62,9 +62,9 @@ class ShinobiSwitch(SwitchEntity, BaseEntity):
 
     async def set_detector_mode(self, enabled: bool):
         if self.entity.binary_sensor_device_class == BinarySensorDeviceClass.MOTION:
-            await self.entity_manager.async_set_motion_detection(self.entity.id, enabled)
+            await self.ha.async_set_motion_detection(self.entity.id, enabled)
         else:
-            await self.entity_manager.async_set_sound_detection(self.entity.id, enabled)
+            await self.ha.async_set_sound_detection(self.entity.id, enabled)
 
     def turn_on(self, **kwargs) -> None:
         pass
