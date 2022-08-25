@@ -222,7 +222,7 @@ class ShinobiApi:
         return result
 
     async def async_update(self):
-        _LOGGER.info(f"Updating data from Shinobi Video Server ({self.config_data.name})")
+        _LOGGER.info(f"Updating data from Shinobi Video Server ({self.config_data.host})")
 
         if self.status == ConnectivityStatus.Failed:
             await self.initialize()

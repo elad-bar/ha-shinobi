@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1
+
+- Upgraded pre-commit to support Python 3.10
+- Removed unused `ConfigData.name`
+- Fix support for Shinobi Video v3 (Socket.io JS resource moved to another path)
+
 ## 1.3.0
 
 - Code reorganize

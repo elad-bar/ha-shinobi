@@ -55,7 +55,7 @@ URL_LOGIN = "?json=true"
 URL_MONITORS = "[AUTH_TOKEN]/monitor/[GROUP_ID]"
 URL_VIDEOS = "[AUTH_TOKEN]/videos/[GROUP_ID]"
 URL_API_KEYS = "[AUTH_TOKEN]/api/[GROUP_ID]/list"
-URL_SOCKET_IO_V4 = "libs/js/socket.io.min.js"
+URL_SOCKET_IO_V4 = "assets/vendor/js/socket.io.min.js"
 URL_UPDATE_MONITOR = "[AUTH_TOKEN]/configureMonitor/[GROUP_ID]/[MONITOR_ID]"
 URL_UPDATE_MODE = f"{URL_MONITORS}/[MONITOR_ID]"
 

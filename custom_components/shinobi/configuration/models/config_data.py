@@ -8,7 +8,6 @@ from ...configuration.helpers.const import *
 
 
 class ConfigData:
-    name: str
     host: str | None
     port: int
     ssl: bool
@@ -19,7 +18,6 @@ class ConfigData:
     entry: ConfigEntry | None
 
     def __init__(self):
-        self.name = DEFAULT_NAME
         self.host = None
         self.port = DEFAULT_PORT
         self.ssl = False
@@ -48,7 +46,6 @@ class ConfigData:
 
     def to_dict(self):
         obj = {
-            CONF_NAME: self.name,
             CONF_HOST: self.host,
             CONF_PORT: self.port,
             CONF_SSL: self.ssl,
