@@ -41,6 +41,9 @@ DEFAULT_FORCE_UPDATE = False
 MAX_MSG_SIZE = 0
 DISCONNECT_INTERVAL = 5
 RECONNECT_INTERVAL = 30
+REPAIR_REPAIR_RECORD_INTERVAL = 5
+REPAIR_UPDATE_STATUS_INTERVAL = 10
+REPAIR_UPDATE_STATUS_ATTEMPTS = 12  # Up to 2 minutes of retries
 
 DISCOVERY = f"{DOMAIN}_discovery"
 
@@ -71,15 +74,15 @@ LOGIN_USERNAME = "mail"
 LOGIN_PASSWORD = "pass"
 
 DEFAULT_ACCESS_DETAILS = {
-                "auth_socket": False,
-                "get_monitors": True,
-                "control_monitors": False,
-                "get_logs": False,
-                "watch_stream": True,
-                "watch_snapshot": True,
-                "watch_videos": True,
-                "delete_videos": False
-            }
+    "auth_socket": False,
+    "get_monitors": True,
+    "control_monitors": False,
+    "get_logs": False,
+    "watch_stream": True,
+    "watch_snapshot": True,
+    "watch_videos": True,
+    "delete_videos": False
+}
 
 ATTR_MONITOR_ID = "mid"
 ATTR_MONITOR_GROUP_ID = "ke"

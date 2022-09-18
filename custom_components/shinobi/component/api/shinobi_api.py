@@ -225,7 +225,7 @@ class ShinobiApi:
         return result
 
     async def async_update(self):
-        _LOGGER.info(f"Updating data from Shinobi Video Server ({self.config_data.host})")
+        _LOGGER.debug(f"Updating data from Shinobi Video Server ({self.config_data.host})")
 
         if self.status == ConnectivityStatus.Failed:
             await self.initialize()
@@ -413,19 +413,28 @@ class ShinobiApi:
 
                 await self.async_set_monitor_mode(monitor_id, MONITOR_MODE_STOP)
 
-                await sleep(5)
+                await sleep(REPAIR_REPAIR_RECORD_INTERVAL)
 
                 await self.async_set_monitor_mode(monitor_id, MONITOR_MODE_RECORD)
 
-                await sleep(15)
+                for index in range(REPAIR_UPDATE_STATUS_ATTEMPTS):
+                    await sleep(REPAIR_UPDATE_STATUS_INTERVAL)
 
-                monitor = self.monitors.get(monitor_id)
+                    await self._async_update_monitor_details(monitor_id)
 
-                if monitor.should_repair:
-                    _LOGGER.warning(f"Unable to repair monitor: {monitor_id}")
+                    monitor = self.monitors.get(monitor_id)
 
-                else:
-                    _LOGGER.info(f"Monitor {monitor_id} is repaired")
+                    if self.status != ConnectivityStatus.Connected:
+                        status_message = ConnectivityStatus.get_log_level(self.status)
+                        _LOGGER.warning(f"Stopped sampling status for {monitor_id}, Reason: {status_message}")
+                        break
+
+                    if not monitor.should_repair:
+                        _LOGGER.info(f"Monitor {monitor_id} is repaired, Attempt #{index + 1}")
+                        break
+
+                if monitor.should_repair and self.status == ConnectivityStatus.Connected:
+                    _LOGGER.warning(f"Unable to repair monitor {monitor_id}, Attempts: {REPAIR_UPDATE_STATUS_ATTEMPTS}")
 
             except Exception as ex:
                 exc_type, exc_obj, tb = sys.exc_info()
@@ -490,3 +499,22 @@ class ShinobiApi:
             _LOGGER.info(f"{response_message} for {monitor_id}")
         else:
             _LOGGER.warning(f"{response_message} for {monitor_id}")
+
+    async def _async_update_monitor_details(self, monitor_id: str):
+        _LOGGER.debug(f"Updating monitor details for {monitor_id}")
+
+        if self.status == ConnectivityStatus.Connected:
+            url = f"{URL_MONITORS}/{monitor_id}"
+
+            response: dict = await self._async_get(url)
+            monitor_data = response[0]
+
+            monitor_details_str = monitor_data.get(ATTR_MONITOR_DETAILS)
+            details = json.loads(monitor_details_str)
+
+            monitor_data[ATTR_MONITOR_DETAILS] = details
+
+            monitor_data = MonitorData(monitor_data)
+
+            if monitor_data is not None:
+                self.monitors[monitor_data.id] = monitor_data
