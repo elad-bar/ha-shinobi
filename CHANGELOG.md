@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2
+
+- Add auto reconnect monitor when fails
+- Add "_" to make private functions of Shinobi API - private
+
 ## 1.3.1
 
 - Upgraded pre-commit to support Python 3.10

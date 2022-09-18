@@ -133,6 +133,9 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
         return device_name
 
+    async def async_repair_monitor(self, monitor_id: str):
+        await self.api.async_repair_monitor(monitor_id)
+
     async def async_set_monitor_mode(self, monitor_id: str, mode: str):
         await self.api.async_set_monitor_mode(monitor_id, mode)
 

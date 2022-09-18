@@ -17,6 +17,7 @@ class MonitorData:
     jpeg_api_enabled: bool
     original_stream: str
     mode: str
+    status: str
 
     def __init__(self, monitor):
         try:
@@ -63,6 +64,13 @@ class MonitorData:
         is_disabled = self.mode == MONITOR_MODE_STOP
 
         return is_disabled
+
+    @property
+    def should_repair(self):
+        is_mode_recording = self.mode == MONITOR_MODE_RECORD
+        is_status_recording = self.status.lower().startswith(MONITOR_MODE_RECORD)
+
+        return is_mode_recording and not is_status_recording
 
     def is_detector_active(self, sensor_type: BinarySensorDeviceClass):
         result = False

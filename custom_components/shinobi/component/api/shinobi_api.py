@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from asyncio import sleep
 from datetime import datetime
 import json
 import logging
@@ -36,6 +37,7 @@ class ShinobiApi:
     base_url: str | None
     monitors: dict[str, MonitorData]
     status: ConnectivityStatus
+    repairing: list[str]
 
     def __init__(self, hass: HomeAssistant, config_data: ConfigData):
         try:
@@ -49,6 +51,7 @@ class ShinobiApi:
             self.session = None
             self.base_url = None
             self.monitors = {}
+            self.repairing = []
             self.status = ConnectivityStatus.NotConnected
 
         except Exception as ex:
@@ -60,7 +63,7 @@ class ShinobiApi:
             )
 
     @property
-    def api_url(self):
+    def _api_url(self):
         config_data = self.config_data
         protocol = PROTOCOLS[config_data.ssl]
 
@@ -82,7 +85,7 @@ class ShinobiApi:
             if config_data is not None:
                 self.config_data = config_data
 
-            self.base_url = self.api_url
+            self.base_url = self._api_url
             self.video_list = []
 
             if self.hass is None:
@@ -107,13 +110,13 @@ class ShinobiApi:
         if endpoint.startswith("/"):
             endpoint = endpoint[1:]
 
-        endpoint = self.build_endpoint(endpoint, monitor_id)
+        endpoint = self._build_endpoint(endpoint, monitor_id)
 
         url = f"{self.base_url}{endpoint}"
 
         return url
 
-    def build_endpoint(self, endpoint, monitor_id: str = None):
+    def _build_endpoint(self, endpoint, monitor_id: str = None):
         if endpoint.startswith("/"):
             endpoint = endpoint[1:]
 
@@ -132,11 +135,11 @@ class ShinobiApi:
         if not ConnectivityStatus.is_api_request_allowed(endpoint, self.status):
             raise APIValidationException(endpoint, self.status)
 
-    async def async_post(self,
-                         endpoint,
-                         request_data: dict,
-                         monitor_id: str | None = None,
-                         is_url_encoded: bool = False):
+    async def _async_post(self,
+                          endpoint,
+                          request_data: dict,
+                          monitor_id: str | None = None,
+                          is_url_encoded: bool = False):
         result = None
 
         try:
@@ -178,7 +181,7 @@ class ShinobiApi:
 
         return result
 
-    async def async_get(self, endpoint, resource_available_check: bool = False):
+    async def _async_get(self, endpoint, resource_available_check: bool = False):
         result = None
 
         try:
@@ -228,8 +231,14 @@ class ShinobiApi:
             await self.initialize()
 
         if self.status == ConnectivityStatus.Connected:
-            await self.load_monitors()
-            await self.load_videos()
+            await self._load_monitors()
+            await self._load_videos()
+
+            for monitor_id in self.monitors:
+                monitor = self.monitors.get(monitor_id)
+
+                if monitor_id not in self.repairing and monitor.should_repair:
+                    self.hass.async_create_task(self._async_repair_monitor(monitor_id))
 
     async def _login(self):
         _LOGGER.info("Performing login")
@@ -247,7 +256,7 @@ class ShinobiApi:
                 LOGIN_PASSWORD: config_data.password
             }
 
-            login_data = await self.async_post(URL_LOGIN, data)
+            login_data = await self._async_post(URL_LOGIN, data)
 
             if login_data is not None:
                 user_data = login_data.get("$user", {})
@@ -262,7 +271,7 @@ class ShinobiApi:
                     self.api_key = temp_api_key
                     self.status = ConnectivityStatus.TemporaryConnected
 
-                    api_keys_data: dict = await self.async_get(URL_API_KEYS)
+                    api_keys_data: dict = await self._async_get(URL_API_KEYS)
 
                     self.api_key = None
 
@@ -305,17 +314,17 @@ class ShinobiApi:
         _LOGGER.debug("Get SocketIO version")
         version = 3
 
-        response: bool = await self.async_get(URL_SOCKET_IO_V4, True)
+        response: bool = await self._async_get(URL_SOCKET_IO_V4, True)
 
         if response:
             version = 4
 
         return version
 
-    async def load_monitors(self):
+    async def _load_monitors(self):
         _LOGGER.debug("Retrieving monitors")
 
-        response: dict = await self.async_get(URL_MONITORS)
+        response: dict = await self._async_get(URL_MONITORS)
 
         if response is None:
             _LOGGER.warning("No monitors were found")
@@ -350,11 +359,11 @@ class ShinobiApi:
                         f"Failed to load monitor data: {monitor}, Error: {ex}, Line: {line_number}"
                     )
 
-    async def load_videos(self):
+    async def _load_videos(self):
         _LOGGER.debug("Retrieving videos list")
         video_list = []
 
-        response: dict = await self.async_get(URL_VIDEOS)
+        response: dict = await self._async_get(URL_VIDEOS)
 
         if response is None:
             _LOGGER.warning("Invalid video response")
@@ -387,12 +396,54 @@ class ShinobiApi:
 
         self.video_list = video_list
 
+    async def _async_repair_monitor(self, monitor_id: str):
+        monitor = self.monitors.get(monitor_id)
+
+        if monitor_id in self.repairing:
+            _LOGGER.warning(f"Monitor {monitor_id} is in progress, cannot start additional repair job")
+
+        elif not monitor.should_repair:
+            _LOGGER.warning(f"Monitor {monitor_id} is working properly, no need to repair")
+
+        else:
+            try:
+                _LOGGER.info(f"Repairing monitor {monitor_id}")
+
+                self.repairing.append(monitor_id)
+
+                await self.async_set_monitor_mode(monitor_id, MONITOR_MODE_STOP)
+
+                await sleep(5)
+
+                await self.async_set_monitor_mode(monitor_id, MONITOR_MODE_RECORD)
+
+                await sleep(15)
+
+                monitor = self.monitors.get(monitor_id)
+
+                if monitor.should_repair:
+                    _LOGGER.warning(f"Unable to repair monitor: {monitor_id}")
+
+                else:
+                    _LOGGER.info(f"Monitor {monitor_id} is repaired")
+
+            except Exception as ex:
+                exc_type, exc_obj, tb = sys.exc_info()
+                line_number = tb.tb_lineno
+
+                _LOGGER.error(
+                    f"Failed to repair monitor: {monitor_id}, Error: {ex}, Line: {line_number}"
+                )
+
+            finally:
+                self.repairing.remove(monitor_id)
+
     async def async_set_monitor_mode(self, monitor_id: str, mode: str):
         _LOGGER.info(f"Updating monitor {monitor_id} mode to {mode}")
 
-        endpoint = self.build_endpoint(f"{URL_UPDATE_MODE}/{mode}", monitor_id)
+        endpoint = self._build_endpoint(f"{URL_UPDATE_MODE}/{mode}", monitor_id)
 
-        response = await self.async_get(endpoint)
+        response = await self._async_get(endpoint)
 
         response_message = response.get("msg")
 
@@ -416,7 +467,7 @@ class ShinobiApi:
 
         url = f"{URL_MONITORS}/{monitor_id}"
 
-        response: dict = await self.async_get(url)
+        response: dict = await self._async_get(url)
         monitor_data = response[0]
         monitor_details_str = monitor_data.get(ATTR_MONITOR_DETAILS)
         details = json.loads(monitor_details_str)
@@ -429,7 +480,7 @@ class ShinobiApi:
             "data": monitor_data
         }
 
-        response = await self.async_post(URL_UPDATE_MONITOR, data, monitor_id, True)
+        response = await self._async_post(URL_UPDATE_MONITOR, data, monitor_id, True)
 
         response_message = response.get("msg")
 
