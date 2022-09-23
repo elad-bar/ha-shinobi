@@ -44,6 +44,8 @@ class ShinobiEventManager:
             if sensor_type is None:
                 event_name = f"{SHINOBI_EVENT}{trigger_reason}"
 
+                _LOGGER.debug(f"Firing event {event_name}, Payload: {payload}")
+
                 self.hass.bus.async_fire(event_name, payload)
 
             else:

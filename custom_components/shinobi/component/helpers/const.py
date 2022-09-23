@@ -155,7 +155,8 @@ BINARY_SENSOR_ATTRIBUTES = []
 INVALID_JSON_FORMATS = {
     "\":,\"": "\": null,\"",
     "\":.": "\": 0.",
-    "\":,}": "\": null}"
+    "\":,}": "\": null}",
+    "\":}": "\": null}"
 }
 
 CODEC_TO_MIMETYPE = {
