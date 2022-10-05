@@ -3,17 +3,15 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityDescription
-from homeassistant.helpers.entity_platform import async_get_platforms
 from homeassistant.helpers.entity_registry import EntityRegistry, RegistryEntryDisabler
 
-from ...core.helpers.const import *
-from ...core.helpers.enums import EntityStatus
-from ...core.models.domain_data import DomainData
-from ...core.models.entity_data import EntityData
+from ..helpers.const import *
+from ..helpers.enums import EntityStatus
+from ..models.domain_data import DomainData
+from ..models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,15 +77,15 @@ class EntityManager:
             components: dict[str, list] = {}
             for unique_id in self.entities:
                 entity = self.entities.get(unique_id)
+                domain_manager = self.domain_component_manager.get(entity.domain)
 
-                if entity.status == EntityStatus.CREATED:
+                if entity.status == EntityStatus.CREATED and domain_manager is not None:
                     entity_id = self.entity_registry.async_get_entity_id(
                         entity.domain, DOMAIN, unique_id
                     )
 
                     await self._handle_disabled_entity(entity_id, entity)
 
-                    domain_manager = self.domain_component_manager.get(entity.domain)
                     component = domain_manager.initializer(self.hass, entity)
 
                     await self._handle_restored_entity(entity_id, component)

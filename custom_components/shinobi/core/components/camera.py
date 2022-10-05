@@ -1,7 +1,5 @@
 """
-Support for Shinobi Video.
-For more details about this platform, please refer to the documentation at
-https://home-assistant.io/components/camera.shinobi/
+Support for camera.
 """
 from __future__ import annotations
 

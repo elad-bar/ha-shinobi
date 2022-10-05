@@ -7,10 +7,10 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-from ...core.helpers.const import *
-from ...core.managers.device_manager import DeviceManager
-from ...core.managers.entity_manager import EntityManager
-from ...core.models.entity_data import EntityData
+from ..helpers.const import *
+from ..managers.device_manager import DeviceManager
+from ..managers.entity_manager import EntityManager
+from ..models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
 

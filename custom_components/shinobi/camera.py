@@ -23,8 +23,6 @@ async def async_unload_entry(hass, config_entry):
 
     return True
 
-    return True
-
 
 async def async_remove_entry(hass, entry) -> None:
     _LOGGER.info(f"Remove entry for {CoreCamera.get_domain()} entry: {entry}")

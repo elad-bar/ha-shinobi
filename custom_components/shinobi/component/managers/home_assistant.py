@@ -9,7 +9,6 @@ import asyncio
 import datetime
 import logging
 import sys
-from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 from homeassistant.components.camera import CameraEntityDescription
@@ -18,8 +17,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
+from ...configuration.managers.config_storage_manager import ConfigurationStorageManager
 from ...configuration.managers.configuration_manager import ConfigurationManager
 from ...configuration.models.config_data import ConfigData
+from ...configuration.models.local_config import LocalConfig
 from ...core.helpers.enums import ConnectivityStatus
 from ...core.managers.home_assistant import HomeAssistantManager
 from ...core.models.entity_data import EntityData
@@ -39,11 +40,8 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         self._api: IntegrationAPI = IntegrationAPI(self._hass, self._data_changed, self._api_status_changed)
         self._ws: IntegrationWS = IntegrationWS(self._hass, self._data_changed, self._ws_status_changed)
         self._config_manager: ConfigurationManager | None = None
-
-        self._switch_actions: dict[str, [dict[str, Any] | list[Any] | None]] = {
-            BinarySensorDeviceClass.MOTION: self.async_set_motion_detection,
-            BinarySensorDeviceClass.SOUND: self.async_set_sound_detection
-        }
+        self._config_storage_manager = ConfigurationStorageManager(hass)
+        self._local_config: LocalConfig | None = None
 
     @property
     def api(self) -> IntegrationAPI:
@@ -52,6 +50,10 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
     @property
     def ws(self) -> IntegrationWS:
         return self._ws
+
+    @property
+    def local_config(self) -> LocalConfig | None:
+        return self._local_config
 
     @property
     def config_data(self) -> ConfigData:
@@ -95,6 +97,8 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             _LOGGER.error(f"Failed to async_component_initialize, error: {ex}, line: {line_number}")
 
     async def async_initialize_data_providers(self):
+        await self._load_local_config()
+
         await self.api.initialize(self.config_data)
 
     async def async_stop_data_providers(self):
@@ -146,6 +150,8 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 _LOGGER.info(f"Created device {device_name}, Data: {monitor_device_info}")
 
     def load_entities(self):
+        self._load_original_stream_switch_entity()
+
         for monitor_id in self.api.monitors:
             monitor = self.api.monitors.get(monitor_id)
             device = self._get_monitor_device_name(monitor)
@@ -167,11 +173,17 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
         return device_name
 
+    async def _load_local_config(self):
+        self._local_config = await self._config_storage_manager.async_load_from_store()
+
+    async def _update_local_config(self):
+        await self._config_storage_manager.async_save_to_store(self._local_config)
+
     def _load_camera_component(self, monitor: MonitorData, device_name: str):
         try:
             entity_name = f"{self.entry_title} {monitor.name}"
 
-            use_original_stream = self.config_data.use_original_stream
+            use_original_stream = self.local_config.use_original_stream
 
             snapshot = self.api.build_url(monitor.snapshot)
 
@@ -212,8 +224,8 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 icon=DEFAULT_ICON
             )
 
-            self.set_action(unique_id, ACTION_CORE_ENTITY_ENABLE_MOTION_DETECTION, self.async_set_motion_detection)
-            self.set_action(unique_id, ACTION_CORE_ENTITY_DISABLE_MOTION_DETECTION, self.async_set_motion_detection)
+            self.set_action(unique_id, ACTION_CORE_ENTITY_ENABLE_MOTION_DETECTION, self._enable_motion_detection)
+            self.set_action(unique_id, ACTION_CORE_ENTITY_DISABLE_MOTION_DETECTION, self._disable_motion_detection)
 
             self.entity_manager.set_entity(DOMAIN_CAMERA,
                                            self.entry_id,
@@ -250,7 +262,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 ATTR_MONITOR_ID: monitor.id
             }
 
-            self.set_action(unique_id, ACTION_CORE_ENTITY_SELECT_OPTION, None)
+            self.set_action(unique_id, ACTION_CORE_ENTITY_SELECT_OPTION, self._set_monitor_mode)
 
             self.entity_manager.set_entity(DOMAIN_SELECT,
                                            self.entry_id,
@@ -324,17 +336,14 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         try:
             entity_name = f"{self.entry_title} {monitor.name} {sensor_type.capitalize()}"
 
-            is_on = monitor.has_motion_detector \
+            state = monitor.has_motion_detector \
                 if sensor_type == BinarySensorDeviceClass.MOTION \
                 else monitor.has_audio_detector
-
-            state = STATE_ON if is_on else STATE_OFF
 
             attributes = {
                 ATTR_FRIENDLY_NAME: entity_name
             }
 
-            action = self._switch_actions.get(sensor_type)
             is_sound = sensor_type == BinarySensorDeviceClass.SOUND
 
             unique_id = EntityData.generate_unique_id(DOMAIN_SWITCH, entity_name)
@@ -343,11 +352,17 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 key=unique_id,
                 name=entity_name,
                 icon=DEFAULT_ICON,
-                device_class=sensor_type
+                device_class=sensor_type,
+                entity_category=EntityCategory.CONFIG
             )
 
-            self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, action)
-            self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, action)
+            if sensor_type == BinarySensorDeviceClass.SOUND:
+                self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_sound_detection)
+                self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._disable_sound_detection)
+
+            elif sensor_type == BinarySensorDeviceClass.MOTION:
+                self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_motion_detection)
+                self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._disable_motion_detection)
 
             monitor_details = {
                 ATTR_MONITOR_ID: monitor.id
@@ -367,7 +382,42 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 ex, f"Failed to load switch for {monitor.name}"
             )
 
-    async def async_core_entity_select_option(self, entity: EntityData, option: str) -> None:
+    def _load_original_stream_switch_entity(self):
+        try:
+            device_name = f"{self.entry_title} Server"
+            entity_name = f"{self.entry_title} Original Stream"
+
+            state = self.local_config.use_original_stream
+
+            attributes = {
+                ATTR_FRIENDLY_NAME: entity_name
+            }
+
+            unique_id = EntityData.generate_unique_id(DOMAIN_SWITCH, entity_name)
+
+            entity_description = SwitchEntityDescription(
+                key=unique_id,
+                name=entity_name,
+                icon=DEFAULT_ICON,
+                entity_category=EntityCategory.CONFIG
+            )
+
+            self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._use_original_stream)
+            self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._use_default_stream)
+
+            self.entity_manager.set_entity(DOMAIN_SWITCH,
+                                           self.entry_id,
+                                           state,
+                                           attributes,
+                                           device_name,
+                                           entity_description)
+
+        except Exception as ex:
+            self.log_exception(
+                ex, f"Failed to load switch for Original Stream"
+            )
+
+    async def dsa(self, entity: EntityData, option: str) -> None:
         """ Handles ACTION_CORE_ENTITY_SELECT_OPTION. """
         monitor_id = self._get_monitor_id(entity.id)
 
@@ -376,49 +426,60 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             await self.async_update(datetime.datetime.now)
 
-    async def async_core_entity_enable_motion_detection(self, entity: EntityData) -> None:
-        """ Handles ACTION_CORE_ENTITY_ENABLE_MOTION_DETECTION. """
-        action = self.get_action(entity.id, ACTION_CORE_ENTITY_ENABLE_MOTION_DETECTION)
-
-        if action is not None:
-            await action(entity.id, True)
-
-    async def async_core_entity_disable_motion_detection(self, entity: EntityData) -> None:
-        """ Handles ACTION_CORE_ENTITY_DISABLE_MOTION_DETECTION. """
-        action = self.get_action(entity.id, ACTION_CORE_ENTITY_DISABLE_MOTION_DETECTION)
-
-        if action is not None:
-            await action(entity.id, False)
-
-    async def async_core_entity_turn_on(self, entity: EntityData) -> None:
-        """ Handles ACTION_CORE_ENTITY_TURN_ON. """
-        action = self.get_action(entity.id, ACTION_CORE_ENTITY_TURN_ON)
-
-        if action is not None:
-            await action(entity.id, True)
-
-    async def async_core_entity_turn_off(self, entity: EntityData) -> None:
-        """ Handles ACTION_CORE_ENTITY_TURN_OFF. """
-        action = self.get_action(entity.id, ACTION_CORE_ENTITY_TURN_OFF)
-
-        if action is not None:
-            await action(entity.id, False)
-
-    async def async_set_motion_detection(self, unique_id: str, enabled: bool):
-        monitor_id = self._get_monitor_id(unique_id)
+    async def _set_monitor_mode(self, entity: EntityData, option: str) -> None:
+        """ Handles ACTION_CORE_ENTITY_SELECT_OPTION. """
+        monitor_id = self._get_monitor_id(entity.id)
 
         if monitor_id is not None:
-            await self.api.async_set_motion_detection(monitor_id, enabled)
+            await self.api.async_set_monitor_mode(monitor_id, option)
 
             await self.async_update(datetime.datetime.now)
 
-    async def async_set_sound_detection(self, unique_id: str, enabled: bool):
-        monitor_id = self._get_monitor_id(unique_id)
+    async def _enable_sound_detection(self, entity: EntityData):
+        monitor_id = self._get_monitor_id(entity.id)
 
         if monitor_id is not None:
-            await self.api.async_set_sound_detection(monitor_id, enabled)
+            await self.api.async_set_sound_detection(monitor_id, True)
 
             await self.async_update(datetime.datetime.now)
+
+    async def _disable_sound_detection(self, entity: EntityData):
+        monitor_id = self._get_monitor_id(entity.id)
+
+        if monitor_id is not None:
+            await self.api.async_set_sound_detection(monitor_id, False)
+
+            await self.async_update(datetime.datetime.now)
+
+    async def _enable_motion_detection(self, entity: EntityData):
+        monitor_id = self._get_monitor_id(entity.id)
+
+        if monitor_id is not None:
+            await self.api.async_set_motion_detection(monitor_id, True)
+
+            await self.async_update(datetime.datetime.now)
+
+    async def _disable_motion_detection(self, entity: EntityData):
+        monitor_id = self._get_monitor_id(entity.id)
+
+        if monitor_id is not None:
+            await self.api.async_set_motion_detection(monitor_id, False)
+
+            await self.async_update(datetime.datetime.now)
+
+    async def _use_original_stream(self, entity: EntityData):
+        self._local_config.use_original_stream = True
+
+        await self._update_local_config()
+
+        await self.async_update(datetime.datetime.now)
+
+    async def _use_default_stream(self, entity: EntityData):
+        self._local_config.use_original_stream = False
+
+        await self._update_local_config()
+
+        await self.async_update(datetime.datetime.now)
 
     def _get_monitor_id(self, unique_id):
         entity = self.entity_manager.get(unique_id)

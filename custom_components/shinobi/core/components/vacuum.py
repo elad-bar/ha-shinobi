@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from abc import ABC
 import logging
+import sys
 from typing import Any
 
 from homeassistant.components.vacuum import StateVacuumEntity
 from homeassistant.core import HomeAssistant
 
-from ...core.helpers.const import *
-from ...core.models.base_entity import BaseEntity
-from ...core.models.entity_data import EntityData
+from ..helpers.const import *
+from ..models.base_entity import BaseEntity
+from ..models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,11 +26,18 @@ class CoreVacuum(StateVacuumEntity, BaseEntity, ABC):
     ):
         super().initialize(hass, entity, current_domain)
 
-        if hasattr(self.entity_description, ATTR_FEATURES):
-            self._attr_supported_features = getattr(self.entity_description, ATTR_FEATURES)
+        try:
+            if hasattr(self.entity_description, ATTR_FEATURES):
+                self._attr_supported_features = getattr(self.entity_description, ATTR_FEATURES)
 
-        if hasattr(self.entity_description, ATTR_FANS_SPEED_LIST):
-            self._attr_fan_speed_list = getattr(self.entity_description, ATTR_FANS_SPEED_LIST)
+            if hasattr(self.entity_description, ATTR_FANS_SPEED_LIST):
+                self._attr_fan_speed_list = getattr(self.entity_description, ATTR_FANS_SPEED_LIST)
+
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            _LOGGER.error(f"Failed to initialize CoreSelect instance, Error: {ex}, Line: {line_number}")
 
     @property
     def state(self) -> str | None:
@@ -41,9 +49,9 @@ class CoreVacuum(StateVacuumEntity, BaseEntity, ABC):
         """Return the fan speed of the vacuum cleaner."""
         return self.ha.get_core_entity_fan_speed(self.entity)
 
-    def async_return_to_base(self, **kwargs: Any) -> None:
+    async def async_return_to_base(self, **kwargs: Any) -> None:
         """Set the vacuum cleaner to return to the dock."""
-        self.ha.async_core_entity_return_to_base(self.entity)
+        await self.ha.async_core_entity_return_to_base(self.entity)
 
     async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
         await self.ha.async_core_entity_set_fan_speed(self.entity, fan_speed)
@@ -53,6 +61,9 @@ class CoreVacuum(StateVacuumEntity, BaseEntity, ABC):
 
     async def async_stop(self, **kwargs: Any) -> None:
         await self.ha.async_core_entity_stop(self.entity)
+
+    async def async_pause(self, **kwargs: Any) -> None:
+        await self.ha.async_core_entity_pause(self.entity)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.ha.async_core_entity_on(self.entity)
@@ -74,7 +85,7 @@ class CoreVacuum(StateVacuumEntity, BaseEntity, ABC):
 
     async def async_locate(self, **kwargs: Any) -> None:
         """Locate the vacuum cleaner."""
-        self.ha.async_core_entity_locate(self.entity)
+        await self.ha.async_core_entity_locate(self.entity)
 
     @staticmethod
     def get_component(hass: HomeAssistant, entity: EntityData):

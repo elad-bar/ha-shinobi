@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1
+
+- Fix core entities creation when not in use
+- Move `use_original_stream` to switch config control and removed it from setup
+
 ## 2.0.0
 
 - Refactor core entities and functionality

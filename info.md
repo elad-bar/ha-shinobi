@@ -40,7 +40,6 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 | SSL                 | Check-box | +        | Unchecked | Is SSL supported?                                                                                                             |
 | Username            | Textbox   | -        |           | Username of dashboard user for Shinobi Video server                                                                           |
 | Password            | Textbox   | -        |           | Password of dashboard user for Shinobi Video server                                                                           |
-| Use original stream | Check-box | -        | Unchecked | If checked will use the original stream directly from the camera, otherwise, will use the stream from Shinobi Video (Default) |
 
 ###### Integration options (Configuration -> Integrations -> Shinobi Video NVR Integration -> Options)
 | Fields name         | Type      | Required | Default              | Description                                                                                                                   |
@@ -50,7 +49,6 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 | SSL                 | Check-box | +        | Last stored SSL flag | Is SSL supported?                                                                                                             |
 | Username            | Textbox   | -        | Last stored username | Username of dashboard user for Shinobi Video server                                                                           |
 | Password            | Textbox   | -        | Last stored password | Password of dashboard user for Shinobi Video server                                                                           |
-| Use original stream | Check-box | -        | Unchecked            | If checked will use the original stream directly from the camera, otherwise, will use the stream from Shinobi Video (Default) |
 
 ###### Configuration validations
 Upon submitting the form of creating an integration or updating options,
@@ -98,10 +96,16 @@ Allow to control the monitor mode:
 - record (Record)
 
 #### Switch
+
+###### Enable / Disable Sound / Motion detection
 Each switch will have the name pattern - {Integration Title} {Monitor Name} {Sound / Motion}:
 - Toggle off detector (motion / sound) will remove the entity
 - Toggle on will restore the entity
 - Switch for sound detection will not be available if monitor has no audio channel
+
+###### Use original Stream
+- Toggle on to use the original stream directly from the camera
+- Toggle off / or leave as default for default stream from the NVR
 
 #### Media Browser
 Recorded videos are available if Media Browser integration is configured,

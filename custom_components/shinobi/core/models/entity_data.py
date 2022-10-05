@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
-
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.util import slugify
 
-from ...core.helpers.const import *
-from ...core.helpers.enums import EntityStatus
+from ..helpers.const import *
+from ..helpers.enums import EntityStatus
 
 
 class EntityData:

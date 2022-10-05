@@ -129,10 +129,6 @@ class IntegrationAPI(BaseAPI):
 
         await self.initialize(config_data)
 
-        errors = ConnectivityStatus.get_config_errors(self.status)
-
-        return errors
-
     def build_url(self, endpoint, monitor_id: str = None):
         if endpoint.startswith("/"):
             endpoint = endpoint[1:]

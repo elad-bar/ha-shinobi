@@ -16,10 +16,10 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.entity_registry import EntityRegistry, async_get
 from homeassistant.helpers.event import async_track_time_interval
 
-from ...core.helpers.const import *
-from ...core.managers.device_manager import DeviceManager
-from ...core.managers.entity_manager import EntityManager
-from ...core.managers.storage_manager import StorageManager
+from ..helpers.const import *
+from ..managers.device_manager import DeviceManager
+from ..managers.entity_manager import EntityManager
+from ..managers.storage_manager import StorageManager
 from ..models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
@@ -275,37 +275,57 @@ class HomeAssistantManager:
 
         return action
 
-    async def get_core_entity_fan_speed(self, entity: EntityData) -> str | None:
-        """ Handles ACTION_GET_CORE_ENTITY_FAN_SPEED. """
+    def get_core_entity_fan_speed(self, entity: EntityData) -> str | None:
         pass
 
-    def async_core_entity_return_to_base(self, entity: EntityData) -> None:
+    async def async_core_entity_return_to_base(self, entity: EntityData) -> None:
         """ Handles ACTION_CORE_ENTITY_RETURN_TO_BASE. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_RETURN_TO_BASE)
+
+        if action is not None:
+            await action(entity)
 
     async def async_core_entity_set_fan_speed(self, entity: EntityData, fan_speed: str) -> None:
         """ Handles ACTION_CORE_ENTITY_SET_FAN_SPEED. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_SET_FAN_SPEED)
+
+        if action is not None:
+            await action(entity, fan_speed)
 
     async def async_core_entity_start(self, entity: EntityData) -> None:
         """ Handles ACTION_CORE_ENTITY_START. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_START)
+
+        if action is not None:
+            await action(entity)
 
     async def async_core_entity_stop(self, entity: EntityData) -> None:
         """ Handles ACTION_CORE_ENTITY_STOP. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_STOP)
+
+        if action is not None:
+            await action(entity)
+
+    async def async_core_entity_pause(self, entity: EntityData) -> None:
+        """ Handles ACTION_CORE_ENTITY_PAUSE. """
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_PAUSE)
+
+        if action is not None:
+            await action(entity)
 
     async def async_core_entity_turn_on(self, entity: EntityData) -> None:
         """ Handles ACTION_CORE_ENTITY_TURN_ON. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_TURN_ON)
+
+        if action is not None:
+            await action(entity)
 
     async def async_core_entity_turn_off(self, entity: EntityData) -> None:
         """ Handles ACTION_CORE_ENTITY_TURN_OFF. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_TURN_OFF)
 
-    async def async_core_entity_toggle(self, entity: EntityData) -> None:
-        """ Handles ACTION_CORE_ENTITY_TOGGLE. """
-        pass
+        if action is not None:
+            await action(entity)
 
     async def async_core_entity_send_command(
             self,
@@ -314,23 +334,45 @@ class HomeAssistantManager:
             params: dict[str, Any] | list[Any] | None = None
     ) -> None:
         """ Handles ACTION_CORE_ENTITY_SEND_COMMAND. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_SEND_COMMAND)
+
+        if action is not None:
+            await action(entity, command, params)
 
     async def async_core_entity_locate(self, entity: EntityData) -> None:
         """ Handles ACTION_CORE_ENTITY_LOCATE. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_LOCATE)
+
+        if action is not None:
+            await action(entity)
 
     async def async_core_entity_select_option(self, entity: EntityData, option: str) -> None:
         """ Handles ACTION_CORE_ENTITY_SELECT_OPTION. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_SELECT_OPTION)
+
+        if action is not None:
+            await action(entity, option)
+
+    async def async_core_entity_toggle(self, entity: EntityData) -> None:
+        """ Handles ACTION_CORE_ENTITY_TOGGLE. """
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_TOGGLE)
+
+        if action is not None:
+            await action(entity)
 
     async def async_core_entity_enable_motion_detection(self, entity: EntityData) -> None:
         """ Handles ACTION_CORE_ENTITY_ENABLE_MOTION_DETECTION. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_ENABLE_MOTION_DETECTION)
+
+        if action is not None:
+            await action(entity)
 
     async def async_core_entity_disable_motion_detection(self, entity: EntityData) -> None:
         """ Handles ACTION_CORE_ENTITY_DISABLE_MOTION_DETECTION. """
-        pass
+        action = self.get_action(entity.id, ACTION_CORE_ENTITY_DISABLE_MOTION_DETECTION)
+
+        if action is not None:
+            await action(entity)
 
     @staticmethod
     def log_exception(ex, message):

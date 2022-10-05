@@ -12,7 +12,6 @@ class ConfigData:
     port: int
     ssl: bool
     path: str
-    use_original_stream: bool
     username: str | None
     password: str | None
     entry: ConfigEntry | None
@@ -24,7 +23,6 @@ class ConfigData:
         self.path = ""
         self.username = None
         self.password = None
-        self.use_original_stream = False
         self.entry = None
 
     @staticmethod
@@ -40,8 +38,6 @@ class ConfigData:
             result.username = data.get(CONF_USERNAME)
             result.password = data.get(CONF_PASSWORD)
 
-            result.use_original_stream = data.get(CONF_USE_ORIGINAL_STREAM, False)
-
         return result
 
     def to_dict(self):
@@ -51,8 +47,7 @@ class ConfigData:
             CONF_SSL: self.ssl,
             CONF_PATH: self.path,
             CONF_USERNAME: self.username,
-            CONF_PASSWORD: self.password,
-            CONF_USE_ORIGINAL_STREAM: self.use_original_stream
+            CONF_PASSWORD: self.password
         }
 
         return obj

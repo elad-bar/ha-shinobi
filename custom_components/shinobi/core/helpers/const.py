@@ -1,11 +1,13 @@
 from homeassistant.components.binary_sensor import DOMAIN as DOMAIN_BINARY_SENSOR
 from homeassistant.components.camera import DOMAIN as DOMAIN_CAMERA
+from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT
 from homeassistant.components.media_source import DOMAIN as DOMAIN_MEDIA_SOURCE
 from homeassistant.components.select import DOMAIN as DOMAIN_SELECT
 from homeassistant.components.sensor import DOMAIN as DOMAIN_SENSOR
 from homeassistant.components.stream import DOMAIN as DOMAIN_STREAM
 from homeassistant.components.switch import DOMAIN as DOMAIN_SWITCH
 from homeassistant.components.vacuum import DOMAIN as DOMAIN_VACUUM
+from homeassistant.const import CONF_NAME
 
 from ...configuration.helpers.const import *
 
@@ -15,7 +17,8 @@ SUPPORTED_PLATFORMS = [
     DOMAIN_SELECT,
     DOMAIN_SWITCH,
     DOMAIN_VACUUM,
-    DOMAIN_SENSOR
+    DOMAIN_SENSOR,
+    DOMAIN_LIGHT
 ]
 
 PLATFORMS = {domain: f"{DOMAIN}_{domain}_UPDATE_SIGNAL" for domain in SUPPORTED_PLATFORMS}
@@ -59,6 +62,7 @@ ACTION_CORE_ENTITY_RETURN_TO_BASE = "return_to_base"
 ACTION_CORE_ENTITY_SET_FAN_SPEED = "set_fan_speed"
 ACTION_CORE_ENTITY_START = "start"
 ACTION_CORE_ENTITY_STOP = "stop"
+ACTION_CORE_ENTITY_PAUSE = "stop"
 ACTION_CORE_ENTITY_TURN_ON = "turn_on"
 ACTION_CORE_ENTITY_TURN_OFF = "turn_off"
 ACTION_CORE_ENTITY_TOGGLE = "toggle"

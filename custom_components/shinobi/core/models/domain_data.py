@@ -6,8 +6,8 @@ from typing import Any, Callable
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from ...core.helpers.const import *
-from ...core.models.entity_data import EntityData
+from ..helpers.const import *
+from ..models.entity_data import EntityData
 
 _LOGGER = logging.getLogger(__name__)
 

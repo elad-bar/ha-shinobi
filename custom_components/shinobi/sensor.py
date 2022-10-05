@@ -1,7 +1,5 @@
 """
-Support for MyDolphin Plus.
-For more details about this platform, please refer to the documentation at
-https://github.com/sh00t2kill/dolphin-robot
+Support for sensor
 """
 from __future__ import annotations
 

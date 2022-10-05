@@ -8,9 +8,9 @@ from cryptography.fernet import Fernet
 
 from homeassistant.core import HomeAssistant
 
-from ...core.helpers.const import *
-from ...core.managers.storage_manager import StorageManager
-from ...core.models.storage_data import StorageData
+from ..helpers.const import *
+from ..managers.storage_manager import StorageManager
+from ..models.storage_data import StorageData
 
 _LOGGER = logging.getLogger(__name__)
 

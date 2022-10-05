@@ -9,6 +9,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+from .config_storage_manager import ConfigurationStorageManager
 from ...configuration.helpers.exceptions import LoginError
 from ...configuration.models.config_data import ConfigData
 from ...core.api.base_api import BaseAPI
@@ -23,6 +24,7 @@ class ConfigurationManager:
     password_manager: PasswordManager
     config: dict[str, ConfigData]
     api: BaseAPI | None
+    config_storage_manager: ConfigurationStorageManager
 
     def __init__(self, hass: HomeAssistant, api: BaseAPI | None = None):
         self.hass = hass
@@ -72,7 +74,7 @@ class ConfigurationManager:
 
         await self.api.validate(data)
 
-        errors = ConnectivityStatus.get_config_errors(self.api.status)
+        errors = self._get_config_errors()
 
         if errors is None:
             password = data[CONF_PASSWORD]
@@ -81,6 +83,25 @@ class ConfigurationManager:
 
         else:
             raise LoginError(errors)
+
+    def _get_config_errors(self):
+        result = None
+        status_mapping = {
+            str(ConnectivityStatus.NotConnected): "invalid_server_details",
+            str(ConnectivityStatus.Connecting): "invalid_server_details",
+            str(ConnectivityStatus.Failed): "invalid_server_details",
+            str(ConnectivityStatus.NotFound): "invalid_server_details",
+            str(ConnectivityStatus.MissingAPIKey): "missing_permanent_api_key",
+            str(ConnectivityStatus.InvalidCredentials): "invalid_admin_credentials",
+            str(ConnectivityStatus.TemporaryConnected): "missing_permanent_api_key",
+        }
+
+        status_description = status_mapping.get(str(self.api.status))
+
+        if status_description is not None:
+            result = {"base": status_description}
+
+        return result
 
     @staticmethod
     def get_data_fields(user_input: dict[str, Any] | None) -> dict[vol.Marker, Any]:
@@ -94,7 +115,6 @@ class ConfigurationManager:
             vol.Optional(CONF_SSL, default=user_input.get(CONF_SSL)): bool,
             vol.Optional(CONF_USERNAME, default=user_input.get(CONF_USERNAME)): str,
             vol.Optional(CONF_PASSWORD, default=user_input.get(CONF_PASSWORD)): str,
-            vol.Optional(CONF_USE_ORIGINAL_STREAM, default=user_input.get(CONF_USE_ORIGINAL_STREAM)): bool,
         }
 
         return fields
@@ -116,7 +136,6 @@ class ConfigurationManager:
             vol.Optional(CONF_SSL, default=data.get(CONF_SSL)): bool,
             vol.Optional(CONF_USERNAME, default=data.get(CONF_USERNAME)): str,
             vol.Optional(CONF_PASSWORD, default=data.get(CONF_PASSWORD)): str,
-            vol.Optional(CONF_USE_ORIGINAL_STREAM, default=data.get(CONF_USE_ORIGINAL_STREAM)): bool,
         }
 
         return fields
