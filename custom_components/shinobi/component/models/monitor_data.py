@@ -32,7 +32,7 @@ class MonitorData:
 
             monitor_details = monitor.get(ATTR_MONITOR_DETAILS, {})
 
-            fps = monitor_details.get(ATTR_MONITOR_DETAILS_FPS, "1")
+            fps = monitor_details.get(ATTR_STREAM_FPS, "1")
 
             if "." in fps:
                 fps = fps.split(".")[0]

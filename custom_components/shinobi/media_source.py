@@ -19,7 +19,7 @@ from homeassistant.components.media_source.models import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
-from .component.api.shinobi_api import ShinobiApi
+from .component.api.api import IntegrationAPI
 from .component.helpers import get_ha
 from .component.helpers.const import *
 from .component.models.video_data import VideoData
@@ -57,7 +57,7 @@ class ShinobiMediaSource(MediaSource, ABC):
         self.ha = get_ha(self.hass, entry.entry_id)
 
     @property
-    def api(self) -> ShinobiApi:
+    def api(self) -> IntegrationAPI:
         return self.ha.api
 
     @property

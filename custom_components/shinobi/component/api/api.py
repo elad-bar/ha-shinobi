@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import logging
 import sys
+from typing import Awaitable, Callable
 
 import aiohttp
 from aiohttp import ClientResponseError, ClientSession
@@ -12,47 +13,46 @@ from aiohttp import ClientResponseError, ClientSession
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
-from ...component.helpers.const import *
-from ...component.helpers.exceptions import APIValidationException
-from ...component.models.monitor_data import MonitorData
-from ...component.models.video_data import VideoData
 from ...configuration.models.config_data import ConfigData
-from ..helpers.enums import ConnectivityStatus
+from ...core.api.base_api import BaseAPI
+from ...core.helpers.enums import ConnectivityStatus
+from ..helpers.const import *
+from ..helpers.exceptions import APIValidationException
+from ..models.monitor_data import MonitorData
+from ..models.video_data import VideoData
 
 REQUIREMENTS = ["aiohttp"]
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ShinobiApi:
+class IntegrationAPI(BaseAPI):
     """The Class for handling the data retrieval."""
 
-    group_id: str | None
-    user_id: str | None
-    api_key: str | None
     session: ClientSession | None
-    video_list: list[VideoData]
     hass: HomeAssistant
-    config_data: ConfigData
+    config_data: ConfigData | None
     base_url: str | None
-    monitors: dict[str, MonitorData]
-    status: ConnectivityStatus
     repairing: list[str]
 
-    def __init__(self, hass: HomeAssistant, config_data: ConfigData):
+    def __init__(self,
+                 hass: HomeAssistant,
+                 async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
+                 async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]] | None = None
+                 ):
+
+        super().__init__(hass, async_on_data_changed, async_on_status_changed)
+
         try:
-            self._last_update = datetime.now()
-            self.hass = hass
-            self.config_data = config_data
-            self.session_id = None
-            self.group_id = None
-            self.user_id = None
-            self.api_key = None
+            self.config_data = None
             self.session = None
             self.base_url = None
-            self.monitors = {}
             self.repairing = []
-            self.status = ConnectivityStatus.NotConnected
+
+            self.data = {
+                API_DATA_MONITORS: {},
+                API_DATA_VIDEO_LIST: []
+            }
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -63,7 +63,27 @@ class ShinobiApi:
             )
 
     @property
-    def _api_url(self):
+    def group_id(self):
+        return self.data.get(API_DATA_GROUP_ID)
+
+    @property
+    def user_id(self):
+        return self.data.get(API_DATA_USER_ID)
+
+    @property
+    def api_key(self):
+        return self.data.get(API_DATA_API_KEY)
+
+    @property
+    def monitors(self):
+        return self.data.get(API_DATA_MONITORS, {})
+
+    @property
+    def video_list(self):
+        return self.data.get(API_DATA_VIDEO_LIST, [])
+
+    @property
+    def api_url(self):
         config_data = self.config_data
         protocol = PROTOCOLS[config_data.ssl]
 
@@ -76,17 +96,15 @@ class ShinobiApi:
         return url
 
     async def terminate(self):
-        self.status = ConnectivityStatus.Disconnected
+        await self.set_status(ConnectivityStatus.Disconnected)
 
-    async def initialize(self, config_data: ConfigData | None = None):
+    async def initialize(self, config_data: ConfigData):
         _LOGGER.info("Initializing Shinobi Video")
 
         try:
-            if config_data is not None:
-                self.config_data = config_data
+            self.config_data = config_data
 
-            self.base_url = self._api_url
-            self.video_list = []
+            self.base_url = self.api_url
 
             if self.hass is None:
                 if self.session is not None:
@@ -105,6 +123,15 @@ class ShinobiApi:
             _LOGGER.error(
                 f"Failed to initialize Shinobi Video API ({self.base_url}), error: {ex}, line: {line_number}"
             )
+
+    async def validate(self, data: dict | None = None):
+        config_data = ConfigData.from_dict(data)
+
+        await self.initialize(config_data)
+
+        errors = ConnectivityStatus.get_config_errors(self.status)
+
+        return errors
 
     def build_url(self, endpoint, monitor_id: str = None):
         if endpoint.startswith("/"):
@@ -132,7 +159,19 @@ class ShinobiApi:
         return endpoint
 
     def _validate_request(self, endpoint):
-        if not ConnectivityStatus.is_api_request_allowed(endpoint, self.status):
+        if endpoint == URL_LOGIN:
+            is_allowed = self.status not in [
+                ConnectivityStatus.NotConnected,
+                ConnectivityStatus.Disconnected
+            ]
+
+        elif endpoint in [URL_API_KEYS, URL_SOCKET_IO_V4]:
+            is_allowed = self.status == ConnectivityStatus.TemporaryConnected
+
+        else:
+            is_allowed = self.status == ConnectivityStatus.Connected
+
+        if not is_allowed:
             raise APIValidationException(endpoint, self.status)
 
     async def _async_post(self,
@@ -159,7 +198,7 @@ class ShinobiApi:
 
                 result = await response.json()
 
-                self._last_update = datetime.now()
+                self.data[API_DATA_LAST_UPDATE] = datetime.now()
 
         except ClientResponseError as crex:
             _LOGGER.error(
@@ -202,7 +241,7 @@ class ShinobiApi:
 
                     result = await response.json()
 
-                self._last_update = datetime.now()
+                self.data[API_DATA_LAST_UPDATE] = datetime.now()
 
         except ClientResponseError as crex:
             _LOGGER.error(
@@ -228,14 +267,16 @@ class ShinobiApi:
         _LOGGER.debug(f"Updating data from Shinobi Video Server ({self.config_data.host})")
 
         if self.status == ConnectivityStatus.Failed:
-            await self.initialize()
+            await self.initialize(self.config_data)
 
         if self.status == ConnectivityStatus.Connected:
             await self._load_monitors()
             await self._load_videos()
 
-            for monitor_id in self.monitors:
-                monitor = self.monitors.get(monitor_id)
+            monitors = self.data.get("monitors", {})
+
+            for monitor_id in monitors:
+                monitor = monitors.get(monitor_id)
 
                 if monitor_id not in self.repairing and monitor.should_repair:
                     self.hass.async_create_task(self._async_repair_monitor(monitor_id))
@@ -244,10 +285,10 @@ class ShinobiApi:
         _LOGGER.info("Performing login")
         exception_data = None
 
-        try:
-            self.status = ConnectivityStatus.Connecting
+        await self.set_status(ConnectivityStatus.Connecting)
 
-            self.api_key = None
+        try:
+            self.data[API_DATA_API_KEY] = None
 
             config_data = self.config_data
 
@@ -262,18 +303,19 @@ class ShinobiApi:
                 user_data = login_data.get("$user", {})
 
                 if user_data.get("ok", False):
-                    self.group_id = user_data.get(ATTR_MONITOR_GROUP_ID)
+                    self.data[API_DATA_GROUP_ID] = user_data.get(ATTR_MONITOR_GROUP_ID)
                     temp_api_key = user_data.get("auth_token")
                     uid = user_data.get("uid")
 
-                    self.user_id = uid
+                    self.data[API_DATA_USER_ID] = uid
 
-                    self.api_key = temp_api_key
-                    self.status = ConnectivityStatus.TemporaryConnected
+                    self.data[API_DATA_API_KEY] = temp_api_key
+
+                    await self.set_status(ConnectivityStatus.TemporaryConnected)
 
                     api_keys_data: dict = await self._async_get(URL_API_KEYS)
 
-                    self.api_key = None
+                    self.data[API_DATA_API_KEY] = None
 
                     if api_keys_data is not None and api_keys_data.get("ok", False):
                         keys = api_keys_data.get("keys", [])
@@ -282,19 +324,22 @@ class ShinobiApi:
                             key_uid = key.get("uid", None)
 
                             if key_uid is not None and key_uid == uid:
-                                self.api_key = key.get("code")
-                                self.status = ConnectivityStatus.Connected
+                                self.data[API_DATA_API_KEY] = key.get("code")
+
+                                await self._set_socket_io_version()
+
+                                await self.set_status(ConnectivityStatus.Connected)
 
                                 break
 
                     if self.api_key is None:
-                        self.status = ConnectivityStatus.MissingAPIKey
+                        await self.set_status(ConnectivityStatus.MissingAPIKey)
 
                 else:
-                    self.status = ConnectivityStatus.InvalidCredentials
+                    await self.set_status(ConnectivityStatus.InvalidCredentials)
 
         except Exception as ex:
-            self.api_key = None
+            self.data[API_DATA_API_KEY] = None
 
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
@@ -302,7 +347,7 @@ class ShinobiApi:
             exception_data = f"Error: {ex}, Line: {line_number}"
 
             if self.status != ConnectivityStatus.NotFound:
-                self.status = ConnectivityStatus.Failed
+                await self.set_status(ConnectivityStatus.Failed)
 
         log_level = ConnectivityStatus.get_log_level(self.status)
 
@@ -310,8 +355,10 @@ class ShinobiApi:
 
         _LOGGER.log(log_level, message)
 
-    async def get_socket_io_version(self):
-        _LOGGER.debug("Get SocketIO version")
+        await self.fire_data_changed_event()
+
+    async def _set_socket_io_version(self):
+        _LOGGER.debug("Set SocketIO version")
         version = 3
 
         response: bool = await self._async_get(URL_SOCKET_IO_V4, True)
@@ -319,7 +366,7 @@ class ShinobiApi:
         if response:
             version = 4
 
-        return version
+        self.data[API_DATA_SOCKET_IO_VERSION] = version
 
     async def _load_monitors(self):
         _LOGGER.debug("Retrieving monitors")
@@ -349,7 +396,7 @@ class ShinobiApi:
 
                         monitor_data = MonitorData(monitor)
 
-                        self.monitors[monitor_data.id] = monitor_data
+                        self._set_monitor_data(monitor_data)
 
                 except Exception as ex:
                     exc_type, exc_obj, tb = sys.exc_info()
@@ -358,6 +405,16 @@ class ShinobiApi:
                     _LOGGER.error(
                         f"Failed to load monitor data: {monitor}, Error: {ex}, Line: {line_number}"
                     )
+
+            await self.fire_data_changed_event()
+
+    def _set_monitor_data(self, monitor: MonitorData):
+        self.data[API_DATA_MONITORS][monitor.id] = monitor
+
+    def _get_monitor_data(self, monitor_id: str) -> MonitorData:
+        monitor = self.data[API_DATA_MONITORS][monitor_id]
+
+        return monitor
 
     async def _load_videos(self):
         _LOGGER.debug("Retrieving videos list")
@@ -394,10 +451,12 @@ class ShinobiApi:
                             f"Failed to load video data: {video}, Error: {ex}, Line: {line_number}"
                         )
 
-        self.video_list = video_list
+                self.data[API_DATA_VIDEO_LIST] = video_list
+
+                await self.fire_data_changed_event()
 
     async def _async_repair_monitor(self, monitor_id: str):
-        monitor = self.monitors.get(monitor_id)
+        monitor = self._get_monitor_data(monitor_id)
 
         if monitor_id in self.repairing:
             _LOGGER.warning(f"Monitor {monitor_id} is in progress, cannot start additional repair job")
@@ -422,7 +481,7 @@ class ShinobiApi:
 
                     await self._async_update_monitor_details(monitor_id)
 
-                    monitor = self.monitors.get(monitor_id)
+                    monitor = self._get_monitor_data(monitor_id)
 
                     if self.status != ConnectivityStatus.Connected:
                         status_message = ConnectivityStatus.get_log_level(self.status)
@@ -435,6 +494,8 @@ class ShinobiApi:
 
                 if monitor.should_repair and self.status == ConnectivityStatus.Connected:
                     _LOGGER.warning(f"Unable to repair monitor {monitor_id}, Attempts: {REPAIR_UPDATE_STATUS_ATTEMPTS}")
+
+                await self.fire_data_changed_event()
 
             except Exception as ex:
                 exc_type, exc_obj, tb = sys.exc_info()
@@ -500,6 +561,8 @@ class ShinobiApi:
         else:
             _LOGGER.warning(f"{response_message} for {monitor_id}")
 
+        await self.fire_data_changed_event()
+
     async def _async_update_monitor_details(self, monitor_id: str):
         _LOGGER.debug(f"Updating monitor details for {monitor_id}")
 
@@ -517,4 +580,6 @@ class ShinobiApi:
             monitor_data = MonitorData(monitor_data)
 
             if monitor_data is not None:
-                self.monitors[monitor_data.id] = monitor_data
+                self._set_monitor_data(monitor_data)
+
+            await self.fire_data_changed_event()

@@ -15,9 +15,15 @@ ENTRY_PRIMARY_KEY = CONF_NAME
 
 VERSION = "1.0.0"
 
-MEDIA_BROWSER_NAME = f"{DEFAULT_NAME} Browser"
+API_DATA_MONITORS = "monitors"
+API_DATA_VIDEO_LIST = "video-list"
+API_DATA_USER_ID = "user-id"
+API_DATA_GROUP_ID = "group-id"
+API_DATA_API_KEY = "api-key"
+API_DATA_LAST_UPDATE = "last-update"
+API_DATA_SOCKET_IO_VERSION = "socket-io-version"
 
-JSON_DATA_FILE = f"custom_components/{DOMAIN}/data/[NAME].json"
+MEDIA_BROWSER_NAME = f"{DEFAULT_NAME} Browser"
 
 SCAN_INTERVAL_WS_TIMEOUT = timedelta(seconds=60)
 
@@ -27,8 +33,6 @@ SHINOBI_WS_PONG_MESSAGE = "3"
 SHINOBI_WS_CONNECTION_READY_MESSAGE = "40"
 SHINOBI_WS_ACTION_MESSAGE = "42"
 
-AUTHENTICATION_BASIC = "basic"
-
 DEFAULT_ICON = "mdi:alarm-light"
 ATTR_FRIENDLY_NAME = "friendly_name"
 
@@ -36,23 +40,12 @@ SCAN_INTERVAL = timedelta(seconds=60)
 HEARTBEAT_INTERVAL_SECONDS = timedelta(seconds=25)
 TRIGGER_INTERVAL = timedelta(seconds=1)
 
-DEFAULT_FORCE_UPDATE = False
-
 MAX_MSG_SIZE = 0
 DISCONNECT_INTERVAL = 5
 RECONNECT_INTERVAL = 30
 REPAIR_REPAIR_RECORD_INTERVAL = 5
 REPAIR_UPDATE_STATUS_INTERVAL = 10
 REPAIR_UPDATE_STATUS_ATTEMPTS = 12  # Up to 2 minutes of retries
-
-DISCOVERY = f"{DOMAIN}_discovery"
-
-CONF_CONTENT_TYPE = "content_type"
-CONF_LIMIT_REFETCH_TO_URL_CHANGE = "limit_refetch_to_url_change"
-CONF_STILL_IMAGE_URL = "still_image_url"
-CONF_STREAM_SOURCE = "stream_source"
-CONF_FRAMERATE = "framerate"
-CONF_MOTION_DETECTION = "motion_detection"
 
 URL_LOGIN = "?json=true"
 URL_MONITORS = "[AUTH_TOKEN]/monitor/[GROUP_ID]"
@@ -62,27 +55,12 @@ URL_SOCKET_IO_V4 = "assets/vendor/js/socket.io.min.js"
 URL_UPDATE_MONITOR = "[AUTH_TOKEN]/configureMonitor/[GROUP_ID]/[MONITOR_ID]"
 URL_UPDATE_MODE = f"{URL_MONITORS}/[MONITOR_ID]"
 
-UNSECURED_ENDPOINTS = [
-    URL_LOGIN
-]
-
 AUTH_TOKEN = "[AUTH_TOKEN]"
 GROUP_ID = "[GROUP_ID]"
 MONITOR_ID = "[MONITOR_ID]"
 
 LOGIN_USERNAME = "mail"
 LOGIN_PASSWORD = "pass"
-
-DEFAULT_ACCESS_DETAILS = {
-    "auth_socket": False,
-    "get_monitors": True,
-    "control_monitors": False,
-    "get_logs": False,
-    "watch_stream": True,
-    "watch_snapshot": True,
-    "watch_videos": True,
-    "delete_videos": False
-}
 
 ATTR_MONITOR_ID = "mid"
 ATTR_MONITOR_GROUP_ID = "ke"
@@ -94,7 +72,6 @@ ATTR_STREAM_USERNAME = "muser"
 ATTR_MONITOR_SNAPSHOT = "snapshot"
 ATTR_MONITOR_STREAMS = "streams"
 ATTR_MONITOR_DETAILS = "details"
-ATTR_MONITOR_DETAILS_FPS = "stream_fps"
 ATTR_MONITOR_DETAILS_AUDIO_CODEC = "acodec"
 ATTR_MONITOR_DETAILS_DETECTOR = "detector"
 ATTR_MONITOR_DETAILS_DETECTOR_AUDIO = "detector_audio"
@@ -111,7 +88,7 @@ MONITOR_ATTRIBUTES = {
 }
 
 MONITOR_DETAILS_ATTRIBUTES = {
-    ATTR_MONITOR_DETAILS_FPS: ATTR_FPS
+    ATTR_STREAM_FPS: ATTR_FPS
 }
 
 TRIGGER_STARTS_WITH = "[\"f\",{\"f\":\""
@@ -159,10 +136,6 @@ INVALID_JSON_FORMATS = {
     "\":}": "\": null}"
 }
 
-CODEC_TO_MIMETYPE = {
-    "mp4": "video/mp4"
-}
-
 VIDEO_DETAILS_MONITOR_ID = "mid"
 VIDEO_DETAILS_TIME = "time"
 VIDEO_DETAILS_TIME_FORMAT = "%x %X"
@@ -184,6 +157,3 @@ ICON_MONITOR_MODES = {
 }
 
 SHINOBI_WS_ENDPOINT = "socket.io/?EIO=[VERSION]&transport=websocket"
-
-PROTOCOLS = {True: "https", False: "http"}
-WS_PROTOCOLS = {True: "wss", False: "ws"}

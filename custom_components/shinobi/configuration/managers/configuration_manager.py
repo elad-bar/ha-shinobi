@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 from typing import Any
 
 import voluptuous as vol
@@ -8,42 +9,26 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from ...component.api.shinobi_api import ShinobiApi
-from ...component.helpers.enums import ConnectivityStatus
 from ...configuration.helpers.exceptions import LoginError
 from ...configuration.models.config_data import ConfigData
+from ...core.api.base_api import BaseAPI
 from ...core.helpers.const import *
+from ...core.helpers.enums import ConnectivityStatus
 from ...core.managers.password_manager import PasswordManager
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def async_get_configuration_manager(hass: HomeAssistant) -> ConfigurationManager:
-    data = None
-
-    if hass is not None and hass.data is not None:
-        data = hass.data.get(DATA)
-
-    if data is None or CONFIGURATION_MANAGER not in data:
-        configuration_manager = ConfigurationManager(hass)
-
-        if data is not None:
-            hass.data[DATA][CONFIGURATION_MANAGER] = configuration_manager
-
-    else:
-        configuration_manager: ConfigurationManager = hass.data[DATA][CONFIGURATION_MANAGER]
-
-    return configuration_manager
-
-
 class ConfigurationManager:
     password_manager: PasswordManager
     config: dict[str, ConfigData]
+    api: BaseAPI | None
 
-    def __init__(self, hass: HomeAssistant):
+    def __init__(self, hass: HomeAssistant, api: BaseAPI | None = None):
         self.hass = hass
         self.config = {}
         self.password_manager = PasswordManager(hass)
+        self.api = api
 
     async def initialize(self):
         await self.password_manager.initialize()
@@ -54,31 +39,40 @@ class ConfigurationManager:
         return config
 
     async def load(self, entry: ConfigEntry):
-        await self.initialize()
+        try:
+            await self.initialize()
 
-        config = {k: entry.data[k] for k in entry.data}
+            config = {k: entry.data[k] for k in entry.data}
 
-        if CONF_PASSWORD in config:
-            encrypted_password = config[CONF_PASSWORD]
+            if CONF_PASSWORD in config:
+                encrypted_password = config[CONF_PASSWORD]
 
-            config[CONF_PASSWORD] = self.password_manager.get(encrypted_password)
+                config[CONF_PASSWORD] = self.password_manager.get(encrypted_password)
 
-        config_data = ConfigData.from_dict(config)
+            config_data = ConfigData.from_dict(config)
 
-        if config_data is not None:
-            config_data.entry = entry
+            if config_data is not None:
+                config_data.entry = entry
 
-            self.config[entry.entry_id] = config_data
+                self.config[entry.entry_id] = config_data
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            _LOGGER.error(
+                f"Failed to load configuration, error: {str(ex)}, line: {line_number}"
+            )
 
     async def validate(self, data: dict[str, Any]):
+        if self.api is None:
+            _LOGGER.error("Validate configuration is not supported through that flow")
+            return
+
         _LOGGER.debug("Validate login")
 
-        config_data = ConfigData.from_dict(data)
+        await self.api.validate(data)
 
-        api = ShinobiApi(self.hass, config_data)
-        await api.initialize()
-
-        errors = ConnectivityStatus.get_config_errors(api.status)
+        errors = ConnectivityStatus.get_config_errors(self.api.status)
 
         if errors is None:
             password = data[CONF_PASSWORD]

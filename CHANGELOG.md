@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.0
+
+- Refactor core entities and functionality
+
 ## 1.3.2
 
 - Add auto reconnect monitor when fails

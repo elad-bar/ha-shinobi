@@ -1,6 +1,6 @@
 from homeassistant.exceptions import HomeAssistantError
 
-from ...component.helpers.enums import ConnectivityStatus
+from ...core.helpers.enums import ConnectivityStatus
 
 
 class MonitorNotFoundError(HomeAssistantError):
@@ -8,17 +8,6 @@ class MonitorNotFoundError(HomeAssistantError):
 
     def __init__(self, monitor_id: str):
         self.monitor_id = monitor_id
-
-
-class APIRequestException(Exception):
-    endpoint: str
-    response: dict
-
-    def __init__(self, endpoint, response):
-        super().__init__(f"API Request failed")
-
-        self.endpoint = endpoint
-        self.response = response
 
 
 class APIValidationException(Exception):
