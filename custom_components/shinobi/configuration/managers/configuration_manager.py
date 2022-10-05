@@ -9,13 +9,13 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .config_storage_manager import ConfigurationStorageManager
 from ...configuration.helpers.exceptions import LoginError
 from ...configuration.models.config_data import ConfigData
 from ...core.api.base_api import BaseAPI
 from ...core.helpers.const import *
 from ...core.helpers.enums import ConnectivityStatus
 from ...core.managers.password_manager import PasswordManager
+from .config_storage_manager import ConfigurationStorageManager
 
 _LOGGER = logging.getLogger(__name__)
 

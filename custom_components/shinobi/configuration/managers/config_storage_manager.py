@@ -4,8 +4,8 @@ import logging
 from homeassistant.helpers.json import JSONEncoder
 from homeassistant.helpers.storage import Store
 
-from ..models.local_config import LocalConfig
 from ...core.helpers.const import *
+from ..models.local_config import LocalConfig
 
 _LOGGER = logging.getLogger(__name__)
 
