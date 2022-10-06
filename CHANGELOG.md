@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.4
+
+- Fix core issue while deleting entities
+
 ## 2.0.3
 
 - Repair non-working monitors only when initialization process completed
