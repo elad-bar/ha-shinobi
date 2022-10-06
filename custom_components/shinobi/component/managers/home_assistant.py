@@ -249,10 +249,12 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             unique_id = EntityData.generate_unique_id(DOMAIN_SELECT, entity_name)
 
+            icon = ICON_MONITOR_MODES.get(monitor.mode, "mdi:cctv")
+
             entity_description = SelectDescription(
                 key=unique_id,
                 name=entity_name,
-                icon="mdi:cctv",
+                icon=icon,
                 device_class=f"{DOMAIN}__{ATTR_MONITOR_MODE}",
                 options=tuple(ICON_MONITOR_MODES.keys()),
                 entity_category=EntityCategory.CONFIG
@@ -305,7 +307,6 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             entity_description = BinarySensorEntityDescription(
                 key=unique_id,
                 name=entity_name,
-                icon=DEFAULT_ICON,
                 device_class=sensor_type
             )
 
@@ -348,21 +349,23 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             unique_id = EntityData.generate_unique_id(DOMAIN_SWITCH, entity_name)
 
-            entity_description = SwitchEntityDescription(
-                key=unique_id,
-                name=entity_name,
-                icon=DEFAULT_ICON,
-                device_class=sensor_type,
-                entity_category=EntityCategory.CONFIG
-            )
-
             if sensor_type == BinarySensorDeviceClass.SOUND:
+                icon = "mdi:music-note" if state else "mdi:music-note-off"
                 self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_sound_detection)
                 self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._disable_sound_detection)
 
             elif sensor_type == BinarySensorDeviceClass.MOTION:
+                icon = "mdi:motion-sensor" if state else "mdi:motion-sensor-off"
                 self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_motion_detection)
                 self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._disable_motion_detection)
+
+            entity_description = SwitchEntityDescription(
+                key=unique_id,
+                name=entity_name,
+                icon=icon,
+                device_class=sensor_type,
+                entity_category=EntityCategory.CONFIG
+            )
 
             monitor_details = {
                 ATTR_MONITOR_ID: monitor.id
@@ -395,10 +398,12 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             unique_id = EntityData.generate_unique_id(DOMAIN_SWITCH, entity_name)
 
+            icon = "mdi:cctv" if state else "mdi:server-network"
+
             entity_description = SwitchEntityDescription(
                 key=unique_id,
                 name=entity_name,
-                icon=DEFAULT_ICON,
+                icon=icon,
                 entity_category=EntityCategory.CONFIG
             )
 
@@ -416,15 +421,6 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             self.log_exception(
                 ex, f"Failed to load switch for Original Stream"
             )
-
-    async def dsa(self, entity: EntityData, option: str) -> None:
-        """ Handles ACTION_CORE_ENTITY_SELECT_OPTION. """
-        monitor_id = self._get_monitor_id(entity.id)
-
-        if monitor_id is not None:
-            await self.api.async_set_monitor_mode(monitor_id, option)
-
-            await self.async_update(datetime.datetime.now)
 
     async def _set_monitor_mode(self, entity: EntityData, option: str) -> None:
         """ Handles ACTION_CORE_ENTITY_SELECT_OPTION. """

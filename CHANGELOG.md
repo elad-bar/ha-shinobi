@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.2
+
+- Fix icons for binary sensor, switch and select
+- Fix core functionality
+
 ## 2.0.1
 
 - Fix core entities creation when not in use
