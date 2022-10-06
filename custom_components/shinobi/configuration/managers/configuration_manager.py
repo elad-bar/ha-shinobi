@@ -15,7 +15,6 @@ from ...core.api.base_api import BaseAPI
 from ...core.helpers.const import *
 from ...core.helpers.enums import ConnectivityStatus
 from ...core.managers.password_manager import PasswordManager
-from .config_storage_manager import ConfigurationStorageManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,7 +23,6 @@ class ConfigurationManager:
     password_manager: PasswordManager
     config: dict[str, ConfigData]
     api: BaseAPI | None
-    config_storage_manager: ConfigurationStorageManager
 
     def __init__(self, hass: HomeAssistant, api: BaseAPI | None = None):
         self.hass = hass

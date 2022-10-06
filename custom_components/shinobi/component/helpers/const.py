@@ -157,3 +157,5 @@ ICON_MONITOR_MODES = {
 }
 
 SHINOBI_WS_ENDPOINT = "socket.io/?EIO=[VERSION]&transport=websocket"
+
+STORAGE_DATA_USE_ORIGINAL_STREAM = "useOriginalStream"

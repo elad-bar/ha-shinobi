@@ -269,14 +269,6 @@ class IntegrationAPI(BaseAPI):
             await self._load_monitors()
             await self._load_videos()
 
-            monitors = self.data.get("monitors", {})
-
-            for monitor_id in monitors:
-                monitor = monitors.get(monitor_id)
-
-                if monitor_id not in self.repairing and monitor.should_repair:
-                    self.hass.async_create_task(self._async_repair_monitor(monitor_id))
-
     async def _login(self):
         _LOGGER.info("Performing login")
         exception_data = None
@@ -450,6 +442,15 @@ class IntegrationAPI(BaseAPI):
                 self.data[API_DATA_VIDEO_LIST] = video_list
 
                 await self.fire_data_changed_event()
+
+    async def async_repair_monitors(self):
+        monitors = self.data.get("monitors", {})
+
+        for monitor_id in monitors:
+            monitor = monitors.get(monitor_id)
+
+            if monitor_id not in self.repairing and monitor.should_repair:
+                await self._async_repair_monitor(monitor_id)
 
     async def _async_repair_monitor(self, monitor_id: str):
         monitor = self._get_monitor_data(monitor_id)

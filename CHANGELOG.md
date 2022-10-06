@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.3
+
+- Moved local configuration to additional Storage API
+- Core protect unsupported domains
+
 ## 2.0.2
 
 - Fix icons for binary sensor, switch and select

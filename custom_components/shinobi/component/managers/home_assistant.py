@@ -17,15 +17,14 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
-from ...configuration.managers.config_storage_manager import ConfigurationStorageManager
 from ...configuration.managers.configuration_manager import ConfigurationManager
 from ...configuration.models.config_data import ConfigData
-from ...configuration.models.local_config import LocalConfig
 from ...core.helpers.enums import ConnectivityStatus
 from ...core.managers.home_assistant import HomeAssistantManager
 from ...core.models.entity_data import EntityData
 from ...core.models.select_description import SelectDescription
 from ..api.api import IntegrationAPI
+from ..api.storage_api import StorageAPI
 from ..api.websocket import IntegrationWS
 from ..helpers.const import *
 from ..models.monitor_data import MonitorData
@@ -37,11 +36,10 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
     def __init__(self, hass: HomeAssistant):
         super().__init__(hass, SCAN_INTERVAL, HEARTBEAT_INTERVAL_SECONDS)
 
-        self._api: IntegrationAPI = IntegrationAPI(self._hass, self._data_changed, self._api_status_changed)
-        self._ws: IntegrationWS = IntegrationWS(self._hass, self._data_changed, self._ws_status_changed)
+        self._api: IntegrationAPI = IntegrationAPI(self._hass, self._api_data_changed, self._api_status_changed)
+        self._ws: IntegrationWS = IntegrationWS(self._hass, self._ws_data_changed, self._ws_status_changed)
+        self._storage_api = StorageAPI(self._hass)
         self._config_manager: ConfigurationManager | None = None
-        self._config_storage_manager = ConfigurationStorageManager(hass)
-        self._local_config: LocalConfig | None = None
 
     @property
     def api(self) -> IntegrationAPI:
@@ -52,8 +50,8 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         return self._ws
 
     @property
-    def local_config(self) -> LocalConfig | None:
-        return self._local_config
+    def storage_api(self) -> StorageAPI:
+        return self._storage_api
 
     @property
     def config_data(self) -> ConfigData:
@@ -63,7 +61,16 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         """ Must be implemented to be able to send heartbeat to API """
         await self.ws.async_send_heartbeat()
 
-    async def _data_changed(self):
+    async def _api_data_changed(self):
+        api_connected = self.api.status == ConnectivityStatus.Connected
+        ws_connected = self.ws.status == ConnectivityStatus.Connected
+
+        if api_connected and ws_connected:
+            await self.api.async_repair_monitors()
+
+            self.update()
+
+    async def _ws_data_changed(self):
         api_connected = self.api.status == ConnectivityStatus.Connected
         ws_connected = self.ws.status == ConnectivityStatus.Connected
 
@@ -97,8 +104,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             _LOGGER.error(f"Failed to async_component_initialize, error: {ex}, line: {line_number}")
 
     async def async_initialize_data_providers(self):
-        await self._load_local_config()
-
+        await self.storage_api.initialize()
         await self.api.initialize(self.config_data)
 
     async def async_stop_data_providers(self):
@@ -173,17 +179,11 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
         return device_name
 
-    async def _load_local_config(self):
-        self._local_config = await self._config_storage_manager.async_load_from_store()
-
-    async def _update_local_config(self):
-        await self._config_storage_manager.async_save_to_store(self._local_config)
-
     def _load_camera_component(self, monitor: MonitorData, device_name: str):
         try:
             entity_name = f"{self.entry_title} {monitor.name}"
 
-            use_original_stream = self.local_config.use_original_stream
+            use_original_stream = self.storage_api.use_original_stream
 
             snapshot = self.api.build_url(monitor.snapshot)
 
@@ -349,6 +349,8 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             unique_id = EntityData.generate_unique_id(DOMAIN_SWITCH, entity_name)
 
+            icon = None
+
             if sensor_type == BinarySensorDeviceClass.SOUND:
                 icon = "mdi:music-note" if state else "mdi:music-note-off"
                 self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_sound_detection)
@@ -390,7 +392,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             device_name = f"{self.entry_title} Server"
             entity_name = f"{self.entry_title} Original Stream"
 
-            state = self.local_config.use_original_stream
+            state = self.storage_api.use_original_stream
 
             attributes = {
                 ATTR_FRIENDLY_NAME: entity_name
@@ -464,16 +466,12 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             await self.async_update(datetime.datetime.now)
 
     async def _use_original_stream(self, entity: EntityData):
-        self._local_config.use_original_stream = True
-
-        await self._update_local_config()
+        await self.storage_api.set_use_original_stream(True)
 
         await self.async_update(datetime.datetime.now)
 
     async def _use_default_stream(self, entity: EntityData):
-        self._local_config.use_original_stream = False
-
-        await self._update_local_config()
+        await self.storage_api.set_use_original_stream(False)
 
         await self.async_update(datetime.datetime.now)
 
