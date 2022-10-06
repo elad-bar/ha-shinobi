@@ -2,6 +2,7 @@
 
 ## 2.0.3
 
+- Repair non-working monitors only when initialization process completed
 - Moved local configuration to additional Storage API
 - Core protect unsupported domains
 
