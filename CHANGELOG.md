@@ -5,6 +5,7 @@
 - Fix deleting components when being removed, wrong parameter was sent to be deleted
 - Removed status change for API once not getting results from endpoint
 - Fix documentation ([#33](https://github.com/elad-bar/ha-shinobi/issues/33))
+- Set API and WS initial status to connecting once initializing ([#34](https://github.com/elad-bar/ha-shinobi/issues/34))
 
 ## 2.0.4
 

@@ -102,6 +102,8 @@ class IntegrationAPI(BaseAPI):
         _LOGGER.info("Initializing Shinobi Video")
 
         try:
+            await self.set_status(ConnectivityStatus.Connecting)
+
             self.config_data = config_data
 
             self.base_url = self.api_url
@@ -123,6 +125,8 @@ class IntegrationAPI(BaseAPI):
             _LOGGER.error(
                 f"Failed to initialize Shinobi Video API ({self.base_url}), error: {ex}, line: {line_number}"
             )
+
+            await self.set_status(ConnectivityStatus.Failed)
 
     async def validate(self, data: dict | None = None):
         config_data = ConfigData.from_dict(data)

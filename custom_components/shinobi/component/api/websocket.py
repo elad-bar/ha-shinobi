@@ -106,6 +106,8 @@ class IntegrationWS(BaseAPI):
         previous_status = self.status
 
         try:
+            await self.set_status(ConnectivityStatus.Connecting)
+
             self._remove_async_track_time = async_track_time_interval(
                 self.hass, self._check_triggers, TRIGGER_INTERVAL
             )
@@ -122,6 +124,8 @@ class IntegrationWS(BaseAPI):
 
         except Exception as ex:
             _LOGGER.warning(f"Failed to create web socket session, Error: {str(ex)}")
+
+            await self.set_status(ConnectivityStatus.Failed)
 
         try:
             url = self.ws_url.replace("[VERSION]", str(self.version))
@@ -145,6 +149,8 @@ class IntegrationWS(BaseAPI):
                 _LOGGER.info(f"WS Session closed")
             else:
                 _LOGGER.warning(f"Failed to connect Shinobi Video WS, Error: {ex}")
+
+            await self.set_status(ConnectivityStatus.Failed)
 
         if self.status == ConnectivityStatus.Connected:
             await self.set_status(ConnectivityStatus.NotConnected)
