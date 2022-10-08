@@ -244,9 +244,6 @@ class IntegrationAPI(BaseAPI):
                 f"Failed to get data from {endpoint}, HTTP Status: {crex.message} ({crex.status})"
             )
 
-            if crex.status in [404, 405]:
-                self.status = ConnectivityStatus.NotFound
-
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
@@ -254,8 +251,6 @@ class IntegrationAPI(BaseAPI):
             _LOGGER.error(
                 f"Failed to get data from {endpoint}, Error: {ex}, Line: {line_number}"
             )
-
-            self.status = ConnectivityStatus.Failed
 
         return result
 
@@ -512,7 +507,7 @@ class IntegrationAPI(BaseAPI):
 
         response = await self._async_get(endpoint)
 
-        response_message = response.get("msg")
+        response_message = {} if response is None else response.get("msg")
 
         result = response.get("ok", False)
 

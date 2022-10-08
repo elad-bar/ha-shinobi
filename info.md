@@ -29,7 +29,7 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 
 #### Installations via HACS
 - In HACS, look for "Shinobi Video NVR" and install
-- In Configuration --> Integrations - Add Shinobi Video NVR
+- In Settings  --> Devices & Services - (Lower Right) "Add Integration"
 
 #### Integration settings
 ###### Basic configuration (Configuration -> Integrations -> Add Shinobi Video NVR)
