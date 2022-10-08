@@ -42,7 +42,7 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 | Username    | Textbox   | -        |           | Username of dashboard user for Shinobi Video server                     |
 | Password    | Textbox   | -        |           | Password of dashboard user for Shinobi Video server                     |
 
-###### Integration options 
+###### Integration options
 | Fields name | Type      | Required | Default              | Description                                                             |
 |-------------|-----------|----------|----------------------|-------------------------------------------------------------------------|
 | Host        | Texbox    | +        | ast stored hostname  | Hostname or IP address of the Shinobi Video server                      |
