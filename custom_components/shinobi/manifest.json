@@ -8,6 +8,6 @@
     "codeowners": ["@elad-bar"],
     "requirements": [  ],
     "config_flow": true,
-    "version": "2.0.7",
+    "version": "2.0.8",
     "iot_class": "local_polling"
   }

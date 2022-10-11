@@ -1,6 +1,7 @@
 """Storage handlers."""
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import logging
 from typing import Awaitable, Callable
@@ -114,16 +115,46 @@ class StorageAPI(BaseAPI):
 
     async def debug_log_api(self, data: dict):
         if self.store_debug_data and data is not None:
-            await self._storage_api.async_save(self._get_json_data(data))
+            clean_data = {}
+            for key in data:
+                if key in [API_DATA_MONITORS]:
+                    new_monitors = {}
+                    monitors = data.get(key, {})
+
+                    for monitor_key in monitors:
+                        monitor = monitors.get(monitor_key)
+                        new_monitors[monitor_key] = monitor.to_dict()
+
+                    clean_data[key] = new_monitors
+
+                elif key in [API_DATA_VIDEO_LIST]:
+                    new_videos = []
+                    videos = data.get(key, [])
+
+                    for video in videos:
+                        new_videos.append(video.to_dict())
+
+                    clean_data[key] = new_videos
+
+                else:
+                    clean_data[key] = data.get(key)
+
+            await self._storage_api.async_save(self._get_json_data(clean_data))
 
     async def debug_log_ws(self, data: dict):
         if self.store_debug_data and data is not None:
             await self._storage_ws.async_save(self._get_json_data(data))
 
-    @staticmethod
-    def _get_json_data(data: dict):
-        json_data = json.dumps(data, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+    def _get_json_data(self, data: dict):
+        json_data = json.dumps(data, default=self.json_converter, sort_keys=True, indent=4)
 
         result = json.loads(json_data)
 
         return result
+
+    @staticmethod
+    def json_converter(data):
+        if isinstance(data, datetime):
+            return data.__str__()
+        if isinstance(data, dict):
+            return data.__dict__

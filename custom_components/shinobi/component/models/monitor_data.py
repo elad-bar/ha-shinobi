@@ -83,7 +83,7 @@ class MonitorData:
 
         return result
 
-    def __repr__(self):
+    def to_dict(self):
         obj = {
             ATTR_MONITOR_ID: self.id,
             ATTR_MONITOR_NAME: self.name,
@@ -100,6 +100,9 @@ class MonitorData:
             ATTR_DISABLED: self.disabled
         }
 
-        to_string = f"{obj}"
+        return obj
+
+    def __repr__(self):
+        to_string = f"{self.to_dict()}"
 
         return to_string

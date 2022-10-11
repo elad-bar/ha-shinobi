@@ -98,7 +98,7 @@ class VideoData:
         finally:
             return result
 
-    def __repr__(self):
+    def to_dict(self):
         obj = {
             ATTR_MONITOR_ID: self.monitor_id,
             ATTR_MONITOR_NAME: self.monitor_name,
@@ -109,6 +109,9 @@ class VideoData:
             VIDEO_DETAILS_IDENTIFIER: self.identifier
         }
 
-        to_string = f"{obj}"
+        return obj
+
+    def __repr__(self):
+        to_string = f"{self.to_dict()}"
 
         return to_string

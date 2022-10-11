@@ -65,9 +65,10 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         api_connected = self.api.status == ConnectivityStatus.Connected
         ws_connected = self.ws.status == ConnectivityStatus.Connected
 
-        if api_connected and ws_connected:
+        if api_connected:
             await self.storage_api.debug_log_api(self.api.data)
 
+        if api_connected and ws_connected:
             await self.api.async_repair_monitors()
 
             self.update()
@@ -76,9 +77,10 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         api_connected = self.api.status == ConnectivityStatus.Connected
         ws_connected = self.ws.status == ConnectivityStatus.Connected
 
-        if api_connected and ws_connected:
+        if ws_connected:
             await self.storage_api.debug_log_ws(self.ws.data)
 
+        if api_connected and ws_connected:
             self.update()
 
     async def _api_status_changed(self, status: ConnectivityStatus):
