@@ -1,5 +1,6 @@
 from homeassistant.components.binary_sensor import DOMAIN as DOMAIN_BINARY_SENSOR
 from homeassistant.components.camera import DOMAIN as DOMAIN_CAMERA
+from homeassistant.components.device_tracker import DOMAIN as DOMAIN_DEVICE_TRACKER
 from homeassistant.components.light import DOMAIN as DOMAIN_LIGHT
 from homeassistant.components.media_source import DOMAIN as DOMAIN_MEDIA_SOURCE
 from homeassistant.components.select import DOMAIN as DOMAIN_SELECT
@@ -18,7 +19,8 @@ SUPPORTED_PLATFORMS = [
     DOMAIN_SWITCH,
     DOMAIN_VACUUM,
     DOMAIN_SENSOR,
-    DOMAIN_LIGHT
+    DOMAIN_LIGHT,
+    DOMAIN_DEVICE_TRACKER
 ]
 
 PLATFORMS = {domain: f"{DOMAIN}_{domain}_UPDATE_SIGNAL" for domain in SUPPORTED_PLATFORMS}
@@ -33,6 +35,9 @@ ENTITY_DOMAIN = "domain"
 ENTITY_STATUS = "status"
 ENTITY_CONFIG_ENTRY_ID = "entry_id"
 
+HA_NAME = "homeassistant"
+SERVICE_RELOAD = "reload_config_entry"
+
 STORAGE_VERSION = 1
 
 PASSWORD_MANAGER = f"pm_{DOMAIN}"
@@ -40,7 +45,7 @@ DATA = f"data_{DOMAIN}"
 
 DOMAIN_KEY_FILE = f"{DOMAIN}.key"
 
-ATTR_OPTIONS = "options"
+ATTR_OPTIONS = "attr_options"
 
 CONF_CONTENT_TYPE = "content_type"
 CONF_LIMIT_REFETCH_TO_URL_CHANGE = "limit_refetch_to_url_change"

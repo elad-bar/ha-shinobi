@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.6
+
+- Added debug data to file switch
+- Support future version of HA v2022.11
+
 ## 2.0.5
 
 - Fix deleting components when being removed, wrong parameter was sent to be deleted

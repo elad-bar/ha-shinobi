@@ -66,6 +66,8 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         ws_connected = self.ws.status == ConnectivityStatus.Connected
 
         if api_connected and ws_connected:
+            await self.storage_api.debug_log_api(self.api.data)
+
             await self.api.async_repair_monitors()
 
             self.update()
@@ -75,6 +77,8 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         ws_connected = self.ws.status == ConnectivityStatus.Connected
 
         if api_connected and ws_connected:
+            await self.storage_api.debug_log_ws(self.ws.data)
+
             self.update()
 
     async def _api_status_changed(self, status: ConnectivityStatus):
@@ -104,7 +108,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             _LOGGER.error(f"Failed to async_component_initialize, error: {ex}, line: {line_number}")
 
     async def async_initialize_data_providers(self):
-        await self.storage_api.initialize()
+        await self.storage_api.initialize(self.config_data)
         await self.api.initialize(self.config_data)
 
     async def async_stop_data_providers(self):
@@ -156,7 +160,10 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 _LOGGER.info(f"Created device {device_name}, Data: {monitor_device_info}")
 
     def load_entities(self):
-        self._load_original_stream_switch_entity()
+        server_name = f"{self.entry_title} Server"
+
+        self._load_original_stream_switch_entity(server_name)
+        self._load_store_debug_data_switch(server_name)
 
         for monitor_id in self.api.monitors:
             monitor = self.api.monitors.get(monitor_id)
@@ -256,7 +263,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 name=entity_name,
                 icon=icon,
                 device_class=f"{DOMAIN}__{ATTR_MONITOR_MODE}",
-                options=tuple(ICON_MONITOR_MODES.keys()),
+                attr_options=tuple(ICON_MONITOR_MODES.keys()),
                 entity_category=EntityCategory.CONFIG
             )
 
@@ -387,9 +394,8 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 ex, f"Failed to load switch for {monitor.name}"
             )
 
-    def _load_original_stream_switch_entity(self):
+    def _load_original_stream_switch_entity(self, device_name: str):
         try:
-            device_name = f"{self.entry_title} Server"
             entity_name = f"{self.entry_title} Original Stream"
 
             state = self.storage_api.use_original_stream
@@ -422,6 +428,42 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         except Exception as ex:
             self.log_exception(
                 ex, f"Failed to load switch for Original Stream"
+            )
+
+    def _load_store_debug_data_switch(self, device_name: str):
+        entity_name = f"{device_name} Store Debug Data"
+
+        try:
+            state = self.storage_api.store_debug_data
+
+            attributes = {
+                ATTR_FRIENDLY_NAME: entity_name
+            }
+
+            unique_id = EntityData.generate_unique_id(DOMAIN_SWITCH, entity_name)
+
+            icon = "mdi:file-download"
+
+            entity_description = SwitchEntityDescription(
+                key=unique_id,
+                name=entity_name,
+                icon=icon,
+                entity_category=EntityCategory.CONFIG
+            )
+
+            self.entity_manager.set_entity(DOMAIN_SWITCH,
+                                           self.entry_id,
+                                           state,
+                                           attributes,
+                                           device_name,
+                                           entity_description)
+
+            self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_store_debug_data)
+            self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._disable_store_debug_data)
+
+        except Exception as ex:
+            self.log_exception(
+                ex, f"Failed to load store debug data switch for {entity_name}"
             )
 
     async def _set_monitor_mode(self, entity: EntityData, option: str) -> None:
@@ -474,6 +516,12 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         await self.storage_api.set_use_original_stream(False)
 
         await self.async_update(datetime.datetime.now)
+
+    async def _enable_store_debug_data(self, entity: EntityData):
+        await self.storage_api.set_store_debug_data(True)
+
+    async def _disable_store_debug_data(self, entity: EntityData):
+        await self.storage_api.set_store_debug_data(False)
 
     def _get_monitor_id(self, unique_id):
         entity = self.entity_manager.get(unique_id)
