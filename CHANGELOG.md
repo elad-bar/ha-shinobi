@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.7
+
+- Fix json serialization when saving debug data
+
 ## 2.0.6
 
 - Added debug data to file switch
