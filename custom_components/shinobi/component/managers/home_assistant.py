@@ -71,23 +71,15 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         if api_connected and ws_connected:
             await self.api.async_repair_monitors()
 
-            self.update()
-
     async def _ws_data_changed(self):
-        api_connected = self.api.status == ConnectivityStatus.Connected
         ws_connected = self.ws.status == ConnectivityStatus.Connected
 
         if ws_connected:
             await self.storage_api.debug_log_ws(self.ws.data)
 
-        if api_connected and ws_connected:
-            self.update()
-
     async def _api_status_changed(self, status: ConnectivityStatus):
         if status == ConnectivityStatus.Connected:
             await self.ws.update_api_data(self.api.data)
-
-            await self.async_update(datetime.datetime.now())
 
             await self.ws.initialize(self.config_data)
 
@@ -102,6 +94,11 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         try:
             self._config_manager = ConfigurationManager(self._hass, self.api)
             await self._config_manager.load(entry)
+
+            update_entities_interval = timedelta(seconds=TRIGGER_INTERVAL.total_seconds())
+            update_api_interval = timedelta(seconds=SCAN_INTERVAL.total_seconds())
+
+            self.update_intervals(update_entities_interval, update_api_interval)
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -475,7 +472,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         if monitor_id is not None:
             await self.api.async_set_monitor_mode(monitor_id, option)
 
-            await self.async_update(datetime.datetime.now)
+            await self.async_update_data_providers()
 
     async def _enable_sound_detection(self, entity: EntityData):
         monitor_id = self._get_monitor_id(entity.id)
@@ -483,7 +480,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         if monitor_id is not None:
             await self.api.async_set_sound_detection(monitor_id, True)
 
-            await self.async_update(datetime.datetime.now)
+            await self.async_update_data_providers()
 
     async def _disable_sound_detection(self, entity: EntityData):
         monitor_id = self._get_monitor_id(entity.id)
@@ -491,7 +488,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         if monitor_id is not None:
             await self.api.async_set_sound_detection(monitor_id, False)
 
-            await self.async_update(datetime.datetime.now)
+            await self.async_update_data_providers()
 
     async def _enable_motion_detection(self, entity: EntityData):
         monitor_id = self._get_monitor_id(entity.id)
@@ -499,7 +496,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         if monitor_id is not None:
             await self.api.async_set_motion_detection(monitor_id, True)
 
-            await self.async_update(datetime.datetime.now)
+            await self.async_update_data_providers()
 
     async def _disable_motion_detection(self, entity: EntityData):
         monitor_id = self._get_monitor_id(entity.id)
@@ -507,17 +504,17 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         if monitor_id is not None:
             await self.api.async_set_motion_detection(monitor_id, False)
 
-            await self.async_update(datetime.datetime.now)
+            await self.async_update_data_providers()
 
     async def _use_original_stream(self, entity: EntityData):
         await self.storage_api.set_use_original_stream(True)
 
-        await self.async_update(datetime.datetime.now)
+        await self._reload_integration()
 
     async def _use_default_stream(self, entity: EntityData):
         await self.storage_api.set_use_original_stream(False)
 
-        await self.async_update(datetime.datetime.now)
+        await self._reload_integration()
 
     async def _enable_store_debug_data(self, entity: EntityData):
         await self.storage_api.set_store_debug_data(True)
@@ -530,3 +527,10 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         monitor_id = entity.details.get(ATTR_MONITOR_ID)
 
         return monitor_id
+
+    async def _reload_integration(self):
+        data = {
+            ENTITY_CONFIG_ENTRY_ID: self.entry_id
+        }
+
+        await self._hass.services.async_call(HA_NAME, SERVICE_RELOAD, data)

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.9
+
+- Update core features
+
 ## 2.0.8
 
 - Another fix json serialization when saving debug data
