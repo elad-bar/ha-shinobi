@@ -79,7 +79,11 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
     async def _api_status_changed(self, status: ConnectivityStatus):
         if status == ConnectivityStatus.Connected:
+            await self.api.async_update()
+
             await self.ws.update_api_data(self.api.data)
+
+            self._update_entities(None)
 
             await self.ws.initialize(self.config_data)
 
