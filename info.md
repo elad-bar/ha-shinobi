@@ -32,7 +32,7 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 - In Settings  --> Devices & Services - (Lower Right) "Add Integration"
 
 #### Integration settings
-###### Basic configuration (Configuration -> Integrations -> Add Shinobi Video NVR)
+###### Basic configuration
 | Fields name | Type      | Required | Default   | Description                                                             |
 |-------------|-----------|----------|-----------|-------------------------------------------------------------------------|
 | Host        | Texbox    | +        | None      | Hostname or IP address of the Shinobi Video server                      |
@@ -42,7 +42,7 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 | Username    | Textbox   | -        |           | Username of dashboard user for Shinobi Video server                     |
 | Password    | Textbox   | -        |           | Password of dashboard user for Shinobi Video server                     |
 
-###### Integration options (Configuration -> Integrations -> Shinobi Video NVR Integration -> Options)
+###### Integration options
 | Fields name | Type      | Required | Default              | Description                                                             |
 |-------------|-----------|----------|----------------------|-------------------------------------------------------------------------|
 | Host        | Texbox    | +        | ast stored hostname  | Hostname or IP address of the Shinobi Video server                      |
@@ -181,6 +181,17 @@ Payload:
   }
 }
 ```
+
+## Endpoints
+
+| Endpoint Name               | Method | Description                                                                                         |
+|-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
+| /api/shinobi/list           | GET    | List all the endpoints available (supporting multiple integrations), available once for integration |
+| /api/shinobi/{ENTRY_ID}/api | GET    | JSON of all raw data from the Shinobi API, per integration                                          |
+| /api/shinobi/{ENTRY_ID}/ws  | GET    | JSON of all raw data from the Shinobi WebSocket, per integration                                    |
+
+**Authentication: Requires long-living token from HA**
+
 
 ## Troubleshooting
 

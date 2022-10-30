@@ -4,7 +4,17 @@
 
 - Better handling WebSockets disconnections
 - Fix parsing of Camera FPS [#37](https://github.com/elad-bar/ha-shinobi/issues/37)
-- Removed configuration and service parameter of `store debug data`
+- Removed configuration and service parameter of `store debug data`, add API instead:
+
+## Endpoints
+
+| Endpoint Name               | Method | Description                                                                                         |
+|-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
+| /api/shinobi/list           | GET    | List all the endpoints available (supporting multiple integrations), available once for integration |
+| /api/shinobi/{ENTRY_ID}/api | GET    | JSON of all raw data from the Shinobi API, per integration                                          |
+| /api/shinobi/{ENTRY_ID}/ws  | GET    | JSON of all raw data from the Shinobi WebSocket, per integration                                    |
+
+**Authentication: Requires long-living token from HA**
 
 ## 2.0.11
 
