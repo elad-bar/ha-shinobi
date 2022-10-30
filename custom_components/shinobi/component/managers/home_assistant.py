@@ -175,7 +175,6 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         server_name = f"{self.entry_title} Server"
 
         self._load_original_stream_switch_entity(server_name)
-        self._load_store_debug_data_switch(server_name)
 
         for monitor_id in self.api.monitors:
             monitor = self.api.monitors.get(monitor_id)
@@ -442,42 +441,6 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 ex, f"Failed to load switch for Original Stream"
             )
 
-    def _load_store_debug_data_switch(self, device_name: str):
-        entity_name = f"{device_name} Store Debug Data"
-
-        try:
-            state = self.storage_api.store_debug_data
-
-            attributes = {
-                ATTR_FRIENDLY_NAME: entity_name
-            }
-
-            unique_id = EntityData.generate_unique_id(DOMAIN_SWITCH, entity_name)
-
-            icon = "mdi:file-download"
-
-            entity_description = SwitchEntityDescription(
-                key=unique_id,
-                name=entity_name,
-                icon=icon,
-                entity_category=EntityCategory.CONFIG
-            )
-
-            self.entity_manager.set_entity(DOMAIN_SWITCH,
-                                           self.entry_id,
-                                           state,
-                                           attributes,
-                                           device_name,
-                                           entity_description)
-
-            self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_store_debug_data)
-            self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._disable_store_debug_data)
-
-        except Exception as ex:
-            self.log_exception(
-                ex, f"Failed to load store debug data switch for {entity_name}"
-            )
-
     async def _set_monitor_mode(self, entity: EntityData, option: str) -> None:
         """ Handles ACTION_CORE_ENTITY_SELECT_OPTION. """
         monitor_id = self._get_monitor_id(entity.id)
@@ -528,12 +491,6 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         await self.storage_api.set_use_original_stream(False)
 
         await self._reload_integration()
-
-    async def _enable_store_debug_data(self, entity: EntityData):
-        await self.storage_api.set_store_debug_data(True)
-
-    async def _disable_store_debug_data(self, entity: EntityData):
-        await self.storage_api.set_store_debug_data(False)
 
     def _get_monitor_id(self, unique_id):
         entity = self.entity_manager.get(unique_id)
