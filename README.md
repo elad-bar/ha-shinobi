@@ -182,6 +182,18 @@ Payload:
 }
 ```
 
+## Endpoints
+
+| Endpoint Name              | Method | Description                                                                                         |
+|----------------------------|--------|-----------------------------------------------------------------------------------------------------|
+| /api/edgeos/list           | GET    | List all the endpoints available (supporting multiple integrations), available once for integration |
+| /api/edgeos/{ENTRY_ID}/ha  | GET    | JSON of all HA processed data before sent to entities, per integration                              |
+| /api/edgeos/{ENTRY_ID}/api | GET    | JSON of all raw data from the EdgeOS API, per integration                                           |
+| /api/edgeos/{ENTRY_ID}/ws  | GET    | JSON of all raw data from the EdgeOS WebSocket, per integration                                     |
+
+**Authentication: Requires long-living token from HA**
+
+
 ## Troubleshooting
 
 Before opening an issue, please provide logs related to the issue,

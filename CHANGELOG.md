@@ -3,6 +3,8 @@
 ## 2.0.12
 
 - Better handling WebSockets disconnections
+- Fix parsing of Camera FPS [#37](https://github.com/elad-bar/ha-shinobi/issues/37)
+- Removed configuration and service parameter of `store debug data`
 
 ## 2.0.11
 

@@ -1,9 +1,8 @@
 """Storage handlers."""
 from __future__ import annotations
 
-from datetime import datetime
-import json
 import logging
+import sys
 from typing import Awaitable, Callable
 
 from homeassistant.core import HomeAssistant
@@ -14,12 +13,15 @@ from ...configuration.models.config_data import ConfigData
 from ...core.api.base_api import BaseAPI
 from ...core.helpers.enums import ConnectivityStatus
 from ..helpers.const import *
+from ..models.base_view import ShinobiBaseView
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class StorageAPI(BaseAPI):
-    _storages: dict[str, Store] | None
+    _stores: dict[str, Store] | None
+    _config_data: ConfigData | None
+    _data: dict
 
     def __init__(self,
                  hass: HomeAssistant,
@@ -29,23 +31,13 @@ class StorageAPI(BaseAPI):
 
         super().__init__(hass, async_on_data_changed, async_on_status_changed)
 
-        self._storages = None
+        self._config_data = None
+        self._stores = None
+        self._data = {}
 
     @property
     def _storage_config(self) -> Store:
-        storage = self._storages.get(STORAGE_DATA_FILE_CONFIG)
-
-        return storage
-
-    @property
-    def _storage_api(self) -> Store:
-        storage = self._storages.get(STORAGE_DATA_FILE_API_DEBUG)
-
-        return storage
-
-    @property
-    def _storage_ws(self) -> Store:
-        storage = self._storages.get(STORAGE_DATA_FILE_WS_DEBUG)
+        storage = self._stores.get(STORAGE_DATA_FILE_CONFIG)
 
         return storage
 
@@ -55,24 +47,53 @@ class StorageAPI(BaseAPI):
 
         return use_original_stream
 
-    @property
-    def store_debug_data(self):
-        result = self.data.get(STORAGE_DATA_STORE_DEBUG_DATA, False)
-
-        return result
-
     async def initialize(self, config_data: ConfigData):
-        storages = {}
-        entry_id = config_data.entry.entry_id
+        self._config_data = config_data
+
+        self._initialize_routes()
+        self._initialize_storages()
+
+        await self._async_load_configuration()
+
+    def _initialize_storages(self):
+        stores = {}
+
+        entry_id = self._config_data.entry.entry_id
 
         for storage_data_file in STORAGE_DATA_FILES:
             file_name = f"{DOMAIN}.{entry_id}.{storage_data_file}.json"
 
-            storages[storage_data_file] = Store(self.hass, STORAGE_VERSION, file_name, encoder=JSONEncoder)
+            stores[storage_data_file] = Store(self.hass, STORAGE_VERSION, file_name, encoder=JSONEncoder)
 
-        self._storages = storages
+        self._stores = stores
 
-        await self._async_load_configuration()
+    def _initialize_routes(self):
+        try:
+            main_view_data = {}
+            entry_id = self._config_data.entry.entry_id
+
+            for key in STORAGE_API_DATA:
+                view = ShinobiBaseView(self.hass, key, self._get_data, entry_id)
+
+                main_view_data[key] = view.url
+
+                self.hass.http.register_view(view)
+
+            main_view = self.hass.data.get(MAIN_VIEW)
+
+            if main_view is None:
+                main_view = ShinobiBaseView(self.hass, STORAGE_API_LIST, self._get_data)
+
+                self.hass.http.register_view(main_view)
+                self.hass.data[MAIN_VIEW] = main_view
+
+            self._data[STORAGE_API_LIST] = main_view_data
+
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            _LOGGER.error(f"Failed to async_component_initialize, error: {ex}, line: {line_number}")
 
     async def _async_load_configuration(self):
         """Load the retained data from store and return de-serialized data."""
@@ -80,8 +101,7 @@ class StorageAPI(BaseAPI):
 
         if self.data is None:
             self.data = {
-                STORAGE_DATA_USE_ORIGINAL_STREAM: False,
-                STORAGE_DATA_STORE_DEBUG_DATA: False
+                STORAGE_DATA_USE_ORIGINAL_STREAM: False
             }
 
             await self._async_save()
@@ -106,55 +126,54 @@ class StorageAPI(BaseAPI):
 
         await self._async_save()
 
-    async def set_store_debug_data(self, enabled: bool):
-        _LOGGER.debug(f"Set store debug data to {enabled}")
-
-        self.data[STORAGE_DATA_STORE_DEBUG_DATA] = enabled
-
-        await self._async_save()
-
     async def debug_log_api(self, data: dict):
-        if self.store_debug_data and data is not None:
-            clean_data = {}
-            for key in data:
-                if key in [API_DATA_MONITORS]:
-                    new_monitors = {}
-                    monitors = data.get(key, {})
+        clean_data = {}
+        for key in data:
+            if key in [API_DATA_MONITORS]:
+                new_monitors = {}
+                monitors = data.get(key, {})
 
-                    for monitor_key in monitors:
-                        monitor = monitors.get(monitor_key)
-                        new_monitors[monitor_key] = monitor.to_dict()
+                for monitor_key in monitors:
+                    monitor = monitors.get(monitor_key)
+                    new_monitors[monitor_key] = monitor.to_dict()
 
-                    clean_data[key] = new_monitors
+                clean_data[key] = new_monitors
 
-                elif key in [API_DATA_VIDEO_LIST]:
-                    new_videos = []
-                    videos = data.get(key, [])
+            elif key in [API_DATA_VIDEO_LIST]:
+                new_videos = []
+                videos = data.get(key, [])
 
-                    for video in videos:
-                        new_videos.append(video.to_dict())
+                for video in videos:
+                    new_videos.append(video.to_dict())
 
-                    clean_data[key] = new_videos
+                clean_data[key] = new_videos
 
-                else:
-                    clean_data[key] = data.get(key)
+            else:
+                clean_data[key] = data.get(key)
 
-            await self._storage_api.async_save(self._get_json_data(clean_data))
+        self._data[STORAGE_API_DATA_API] = clean_data
 
     async def debug_log_ws(self, data: dict):
-        if self.store_debug_data and data is not None:
-            await self._storage_ws.async_save(self._get_json_data(data))
+        self._data[STORAGE_API_DATA_WS] = data
 
-    def _get_json_data(self, data: dict):
-        json_data = json.dumps(data, default=self.json_converter, sort_keys=True, indent=4)
+    def _get_data(self, key):
+        is_list = key == STORAGE_API_LIST
 
-        result = json.loads(json_data)
+        data = {} if is_list else self._data.get(key)
 
-        return result
+        if is_list:
+            raw_data = self._data.get(key)
+            current_entry_id = self._config_data.entry.entry_id
 
-    @staticmethod
-    def json_converter(data):
-        if isinstance(data, datetime):
-            return data.__str__()
-        if isinstance(data, dict):
-            return data.__dict__
+            for entry_id in self.hass.data[DATA].keys():
+                entry_data = {}
+
+                for raw_data_key in raw_data:
+                    url_raw = raw_data.get(raw_data_key)
+                    url = url_raw.replace(current_entry_id, entry_id)
+
+                    entry_data[raw_data_key] = url
+
+                data[entry_id] = entry_data
+
+        return data
