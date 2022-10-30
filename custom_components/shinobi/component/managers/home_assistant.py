@@ -5,8 +5,7 @@ https://home-assistant.io/components/shinobi/
 """
 from __future__ import annotations
 
-import asyncio
-import datetime
+from asyncio import sleep
 import logging
 import sys
 
@@ -87,12 +86,23 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             await self.ws.initialize(self.config_data)
 
-    async def _ws_status_changed(self, status: ConnectivityStatus):
-        if status == ConnectivityStatus.NotConnected:
-            await self.ws.initialize(self.config_data)
+        if status == ConnectivityStatus.Disconnected:
+            if self.ws.status == ConnectivityStatus.Connected:
+                await self.ws.terminate()
 
-            if not self.ws.status == ConnectivityStatus.NotConnected:
-                await asyncio.sleep(RECONNECT_INTERVAL)
+    async def _ws_status_changed(self, status: ConnectivityStatus):
+        _LOGGER.info(f"WS Status changed to {status}, API Status: {self.api.status}")
+
+        api_connected = self.api.status == ConnectivityStatus.Connected
+        ws_connected = status == ConnectivityStatus.Connected
+        ws_reconnect = status in [ConnectivityStatus.NotConnected, ConnectivityStatus.Failed]
+
+        self._can_load_components = ws_connected
+
+        if ws_reconnect and api_connected:
+            await sleep(WS_RECONNECT_INTERVAL.total_seconds())
+
+            await self.ws.initialize()
 
     async def async_component_initialize(self, entry: ConfigEntry):
         try:
@@ -116,7 +126,6 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
     async def async_stop_data_providers(self):
         await self.api.terminate()
-        await self.ws.terminate()
 
     async def async_update_data_providers(self):
         try:

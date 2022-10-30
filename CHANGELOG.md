@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.12
+
+- Better handling WebSockets disconnections
+
 ## 2.0.11
 
 - Fix core wrong reference

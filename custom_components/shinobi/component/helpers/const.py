@@ -5,6 +5,8 @@ https://home-assistant.io/components/switch.shinobi/
 """
 from datetime import timedelta
 
+import aiohttp
+
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
 from ...core.helpers.const import *
@@ -25,7 +27,14 @@ API_DATA_SOCKET_IO_VERSION = "socket-io-version"
 
 MEDIA_BROWSER_NAME = f"{DEFAULT_NAME} Browser"
 
-SCAN_INTERVAL_WS_TIMEOUT = timedelta(seconds=60)
+WS_TIMEOUT = timedelta(seconds=60)
+WS_COMPRESSION_DEFLATE = 15
+
+WS_CLOSING_MESSAGE = [
+    aiohttp.WSMsgType.CLOSE,
+    aiohttp.WSMsgType.CLOSED,
+    aiohttp.WSMsgType.CLOSING,
+]
 
 SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE = "0"
 SHINOBI_WS_PING_MESSAGE = "2"
@@ -39,6 +48,7 @@ ATTR_FRIENDLY_NAME = "friendly_name"
 SCAN_INTERVAL = timedelta(seconds=60)
 HEARTBEAT_INTERVAL_SECONDS = timedelta(seconds=25)
 TRIGGER_INTERVAL = timedelta(seconds=1)
+WS_RECONNECT_INTERVAL = timedelta(seconds=30)
 
 MAX_MSG_SIZE = 0
 DISCONNECT_INTERVAL = 5
