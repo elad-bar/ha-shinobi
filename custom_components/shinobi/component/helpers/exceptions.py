@@ -3,14 +3,7 @@ from homeassistant.exceptions import HomeAssistantError
 from ...core.helpers.enums import ConnectivityStatus
 
 
-class MonitorNotFoundError(HomeAssistantError):
-    monitor_id: str
-
-    def __init__(self, monitor_id: str):
-        self.monitor_id = monitor_id
-
-
-class APIValidationException(Exception):
+class APIValidationException(HomeAssistantError):
     endpoint: str
     status: ConnectivityStatus
 

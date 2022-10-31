@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.13
+
+- Fix error when monitor was deleted its videos are still available
+
 ## 2.0.12
 
 - Better handling WebSockets disconnections

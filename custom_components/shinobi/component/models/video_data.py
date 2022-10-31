@@ -30,22 +30,14 @@ class VideoData:
 
             monitor = monitors.get(monitor_id)
 
-            if monitor is None:
-                raise MonitorNotFoundError(monitor_id)
-
             extension = video.get(VIDEO_DETAILS_EXTENSION)
             video_time: str = video.get(VIDEO_DETAILS_TIME)
 
-            self.monitor_id = monitor.id
-            self.monitor_name = monitor.name
+            self.monitor_id = monitor_id
+            self.monitor_name = monitor_id if monitor is None else monitor.name
             self.action_url = video.get(VIDEO_DETAILS_URL)
             self.mime_type = self.get_video_mime_type(extension)
             self.time = self._get_video_timestamp(video_time)
-
-        except MonitorNotFoundError as cnfex:
-            _LOGGER.error(
-                f"Failed to find monitor: {cnfex.monitor_id} for video: {video}"
-            )
 
         except HomeAssistantError:
             _LOGGER.error(
