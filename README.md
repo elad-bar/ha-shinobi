@@ -182,7 +182,7 @@ Payload:
 }
 ```
 
-## Endpoints
+## API
 
 | Endpoint Name               | Method | Description                                                                                         |
 |-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
@@ -191,6 +191,40 @@ Payload:
 | /api/shinobi/{ENTRY_ID}/ws  | GET    | JSON of all raw data from the Shinobi WebSocket, per integration                                    |
 
 **Authentication: Requires long-living token from HA**
+
+### Examples
+
+#### List
+
+*Request*
+```bash
+curl https://ha_url:8123/api/shinobi/list
+   -H "Accept: application/json"
+   -H "Authorization: Bearer {token}"
+```
+
+*[Response](/docs/examples/list.json)*
+
+#### WebSockets Data
+
+*Request*
+```bash
+curl https://ha_url:8123/api/shinobi/{ENTRY_ID}/ws
+   -H "Accept: application/json"
+   -H "Authorization: Bearer {token}"
+```
+
+*[Response](/docs/examples/ws_data.json)*
+
+#### API Data
+
+```bash
+curl https://ha_url:8123/api/shinobi/{ENTRY_ID}/api
+   -H "Accept: application/json"
+   -H "Authorization: Bearer {token}"
+```
+
+*[Response](/docs/examples/api_data.json)*
 
 
 ## Troubleshooting

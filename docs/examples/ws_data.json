@@ -1,0 +1,19 @@
+{
+    "last-update": "2022-10-31T09:50:46.771560",
+    "GroupID/CameraID_motion": {
+        "name": "multipleRegions",
+        "plug": "built-in",
+        "reason": "motion",
+        "state": "off",
+        "timestamp": 1667202544.010143,
+        "topic": "GroupID/CameraID"
+    },
+    "GroupID/CameraID_sound": {
+        "name": "db",
+        "plug": "audio",
+        "reason": "soundChange",
+        "state": "off",
+        "timestamp": 1667202457.120273,
+        "topic": "GroupID/CameraID"
+    }
+}
