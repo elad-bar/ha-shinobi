@@ -4,7 +4,10 @@
     "documentation": "https://github.com/elad-bar/ha-shinobi",
     "issue_tracker": "https://github.com/elad-bar/ha-shinobi/issues",
     "after_dependencies": [],
-    "dependencies": ["camera"],
+    "dependencies": [
+        "camera",
+        "http"
+    ],
     "codeowners": ["@elad-bar"],
     "requirements": [  ],
     "config_flow": true,
