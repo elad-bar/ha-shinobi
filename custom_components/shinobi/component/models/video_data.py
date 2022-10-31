@@ -8,7 +8,6 @@ import sys
 from homeassistant.exceptions import HomeAssistantError
 
 from ...component.helpers.const import *
-from ...component.helpers.exceptions import MonitorNotFoundError
 from .monitor_data import MonitorData
 
 _LOGGER = logging.getLogger(__name__)

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.14
+
+- Fix broken integration [#38](https://github.com/elad-bar/ha-shinobi/issues/38)
+
 ## 2.0.13
 
 - Fix error when monitor was deleted its videos are still available
