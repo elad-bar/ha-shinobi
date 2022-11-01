@@ -200,12 +200,13 @@ class IntegrationWS(BaseAPI):
 
         while listening and self.status == ConnectivityStatus.Connected:
             async for msg in self._ws:
+                is_connected = self.status == ConnectivityStatus.Connected
                 is_closing_type = msg.type in WS_CLOSING_MESSAGE
                 is_error = msg.type == aiohttp.WSMsgType.ERROR
                 is_closing_data = False if is_closing_type or is_error else msg.data == "close"
                 session_is_closed = self._session is None or self._session.closed
 
-                if is_closing_type or is_error or is_closing_data or session_is_closed:
+                if is_closing_type or is_error or is_closing_data or session_is_closed or not is_connected:
                     _LOGGER.warning(
                         f"WS stopped listening, "
                         f"Message: {str(msg)}, "
@@ -219,6 +220,8 @@ class IntegrationWS(BaseAPI):
                     self.data[API_DATA_LAST_UPDATE] = datetime.now().isoformat()
 
                     await self._parse_message(msg.data)
+
+            _LOGGER.info("Message queue is empty, will try to resample in a second")
 
             await sleep(1)
 
@@ -393,16 +396,11 @@ class IntegrationWS(BaseAPI):
             trigger_details = payload.get(TRIGGER_DETAILS, {})
             trigger_reason = trigger_details.get(TRIGGER_DETAILS_REASON)
 
+            self.fire_event(trigger_reason, payload)
+
             sensor_type = PLUG_SENSOR_TYPE.get(trigger_reason, None)
 
-            if sensor_type is None:
-                event_name = f"{SHINOBI_EVENT}{trigger_reason}"
-
-                _LOGGER.debug(f"Firing event {event_name}, Payload: {payload}")
-
-                self.hass.bus.async_fire(event_name, payload)
-
-            else:
+            if sensor_type is not None:
                 trigger_name = payload.get(TRIGGER_NAME)
                 trigger_plug = trigger_details.get(TRIGGER_DETAILS_PLUG)
 
@@ -431,6 +429,13 @@ class IntegrationWS(BaseAPI):
             line_number = tb.tb_lineno
 
             _LOGGER.error(f"Failed to handle sensor message, Error: {ex}, Line: {line_number}")
+
+    def fire_event(self, trigger: str, data: dict):
+        event_name = f"{SHINOBI_EVENT}{trigger}"
+
+        _LOGGER.debug(f"Firing event {event_name}, Payload: {data}")
+
+        self.hass.bus.async_fire(event_name, data)
 
     def _check_triggers(self, now):
         self.hass.async_create_task(self._async_check_triggers(now))

@@ -115,72 +115,7 @@ Supports up to 500 videos (total)
 
 ## Events
 
-#### Face Recognition - shinobi/face
-Supports any face recognition plugin
-
-Tested with [DeepStack-Face](https://github.com/elad-bar/shinobi-deepstack-face)
-
-
-Payload:
-```json
-{
-  "f": "detector_trigger",
-  "id": "MonitorID",
-  "ke": "GroupID",
-  "details": {
-    "plug": "Plugin Name",
-    "name": "Monitor Name",
-    "reason": "face",
-    "matrices": [
-      {
-        "x": 0,
-        "y": 0,
-        "width": 0,
-        "height": 0,
-        "tag": "Uploaded image name",
-        "confidence": 0,
-        "path": "/dev/shm/streams/GroupID/MonitorID/FileName.jpg"
-      }
-    ],
-    "imgHeight": 480,
-    "imgWidth": 640,
-    "time": 66
-  }
-}
-```
-
-#### Object Detection - shinobi/object
-Supports any object detection plugin
-
-Tested with [DeepStack-Object](https://github.com/elad-bar/shinobi-deepstack-object)
-
-Payload:
-```json
-{
-  "f": "detector_trigger",
-  "id": "MonitorID",
-  "ke": "GroupID",
-  "details": {
-    "plug": "Plugin Name",
-    "name": "Monitor Name",
-    "reason": "object",
-    "matrices": [
-      {
-        "x": 0,
-        "y": 0,
-        "width": 0,
-        "height": 0,
-        "tag": "Object name",
-        "confidence": 0,
-        "path": "/dev/shm/streams/GroupID/MonitorID/FileName.jpg"
-      }
-    ],
-    "imgHeight": 480,
-    "imgWidth": 640,
-    "time": 66
-  }
-}
-```
+Any Shinobi Video NVR event from type `detector_trigger` will be sent as an HA event as well with the same payload
 
 ## API
 

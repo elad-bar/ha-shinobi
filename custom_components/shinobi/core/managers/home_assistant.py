@@ -35,7 +35,6 @@ class HomeAssistantManager:
         self._hass = hass
 
         self._is_initialized = False
-        self._is_updating = False
         self._update_entities_interval = scan_interval
         self._update_data_providers_interval = scan_interval
         self._heartbeat_interval = heartbeat_interval
@@ -262,9 +261,10 @@ class HomeAssistantManager:
             return
 
         for domain in PLATFORMS:
-            signal = PLATFORMS.get(domain)
+            if self._domains.get(domain, False):
+                signal = PLATFORMS.get(domain)
 
-            async_dispatcher_send(self._hass, signal)
+                async_dispatcher_send(self._hass, signal)
 
     def set_action(self, entity_id: str, action_name: str, action):
         key = f"{entity_id}:{action_name}"

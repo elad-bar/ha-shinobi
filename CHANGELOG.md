@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.15
+
+- Better WS connection handling
+- Expose any Shinobi Video NVR event from type `detector_trigger` as HA event (begins with `shinobi/`)
+- Documentation
+
 ## 2.0.14
 
 - Fix broken integration [#38](https://github.com/elad-bar/ha-shinobi/issues/38)
