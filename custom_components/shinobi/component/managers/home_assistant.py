@@ -11,6 +11,7 @@ import sys
 
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 from homeassistant.components.camera import CameraEntityDescription
+from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.switch import SwitchEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -21,7 +22,6 @@ from ...configuration.models.config_data import ConfigData
 from ...core.helpers.enums import ConnectivityStatus
 from ...core.managers.home_assistant import HomeAssistantManager
 from ...core.models.entity_data import EntityData
-from ...core.models.select_description import SelectDescription
 from ..api.api import IntegrationAPI
 from ..api.storage_api import StorageAPI
 from ..api.websocket import IntegrationWS
@@ -271,12 +271,12 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             icon = ICON_MONITOR_MODES.get(monitor.mode, "mdi:cctv")
 
-            entity_description = SelectDescription(
+            entity_description = SelectEntityDescription(
                 key=unique_id,
                 name=entity_name,
                 icon=icon,
                 device_class=f"{DOMAIN}__{ATTR_MONITOR_MODE}",
-                attr_options=tuple(ICON_MONITOR_MODES.keys()),
+                options=ICON_MONITOR_MODES.keys(),
                 entity_category=EntityCategory.CONFIG
             )
 
