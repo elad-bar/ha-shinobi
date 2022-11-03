@@ -276,7 +276,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 name=entity_name,
                 icon=icon,
                 device_class=f"{DOMAIN}__{ATTR_MONITOR_MODE}",
-                options=ICON_MONITOR_MODES.keys(),
+                options=list(ICON_MONITOR_MODES.keys()),
                 entity_category=EntityCategory.CONFIG
             )
 
