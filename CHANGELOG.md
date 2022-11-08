@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.18
+
+Major refactor for the media source component:
+- Browsing now support up to 7 days of videos per camera
+- Navigation model changed - Shinobi Camera -> Camera -> Day -> List of all videos from that day
+- Thumbnails support added (requires Shinobi Thumbnail customAutoLoad script, more details in README)
+- Performance improvement Loading the videos is now on demand and not every update of the integration (every 60 seconds)
+
+**Thumbnails support**
+
+Shinobi Video does not provide out of the box thumbnails endpoint, to add that support, please follow the instructions in [shinobi-thumbnails](https://gitlab.com/elad.bar/shinobi-thumbnails) repository.
+
 ## 2.0.17
 
 - Fix issue with new Select options

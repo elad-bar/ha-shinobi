@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from asyncio import sleep
-from datetime import datetime
+from datetime import date, datetime
 import json
 import logging
 import sys
 from typing import Awaitable, Callable
 
-import aiohttp
 from aiohttp import ClientResponseError, ClientSession
 
 from homeassistant.core import HomeAssistant
@@ -50,8 +49,7 @@ class IntegrationAPI(BaseAPI):
             self.repairing = []
 
             self.data = {
-                API_DATA_MONITORS: {},
-                API_DATA_VIDEO_LIST: []
+                API_DATA_MONITORS: {}
             }
 
         except Exception as ex:
@@ -77,10 +75,6 @@ class IntegrationAPI(BaseAPI):
     @property
     def monitors(self):
         return self.data.get(API_DATA_MONITORS, {})
-
-    @property
-    def video_list(self):
-        return self.data.get(API_DATA_VIDEO_LIST, [])
 
     @property
     def api_url(self):
@@ -220,13 +214,13 @@ class IntegrationAPI(BaseAPI):
 
         return result
 
-    async def _async_get(self, endpoint, resource_available_check: bool = False):
+    async def _async_get(self, endpoint, monitor_id: str = None, resource_available_check: bool = False):
         result = None
 
         try:
             self._validate_request(endpoint)
 
-            url = self.build_url(endpoint)
+            url = self.build_url(endpoint, monitor_id)
 
             _LOGGER.debug(f"GET {url}")
 
@@ -266,7 +260,6 @@ class IntegrationAPI(BaseAPI):
 
         if self.status == ConnectivityStatus.Connected:
             await self._load_monitors()
-            await self._load_videos()
 
     async def _login(self):
         _LOGGER.info("Performing login")
@@ -348,7 +341,7 @@ class IntegrationAPI(BaseAPI):
         _LOGGER.debug("Set SocketIO version")
         version = 3
 
-        response: bool = await self._async_get(URL_SOCKET_IO_V4, True)
+        response: bool = await self._async_get(URL_SOCKET_IO_V4, None, True)
 
         if response:
             version = 4
@@ -403,11 +396,13 @@ class IntegrationAPI(BaseAPI):
 
         return monitor
 
-    async def _load_videos(self):
+    async def get_videos(self, monitor_id: str, lookup_date: str) -> list[VideoData]:
         _LOGGER.debug("Retrieving videos list")
         video_list = []
 
-        response: dict = await self._async_get(URL_VIDEOS)
+        url = f"{URL_VIDEOS}?start={lookup_date}T00:00:00&end={lookup_date}T23:59:59&noLimit=1"
+
+        response: dict = await self._async_get(url, monitor_id)
 
         if response is None:
             _LOGGER.warning("Invalid video response")
@@ -438,9 +433,13 @@ class IntegrationAPI(BaseAPI):
                             f"Failed to load video data: {video}, Error: {ex}, Line: {line_number}"
                         )
 
-                self.data[API_DATA_VIDEO_LIST] = video_list
+                return video_list
 
-                await self.fire_data_changed_event()
+    async def has_thumbnails_support(self) -> bool:
+        response: dict | None = await self._async_get(URL_THUMBNAILS_STATUS)
+        result = response is not None and response.get("ok")
+
+        return result
 
     async def async_repair_monitors(self):
         monitors = self.data.get("monitors", {})

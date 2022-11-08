@@ -109,9 +109,12 @@ Each switch will have the name pattern - {Integration Title} {Monitor Name} {Sou
 - Toggle on to use the original stream directly from the camera
 - Toggle off / or leave as default for default stream from the NVR
 
-#### Media Browser
-Recorded videos are available if Media Browser integration is configured,
-Supports up to 500 videos (total)
+#### Media Source
+Shinobi Camera -> Camera -> Day -> List of all videos from that day
+
+**Thumbnails support**
+
+Shinobi Video does not provide out of the box thumbnails endpoint, to add that support, please follow the instructions in [shinobi-thumbnails](https://gitlab.com/elad.bar/shinobi-thumbnails) repository.
 
 ## Events
 

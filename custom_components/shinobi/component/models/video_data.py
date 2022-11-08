@@ -19,6 +19,8 @@ class VideoData:
     action_url: str
     time: str
     mime_type: str
+    extension: str
+    video_time: str
 
     def __init__(self, video: dict, monitors: dict[str, MonitorData]):
         try:
@@ -38,6 +40,9 @@ class VideoData:
             self.mime_type = self.get_video_mime_type(extension)
             self.time = self._get_video_timestamp(video_time)
 
+            self.video_time = video_time
+            self.extension = extension
+
         except HomeAssistantError:
             _LOGGER.error(
                 f"Failed to extract monitor ID for video: {video}"
@@ -53,9 +58,18 @@ class VideoData:
 
     @property
     def title(self):
-        title = f"{self.monitor_name} {self.time}"
+        title = f"{self.time}"
 
         return title
+
+    @property
+    def thumbnail(self):
+        look_for_ext = f".{self.extension}"
+
+        url = self.action_url.replace(look_for_ext, "").replace(VIDEO_ENDPOINT_VIDEOS, VIDEO_ENDPOINT_THUMBNAIL)
+        thumbnail = f"{url}/{self.extension}"
+
+        return thumbnail
 
     @property
     def identifier(self):

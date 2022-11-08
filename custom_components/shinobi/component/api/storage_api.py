@@ -139,15 +139,6 @@ class StorageAPI(BaseAPI):
 
                 clean_data[key] = new_monitors
 
-            elif key in [API_DATA_VIDEO_LIST]:
-                new_videos = []
-                videos = data.get(key, [])
-
-                for video in videos:
-                    new_videos.append(video.to_dict())
-
-                clean_data[key] = new_videos
-
             else:
                 clean_data[key] = data.get(key)
 
