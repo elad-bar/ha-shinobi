@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.19
+
+- Fix media play for Media Source
+- Code cleanup
+
 ## 2.0.18
 
 Major refactor for the media source component:

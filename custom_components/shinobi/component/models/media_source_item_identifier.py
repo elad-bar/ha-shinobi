@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ..helpers.common import *
 from ..helpers.const import *
 
 
@@ -40,6 +41,18 @@ class MediaSourceItemIdentifier:
 
         if self.current_mode > 4:
             self.video_extension = identifier_parts[4]
+
+    @property
+    def video_date(self) -> str:
+        result = format_datetime(self.day, VIDEO_DETAILS_DATE_FORMAT)
+
+        return result
+
+    @property
+    def video_mime_type(self) -> str:
+        result = get_mime_type(self.video_extension)
+
+        return result
 
     def to_dict(self):
         obj = {

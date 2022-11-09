@@ -4,6 +4,7 @@ from __future__ import annotations
 from abc import ABC
 from datetime import date, datetime
 import logging
+from typing import Awaitable, Callable
 
 from homeassistant.components.media_player.const import MediaClass, MediaType
 from homeassistant.components.media_source.models import (
@@ -19,7 +20,6 @@ from .component.api.api import IntegrationAPI
 from .component.helpers import get_ha
 from .component.helpers.const import *
 from .component.models.media_source_item_identifier import MediaSourceItemIdentifier
-from .component.models.video_data import VideoData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,8 +36,9 @@ class ShinobiMediaSource(MediaSource, ABC):
     """Provide Radio stations as media sources."""
     name = MEDIA_BROWSER_NAME
     hass: HomeAssistant = None
-    ha = None
+    _ha = None
     _thumbnails_support: bool
+    _ui_modes: dict[int, Callable[[MediaSourceItemIdentifier], Awaitable[list[BrowseMediaSource]]]]
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize CameraMediaSource."""
@@ -47,11 +48,9 @@ class ShinobiMediaSource(MediaSource, ABC):
         self.hass = hass
         self.entry = entry
 
-        self.hass = hass
+        self._ha = get_ha(self.hass, entry.entry_id)
 
-        self.ha = get_ha(self.hass, entry.entry_id)
-
-        self.ui_modes = {
+        self._ui_modes = {
             1: self._async_build_monitors,
             2: self._async_build_calendar,
             3: self._async_build_videos,
@@ -63,7 +62,7 @@ class ShinobiMediaSource(MediaSource, ABC):
 
     @property
     def api(self) -> IntegrationAPI:
-        return self.ha.api
+        return self._ha.api
 
     async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:
         """Resolve selected Video to a streaming URL."""
@@ -72,9 +71,13 @@ class ShinobiMediaSource(MediaSource, ABC):
         video_base_url = self.api.build_url(URL_VIDEOS, identifier.monitor_id)
         video_url = f"{video_base_url}/{identifier.day}T{identifier.video_time}.{identifier.video_extension}"
 
-        mime_type = VideoData.get_video_mime_type(identifier.video_extension)
+        mime_type = identifier.video_mime_type
 
-        _LOGGER.info(f"Resolving media: {identifier} to URL: {video_url}")
+        _LOGGER.debug(
+            f"Resolving Identifier: {identifier.identifier},"
+            f"URL: {video_url}, "
+            f"Mime type: {mime_type}"
+        )
 
         return PlayMedia(video_url, mime_type)
 
@@ -84,12 +87,18 @@ class ShinobiMediaSource(MediaSource, ABC):
     ) -> BrowseMediaSource:
         """Return media."""
         identifier = MediaSourceItemIdentifier(item.identifier)
-        _LOGGER.debug(f"Browse media: {identifier}")
 
         self._thumbnails_support = await self.api.has_thumbnails_support()
 
-        title = self.get_title(identifier)
-        action = self.ui_modes.get(identifier.current_mode)
+        title = self._get_title(identifier)
+        action = self._ui_modes.get(identifier.current_mode)
+
+        _LOGGER.debug(
+            f"Browse media, "
+            f"Identifier: {identifier.identifier}, "
+            f"Title: {title}, "
+            f"Has thumbnails support: {self._thumbnails_support}"
+        )
 
         return BrowseMediaSource(
             domain=DOMAIN,
@@ -105,7 +114,7 @@ class ShinobiMediaSource(MediaSource, ABC):
             ],
         )
 
-    def get_title(self, identifier: MediaSourceItemIdentifier):
+    def _get_title(self, identifier: MediaSourceItemIdentifier) -> str:
         title_parts = [
             self.entry.title
         ]
@@ -127,6 +136,10 @@ class ShinobiMediaSource(MediaSource, ABC):
     async def _async_build_monitors(self, identifier: MediaSourceItemIdentifier) -> list[BrowseMediaSource]:
         """Build list of media sources from Shinobi Video Server."""
         items: list[BrowseMediaSource] = []
+
+        _LOGGER.debug(
+            "Building monitors list"
+        )
 
         for monitor_id in self.api.monitors:
             monitor = self.api.monitors.get(monitor_id)
@@ -152,6 +165,10 @@ class ShinobiMediaSource(MediaSource, ABC):
         items: list[BrowseMediaSource] = []
 
         today = date.today()
+        _LOGGER.debug(
+            f"Building camera calendar, "
+            f"Monitor: {identifier.monitor_id}"
+        )
 
         for day in range(0, 7):
             lookup_date = today - timedelta(days=day)
@@ -181,15 +198,20 @@ class ShinobiMediaSource(MediaSource, ABC):
 
         videos = await self.api.get_videos(identifier.monitor_id, identifier.day)
 
+        _LOGGER.debug(
+            f"Building video directory, "
+            f"Monitor: {identifier.monitor_id}, "
+            f"Day: {identifier.day}, "
+            f"Videos: {len(videos)}"
+        )
+
         for video in videos:
-            video_time = datetime.fromisoformat(video.video_time).strftime("%H-%M-%S")
+            video_time_iso = video.time_iso
 
             thumbnail_base_url = self.api.build_url(URL_THUMBNAILS_IMAGE, identifier.monitor_id)
-            thumbnail_url = f"{thumbnail_base_url}/{identifier.day}T{video_time}/{video.extension}"
+            thumbnail_url = f"{thumbnail_base_url}/{identifier.day}T{video_time_iso}/{video.extension}"
 
             thumbnail = thumbnail_url if self._thumbnails_support else None
-
-            _LOGGER.info(f"thumb: {thumbnail_url}")
 
             category = identifier.category
             monitor_id = identifier.monitor_id
@@ -197,10 +219,10 @@ class ShinobiMediaSource(MediaSource, ABC):
 
             item = BrowseMediaSource(
                 domain=DOMAIN,
-                identifier=f"{category}/{monitor_id}/{day}/{video.video_time}/{video.extension}",
+                identifier=f"{category}/{monitor_id}/{day}/{video_time_iso}/{video.extension}",
                 media_class=MediaClass.VIDEO,
                 media_content_type=MediaType.VIDEO,
-                title=video.title,
+                title=video.time,
                 can_play=True,
                 can_expand=False,
                 thumbnail=thumbnail,
