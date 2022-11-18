@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.22
+
+- Fix media source camera and calendar thumbnails by snapshot
+
 ## 2.0.21
 
 - Core fix: wrongfully reported logs of entities getting updated when no update perform

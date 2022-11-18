@@ -144,6 +144,13 @@ class ShinobiMediaSource(MediaSource, ABC):
         for monitor_id in self.api.monitors:
             monitor = self.api.monitors.get(monitor_id)
 
+            snapshot = monitor.snapshot
+
+            if snapshot.startswith("/"):
+                snapshot = snapshot[1:]
+
+            snapshot = self.api.build_url(f"{{base_url}}{snapshot}")
+
             item = BrowseMediaSource(
                 domain=DOMAIN,
                 identifier=f"{identifier.category}/{monitor.id}",
@@ -152,7 +159,7 @@ class ShinobiMediaSource(MediaSource, ABC):
                 title=monitor.name,
                 can_play=False,
                 can_expand=True,
-                thumbnail=self.api.build_url(monitor.snapshot),
+                thumbnail=snapshot,
             )
 
             items.append(item)
@@ -176,6 +183,13 @@ class ShinobiMediaSource(MediaSource, ABC):
 
             day_name = MEDIA_SOURCE_SPECIAL_DAYS.get(day, lookup_date.strftime("%A"))
 
+            snapshot = monitor.snapshot
+
+            if snapshot.startswith("/"):
+                snapshot = snapshot[1:]
+
+            snapshot = self.api.build_url(f"{{base_url}}{snapshot}")
+
             item = BrowseMediaSource(
                 domain=DOMAIN,
                 identifier=f"{identifier.category}/{identifier.monitor_id}/{lookup_date}",
@@ -184,7 +198,7 @@ class ShinobiMediaSource(MediaSource, ABC):
                 title=day_name,
                 can_play=False,
                 can_expand=True,
-                thumbnail=self.api.build_url(monitor.snapshot),
+                thumbnail=snapshot,
             )
 
             items.append(item)
