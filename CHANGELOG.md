@@ -7,7 +7,6 @@
 - Hide error in log when thumbnails API is not supported by Shinobi Video Server
 - Cleaner code to resolve URLs
 - Remove unused constants
-- 
 
 ## 2.0.19
 
