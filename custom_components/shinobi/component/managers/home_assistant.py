@@ -205,14 +205,22 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             use_original_stream = self.storage_api.use_original_stream
 
-            snapshot = self.api.build_url(monitor.snapshot)
+            snapshot = monitor.snapshot
+
+            if snapshot.startswith("/"):
+                snapshot = snapshot[1:]
+
+            snapshot = self.api.build_url(f"{{base_url}}{snapshot}")
 
             stream_source = None
 
             if not use_original_stream:
                 for stream in monitor.streams:
                     if stream is not None:
-                        stream_source = self.api.build_url(stream)
+                        if stream.startswith("/"):
+                            stream = stream[1:]
+
+                        stream_source = self.api.build_url(f"{{base_url}}{stream}")
                         break
 
             if use_original_stream or stream_source is None:

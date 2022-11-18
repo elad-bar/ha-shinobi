@@ -13,10 +13,7 @@ import logging
 import sys
 from typing import Awaitable, Callable
 
-from aiohttp import ClientSession
-
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.event import async_track_time_interval
 
 from ...component.helpers.const import *
@@ -28,12 +25,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class IntegrationWS(BaseAPI):
-    _session: ClientSession | None
     _config_data: ConfigData | None
     _api_data: dict
 
     def __init__(self,
-                 hass: HomeAssistant,
+                 hass: HomeAssistant | None,
                  async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
                  async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]] | None = None
                  ):
@@ -41,7 +37,6 @@ class IntegrationWS(BaseAPI):
         super().__init__(hass, async_on_data_changed, async_on_status_changed)
 
         self._config_data = None
-        self._session = None
         self._base_url = None
         self._repairing = []
         self._pending_payloads = []
@@ -69,7 +64,7 @@ class IntegrationWS(BaseAPI):
         path = "/" if config_data.path == "" else config_data.path
 
         url = (
-            f"{protocol}://{config_data.host}:{config_data.port}{path}{SHINOBI_WS_ENDPOINT}"
+            f"{protocol}://{config_data.host}:{config_data.port}{path}"
         )
 
         return url
@@ -107,47 +102,45 @@ class IntegrationWS(BaseAPI):
             _LOGGER.debug(f"Initializing WebSocket connection")
 
         try:
-            await self.set_status(ConnectivityStatus.Connecting)
+            if self.is_home_assistant:
+                self._remove_async_track_time = async_track_time_interval(
+                    self.hass, self._check_triggers, TRIGGER_INTERVAL
+                )
 
-            self._remove_async_track_time = async_track_time_interval(
-                self.hass, self._check_triggers, TRIGGER_INTERVAL
-            )
-
-            if self.hass is None:
-                if self._session is not None:
-                    await self._session.close()
-
-                self._session = aiohttp.client.ClientSession()
             else:
-                self._session = async_create_clientsession(hass=self.hass)
+                loop = asyncio.get_running_loop()
+                loop.call_later(TRIGGER_INTERVAL.total_seconds(), self._check_triggers, None)
+
+            await self.initialize_session()
+
+            if self.status == ConnectivityStatus.Connecting:
+                data = {
+                    URL_PARAMETER_BASE_URL: self.ws_url,
+                    URL_PARAMETER_VERSION: self.version
+                }
+
+                url = SHINOBI_WS_ENDPOINT.format(**data)
+
+                async with self.session.ws_connect(
+                    url,
+                    ssl=False,
+                    autoclose=True,
+                    max_msg_size=MAX_MSG_SIZE,
+                    timeout=WS_TIMEOUT,
+                    compress=WS_COMPRESSION_DEFLATE
+                ) as ws:
+
+                    await self.set_status(ConnectivityStatus.Connected)
+
+                    self._ws = ws
+
+                    await self._listen()
+
+                    if self.status != ConnectivityStatus.Disconnected:
+                        await self.set_status(ConnectivityStatus.NotConnected)
 
         except Exception as ex:
-            _LOGGER.warning(f"Failed to create web socket session, Error: {str(ex)}")
-
-            await self.set_status(ConnectivityStatus.Failed)
-
-        try:
-            url = self.ws_url.replace("[VERSION]", str(self.version))
-
-            async with self._session.ws_connect(
-                url,
-                ssl=False,
-                autoclose=True,
-                max_msg_size=MAX_MSG_SIZE,
-                timeout=WS_TIMEOUT,
-                compress=WS_COMPRESSION_DEFLATE
-            ) as ws:
-
-                await self.set_status(ConnectivityStatus.Connected)
-
-                self._ws = ws
-
-                await self._listen()
-
-                await self.set_status(ConnectivityStatus.NotConnected)
-
-        except Exception as ex:
-            if self._session is not None and self._session.closed:
+            if self.session is not None and self.session.closed:
                 _LOGGER.info(f"WS Session closed")
 
                 await self.terminate()
@@ -165,6 +158,8 @@ class IntegrationWS(BaseAPI):
                 await self.set_status(ConnectivityStatus.Failed)
 
     async def terminate(self):
+        await super().terminate()
+
         if self._remove_async_track_time is not None:
             self._remove_async_track_time()
             self._remove_async_track_time = None
@@ -176,11 +171,8 @@ class IntegrationWS(BaseAPI):
 
         self._ws = None
 
-        if self.status != ConnectivityStatus.Disconnected:
-            await self.set_status(ConnectivityStatus.Disconnected)
-
     async def async_send_heartbeat(self):
-        if self._session is None or self._session.closed:
+        if self.session is None or self.session.closed:
             await self.set_status(ConnectivityStatus.NotConnected)
 
         if self.status == ConnectivityStatus.Connected:
@@ -204,7 +196,7 @@ class IntegrationWS(BaseAPI):
                 is_closing_type = msg.type in WS_CLOSING_MESSAGE
                 is_error = msg.type == aiohttp.WSMsgType.ERROR
                 is_closing_data = False if is_closing_type or is_error else msg.data == "close"
-                session_is_closed = self._session is None or self._session.closed
+                session_is_closed = self.session is None or self.session.closed
 
                 if is_closing_type or is_error or is_closing_data or session_is_closed or not is_connected:
                     _LOGGER.warning(
@@ -422,7 +414,8 @@ class IntegrationWS(BaseAPI):
                 self._set(topic, sensor_type, value)
 
                 if previous_state == STATE_OFF:
-                    self.hass.async_create_task(self.fire_data_changed_event())
+                    if self.is_home_assistant:
+                        self.hass.async_create_task(self.fire_data_changed_event())
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -433,12 +426,23 @@ class IntegrationWS(BaseAPI):
     def fire_event(self, trigger: str, data: dict):
         event_name = f"{SHINOBI_EVENT}{trigger}"
 
-        _LOGGER.debug(f"Firing event {event_name}, Payload: {data}")
+        if self.is_home_assistant:
+            _LOGGER.debug(f"Firing event {event_name}, Payload: {data}")
 
-        self.hass.bus.async_fire(event_name, data)
+            self.hass.bus.async_fire(event_name, data)
+
+        else:
+            _LOGGER.info(f"Firing event {event_name}, Payload: {data}")
 
     def _check_triggers(self, now):
-        self.hass.async_create_task(self._async_check_triggers(now))
+        if self.is_home_assistant:
+            self.hass.async_create_task(self._async_check_triggers(now))
+
+        else:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._async_check_triggers(datetime.now()))
+
+            loop.call_later(TRIGGER_INTERVAL.total_seconds(), self._check_triggers, datetime.now())
 
     async def _async_check_triggers(self, event_time):
         try:
@@ -446,7 +450,7 @@ class IntegrationWS(BaseAPI):
 
             all_keys = self.data.keys()
 
-            changed = False
+            changes = []
 
             for key in all_keys:
                 if key != API_DATA_LAST_UPDATE:
@@ -465,13 +469,21 @@ class IntegrationWS(BaseAPI):
                             event_duration = SENSOR_AUTO_OFF_INTERVAL.get(sensor_type, 20)
 
                             if diff >= event_duration:
-                                changed = True
                                 data[TRIGGER_STATE] = STATE_OFF
 
                                 self._set(topic, sensor_type, data)
 
-            if changed:
-                await self.fire_data_changed_event()
+                                changes.append(f"{topic} {sensor_type}")
+
+            if len(changes) > 0:
+                if self.is_home_assistant:
+                    await self.fire_data_changed_event()
+
+                else:
+                    message = ", ".join(changes)
+
+                    _LOGGER.info(f"Manual events: {message}")
+
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno

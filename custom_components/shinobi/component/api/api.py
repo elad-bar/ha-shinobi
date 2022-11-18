@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from asyncio import sleep
-from datetime import date, datetime
+from datetime import datetime
 import json
 import logging
 import sys
 from typing import Awaitable, Callable
 
-from aiohttp import ClientResponseError, ClientSession
+from aiohttp import ClientResponseError
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from ...configuration.models.config_data import ConfigData
 from ...core.api.base_api import BaseAPI
@@ -28,14 +27,12 @@ _LOGGER = logging.getLogger(__name__)
 class IntegrationAPI(BaseAPI):
     """The Class for handling the data retrieval."""
 
-    session: ClientSession | None
     hass: HomeAssistant
     config_data: ConfigData | None
-    base_url: str | None
     repairing: list[str]
 
     def __init__(self,
-                 hass: HomeAssistant,
+                 hass: HomeAssistant | None,
                  async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
                  async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]] | None = None
                  ):
@@ -44,8 +41,6 @@ class IntegrationAPI(BaseAPI):
 
         try:
             self.config_data = None
-            self.session = None
-            self.base_url = None
             self.repairing = []
 
             self.data = {
@@ -89,9 +84,6 @@ class IntegrationAPI(BaseAPI):
 
         return url
 
-    async def terminate(self):
-        await self.set_status(ConnectivityStatus.Disconnected)
-
     async def initialize(self, config_data: ConfigData):
         _LOGGER.info("Initializing Shinobi Video")
 
@@ -100,24 +92,14 @@ class IntegrationAPI(BaseAPI):
 
             self.config_data = config_data
 
-            self.base_url = self.api_url
-
-            if self.hass is None:
-                if self.session is not None:
-                    await self.session.close()
-
-                self.session = aiohttp.client.ClientSession()
-            else:
-                self.session = async_create_clientsession(hass=self.hass)
-
-            await self._login()
+            await self.initialize_session()
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
             _LOGGER.error(
-                f"Failed to initialize Shinobi Video API ({self.base_url}), error: {ex}, line: {line_number}"
+                f"Failed to initialize Shinobi Video API ({self.api_url}), error: {ex}, line: {line_number}"
             )
 
             await self.set_status(ConnectivityStatus.Failed)
@@ -131,26 +113,18 @@ class IntegrationAPI(BaseAPI):
         if endpoint.startswith("/"):
             endpoint = endpoint[1:]
 
-        endpoint = self._build_endpoint(endpoint, monitor_id)
+        data = {
+            URL_PARAMETER_BASE_URL: self.api_url,
+            URL_PARAMETER_GROUP_ID: self.group_id,
+            URL_PARAMETER_API_KEY: self.api_key,
+            URL_PARAMETER_MONITOR_ID: monitor_id
+        }
 
-        url = f"{self.base_url}{endpoint}"
+        url = endpoint.format(**data)
+
+        _LOGGER.debug(url)
 
         return url
-
-    def _build_endpoint(self, endpoint, monitor_id: str = None):
-        if endpoint.startswith("/"):
-            endpoint = endpoint[1:]
-
-        if GROUP_ID in endpoint and self.group_id is not None:
-            endpoint = endpoint.replace(GROUP_ID, self.group_id)
-
-        if AUTH_TOKEN in endpoint and self.api_key is not None:
-            endpoint = endpoint.replace(AUTH_TOKEN, self.api_key)
-
-        if MONITOR_ID in endpoint and monitor_id is not None:
-            endpoint = endpoint.replace(MONITOR_ID, monitor_id)
-
-        return endpoint
 
     def _validate_request(self, endpoint):
         if endpoint == URL_LOGIN:
@@ -261,11 +235,10 @@ class IntegrationAPI(BaseAPI):
         if self.status == ConnectivityStatus.Connected:
             await self._load_monitors()
 
-    async def _login(self):
-        _LOGGER.info("Performing login")
-        exception_data = None
+    async def login(self):
+        await super().login()
 
-        await self.set_status(ConnectivityStatus.Connecting)
+        exception_data = None
 
         try:
             self.data[API_DATA_API_KEY] = None
@@ -341,7 +314,7 @@ class IntegrationAPI(BaseAPI):
         _LOGGER.debug("Set SocketIO version")
         version = 3
 
-        response: bool = await self._async_get(URL_SOCKET_IO_V4, None, True)
+        response: bool = await self._async_get(URL_SOCKET_IO_V4, resource_available_check=True)
 
         if response:
             version = 4
@@ -436,10 +409,9 @@ class IntegrationAPI(BaseAPI):
                 return video_list
 
     async def has_thumbnails_support(self) -> bool:
-        response: dict | None = await self._async_get(URL_THUMBNAILS_STATUS)
-        result = response is not None and response.get("ok")
+        response: bool = await self._async_get(URL_THUMBNAILS_STATUS, resource_available_check=True)
 
-        return result
+        return response
 
     async def async_repair_monitors(self):
         monitors = self.data.get("monitors", {})
@@ -506,9 +478,9 @@ class IntegrationAPI(BaseAPI):
     async def async_set_monitor_mode(self, monitor_id: str, mode: str):
         _LOGGER.info(f"Updating monitor {monitor_id} mode to {mode}")
 
-        endpoint = self._build_endpoint(f"{URL_UPDATE_MODE}/{mode}", monitor_id)
+        endpoint = f"{URL_UPDATE_MODE}/{mode}"
 
-        response = await self._async_get(endpoint)
+        response = await self._async_get(endpoint, monitor_id)
 
         response_message = {} if response is None else response.get("msg")
 

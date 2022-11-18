@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.20
+
+- Add test file to run locally (requires environment variables)
+- Extend Core BaseAPI to handle session initialization and termination
+- Hide error in log when thumbnails API is not supported by Shinobi Video Server
+- Cleaner code to resolve URLs
+- Remove unused constants
+- 
+
 ## 2.0.19
 
 - Fix media play for Media Source

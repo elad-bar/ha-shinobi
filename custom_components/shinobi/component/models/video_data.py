@@ -64,15 +64,6 @@ class VideoData:
         return result
 
     @property
-    def thumbnail(self):
-        look_for_ext = f".{self.extension}"
-
-        url = self.action_url.replace(look_for_ext, "").replace(VIDEO_ENDPOINT_VIDEOS, VIDEO_ENDPOINT_THUMBNAIL)
-        thumbnail = f"{url}/{self.extension}"
-
-        return thumbnail
-
-    @property
     def identifier(self):
         identifier = f"{self.action_url}|{self.mime_type}"
 

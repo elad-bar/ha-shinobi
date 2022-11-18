@@ -56,22 +56,26 @@ REPAIR_REPAIR_RECORD_INTERVAL = 5
 REPAIR_UPDATE_STATUS_INTERVAL = 10
 REPAIR_UPDATE_STATUS_ATTEMPTS = 12  # Up to 2 minutes of retries
 
-URL_LOGIN = "?json=true"
-URL_MONITORS = "[AUTH_TOKEN]/monitor/[GROUP_ID]"
-URL_VIDEOS = "[AUTH_TOKEN]/videos/[GROUP_ID]/[MONITOR_ID]"
-URL_THUMBNAILS_STATUS = "[AUTH_TOKEN]/thumbnails/[GROUP_ID]"
-URL_THUMBNAILS_IMAGE = "[AUTH_TOKEN]/thumbnails/[GROUP_ID]/[MONITOR_ID]"
-URL_API_KEYS = "[AUTH_TOKEN]/api/[GROUP_ID]/list"
-URL_SOCKET_IO_V4 = "assets/vendor/js/socket.io.min.js"
-URL_UPDATE_MONITOR = "[AUTH_TOKEN]/configureMonitor/[GROUP_ID]/[MONITOR_ID]"
-URL_UPDATE_MODE = f"{URL_MONITORS}/[MONITOR_ID]"
+URL_PARAMETER_BASE_URL = "base_url"
+URL_PARAMETER_API_KEY = "api_key"
+URL_PARAMETER_GROUP_ID = "group_id"
+URL_PARAMETER_MONITOR_ID = "monitor_id"
+URL_PARAMETER_VERSION = "version"
 
-VIDEO_ENDPOINT_VIDEOS = "videos"
-VIDEO_ENDPOINT_THUMBNAIL = "thumbnails"
+URL_LOGIN = "{base_url}?json=true"
 
-AUTH_TOKEN = "[AUTH_TOKEN]"
-GROUP_ID = "[GROUP_ID]"
-MONITOR_ID = "[MONITOR_ID]"
+URL_SOCKET_IO_V4 = "{base_url}assets/vendor/js/socket.io.min.js"
+SHINOBI_WS_ENDPOINT = "{base_url}socket.io/?EIO={version}&transport=websocket"
+
+URL_MONITORS = "{base_url}{api_key}/monitor/{group_id}"
+URL_VIDEOS = "{base_url}{api_key}/videos/{group_id}/{monitor_id}"
+URL_THUMBNAILS_STATUS = "{base_url}{api_key}/thumbnails/{group_id}"
+URL_API_KEYS = "{base_url}{api_key}/api/{group_id}/list"
+URL_UPDATE_MONITOR = "{base_url}{api_key}/configureMonitor/{group_id}/{monitor_id}"
+
+URL_THUMBNAILS_IMAGE = f"{URL_THUMBNAILS_STATUS}/{{monitor_id}}"
+URL_UPDATE_MODE = f"{URL_MONITORS}/{{monitor_id}}"
+
 
 LOGIN_USERNAME = "mail"
 LOGIN_PASSWORD = "pass"
@@ -180,8 +184,6 @@ ICON_MONITOR_MODES = {
     MONITOR_MODE_START: "mdi:cctv",
     MONITOR_MODE_RECORD: "mdi:record-rec"
 }
-
-SHINOBI_WS_ENDPOINT = "socket.io/?EIO=[VERSION]&transport=websocket"
 
 STORAGE_DATA_USE_ORIGINAL_STREAM = "useOriginalStream"
 
