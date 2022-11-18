@@ -13,17 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     name: pre-commit
     steps:
-      - uses: actions/checkout@v2.5.0
-      - uses: actions/setup-python@v2.3.3
+      - uses: actions/checkout@v3.1.0
+      - uses: actions/setup-python@v4.3.0
         with:
           python-version: "3.10"
       - run: |
           pip install --constraint=.github/workflows/constraints.txt pip
           pip install --constraint=.github/workflows/constraints.txt pre-commit
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pre-commit/
-          key: pre-commit-4|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - uses: actions/cache@v3.0.11
         if: matrix.os != 'windows-latest'
         with:
