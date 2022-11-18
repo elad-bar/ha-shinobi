@@ -7,11 +7,11 @@ from __future__ import annotations
 
 import asyncio
 from asyncio import sleep
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 import json
 import logging
 import sys
-from typing import Awaitable, Callable
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval

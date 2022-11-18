@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 import logging
-from typing import Awaitable, Callable
 
 from homeassistant.components.media_player.const import MediaClass, MediaType
 from homeassistant.components.media_source.models import (
