@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     name: pre-commit
     steps:
-      - uses: actions/checkout@v2.3.4
-      - uses: actions/setup-python@v2.2.1
+      - uses: actions/checkout@v2.5.0
+      - uses: actions/setup-python@v2.3.3
         with:
           python-version: "3.10"
       - run: |
@@ -31,8 +31,8 @@ jobs:
           payload = sys.version.encode() + sys.executable.encode()
           digest = hashlib.sha256(payload).hexdigest()
           result = "${{ runner.os }}-{}-{}-pre-commit".format(python, digest)
-          print("::set-output name=result::{}".format(result))
-      - uses: actions/cache@v2.1.3
+          echo "result={result}" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v3.0.11
         if: matrix.os != 'windows-latest'
         with:
           path: ~/.cache/pre-commit
