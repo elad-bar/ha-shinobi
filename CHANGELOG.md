@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.21
+
+- Core fix: wrongfully reported logs of entities getting updated when no update perform
+
 ## 2.0.20
 
 - Add test file to run locally (requires environment variables)
