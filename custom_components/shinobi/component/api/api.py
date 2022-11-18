@@ -173,9 +173,6 @@ class IntegrationAPI(BaseAPI):
                 f"Failed to post JSON to {endpoint}, HTTP Status: {crex.message} ({crex.status})"
             )
 
-            if crex.status in [404, 405]:
-                self.status = ConnectivityStatus.NotFound
-
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
@@ -184,7 +181,8 @@ class IntegrationAPI(BaseAPI):
                 f"Failed to post JSON to {endpoint}, Error: {ex}, Line: {line_number}"
             )
 
-            self.status = ConnectivityStatus.Failed
+            if self.status != ConnectivityStatus.Disconnected:
+                await self.set_status(ConnectivityStatus.Failed)
 
         return result
 
@@ -239,7 +237,7 @@ class IntegrationAPI(BaseAPI):
         await super().login()
 
         exception_data = None
-
+        original_status = self.status
         try:
             self.data[API_DATA_API_KEY] = None
 
@@ -285,7 +283,7 @@ class IntegrationAPI(BaseAPI):
 
                                 break
 
-                    if self.api_key is None:
+                    if self.api_key is None and self.status != ConnectivityStatus.Disconnected:
                         await self.set_status(ConnectivityStatus.MissingAPIKey)
 
                 else:
@@ -299,14 +297,17 @@ class IntegrationAPI(BaseAPI):
 
             exception_data = f"Error: {ex}, Line: {line_number}"
 
-            if self.status != ConnectivityStatus.NotFound:
+            if self.status not in [ConnectivityStatus.NotFound, ConnectivityStatus.Disconnected]:
                 await self.set_status(ConnectivityStatus.Failed)
 
         log_level = ConnectivityStatus.get_log_level(self.status)
 
-        message = self.status if exception_data is None else f"{self.status}, {exception_data}"
+        error_message = f"Login attempt failed, Status: {self.status}"
 
-        _LOGGER.log(log_level, message)
+        message = error_message if exception_data is None else f"{error_message}, {exception_data}"
+
+        if original_status == ConnectivityStatus.Disconnected:
+            _LOGGER.log(log_level, message)
 
         await self.fire_data_changed_event()
 

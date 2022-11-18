@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.23
+
+- Change log level of warning to debug level for session closed on HA restart
+- Core fix: remove session close request, being handled by HA
+
 ## 2.0.22
 
 - Fix media source camera and calendar thumbnails by snapshot
