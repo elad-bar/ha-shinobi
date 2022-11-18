@@ -20,18 +20,10 @@ jobs:
       - run: |
           pip install --constraint=.github/workflows/constraints.txt pip
           pip install --constraint=.github/workflows/constraints.txt pre-commit
-      - name: Compute cache key prefix
-        if: matrix.os != 'windows-latest'
-        id: cache_key_prefix
-        shell: python
-        run: |
-          import hashlib
-          import sys
-          python = "py{}.{}".format(*sys.version_info[:2])
-          payload = sys.version.encode() + sys.executable.encode()
-          digest = hashlib.sha256(payload).hexdigest()
-          result = "${{ runner.os }}-{}-{}-pre-commit".format(python, digest)
-          echo "result={result}" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pre-commit/
+          key: pre-commit-4|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - uses: actions/cache@v3.0.11
         if: matrix.os != 'windows-latest'
         with:
