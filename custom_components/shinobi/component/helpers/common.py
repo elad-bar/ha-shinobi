@@ -25,6 +25,20 @@ def format_datetime(video_time: str, date_format: str) -> str:
         return result
 
 
+def get_date(date: str) -> datetime | None:
+    result = None
+
+    try:
+        if date is not None:
+            if date.lower().endswith(VIDEO_DETAILS_TIME_INVALID_CHAR):
+                date = date[0: len(date) - 1]
+
+            result = datetime.fromisoformat(date)
+
+    finally:
+        return result
+
+
 def get_mime_type(extension: str) -> str | None:
     """Determine mime type of video."""
     mime_type = mimetypes.types_map.get(f".{extension}".lower())

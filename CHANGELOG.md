@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.24
+
+- Media Source thumbnails is now working with time-lapse images API instead of customAutoLoad script `shinobi-thumbnails`, more details available in [README](README.md)
+- Browsing now support all videos available for the monitor based on the days to keep videos in Shinobi Video dashboard
+
 ## 2.0.23
 
 - Change log level of warning to debug level for session closed on HA restart

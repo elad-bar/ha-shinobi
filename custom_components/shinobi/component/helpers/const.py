@@ -23,6 +23,7 @@ API_DATA_GROUP_ID = "group-id"
 API_DATA_API_KEY = "api-key"
 API_DATA_LAST_UPDATE = "last-update"
 API_DATA_SOCKET_IO_VERSION = "socket-io-version"
+API_DATA_DAYS = "days"
 
 MEDIA_BROWSER_NAME = f"{DEFAULT_NAME} Browser"
 
@@ -69,11 +70,10 @@ SHINOBI_WS_ENDPOINT = "{base_url}socket.io/?EIO={version}&transport=websocket"
 
 URL_MONITORS = "{base_url}{api_key}/monitor/{group_id}"
 URL_VIDEOS = "{base_url}{api_key}/videos/{group_id}/{monitor_id}"
-URL_THUMBNAILS_STATUS = "{base_url}{api_key}/thumbnails/{group_id}"
+URL_TIME_LAPSE = "{base_url}{api_key}/timelapse/{group_id}/{monitor_id}"
 URL_API_KEYS = "{base_url}{api_key}/api/{group_id}/list"
 URL_UPDATE_MONITOR = "{base_url}{api_key}/configureMonitor/{group_id}/{monitor_id}"
 
-URL_THUMBNAILS_IMAGE = f"{URL_THUMBNAILS_STATUS}/{{monitor_id}}"
 URL_UPDATE_MODE = f"{URL_MONITORS}/{{monitor_id}}"
 
 
@@ -156,6 +156,7 @@ INVALID_JSON_FORMATS = {
 
 VIDEO_DETAILS_MONITOR_ID = "mid"
 VIDEO_DETAILS_TIME = "time"
+VIDEO_DETAILS_END_TIME = "end"
 VIDEO_DETAILS_URL = "actionUrl"
 VIDEO_DETAILS_EXTENSION = "ext"
 VIDEO_DETAILS_TIME_INVALID_CHAR = "z"
@@ -174,6 +175,9 @@ MEDIA_SOURCE_ITEM_IDENTIFIER_MONITOR_ID = "monitor"
 MEDIA_SOURCE_ITEM_IDENTIFIER_DAY = "day"
 MEDIA_SOURCE_ITEM_IDENTIFIER_VIDEO_TIME = "video_time"
 MEDIA_SOURCE_ITEM_IDENTIFIER_VIDEO_EXTENSION = "video_extension"
+
+TIME_LAPSE_FILE_NAME = "filename"
+TIME_LAPSE_TIME = "time"
 
 MONITOR_MODE_STOP = "stop"
 MONITOR_MODE_START = "start"

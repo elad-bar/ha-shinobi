@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Awaitable, Callable
-from datetime import date, datetime
+from datetime import datetime
 import logging
 
 from homeassistant.components.media_player.const import MediaClass, MediaType
@@ -18,6 +18,7 @@ from homeassistant.core import HomeAssistant, callback
 
 from .component.api.api import IntegrationAPI
 from .component.helpers import get_ha
+from .component.helpers.common import get_date
 from .component.helpers.const import *
 from .component.models.media_source_item_identifier import MediaSourceItemIdentifier
 
@@ -37,7 +38,6 @@ class ShinobiMediaSource(MediaSource, ABC):
     name = MEDIA_BROWSER_NAME
     hass: HomeAssistant = None
     _ha = None
-    _thumbnails_support: bool
     _ui_modes: dict[int, Callable[[MediaSourceItemIdentifier], Awaitable[list[BrowseMediaSource]]]]
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -57,8 +57,6 @@ class ShinobiMediaSource(MediaSource, ABC):
             4: self._async_build_videos,
             5: self._async_build_videos,
         }
-
-        self._thumbnails_support = False
 
     @property
     def api(self) -> IntegrationAPI:
@@ -88,16 +86,13 @@ class ShinobiMediaSource(MediaSource, ABC):
         """Return media."""
         identifier = MediaSourceItemIdentifier(item.identifier)
 
-        self._thumbnails_support = await self.api.has_thumbnails_support()
-
         title = self._get_title(identifier)
         action = self._ui_modes.get(identifier.current_mode)
 
         _LOGGER.debug(
             f"Browse media, "
             f"Identifier: {identifier.identifier}, "
-            f"Title: {title}, "
-            f"Has thumbnails support: {self._thumbnails_support}"
+            f"Title: {title}"
         )
 
         return BrowseMediaSource(
@@ -153,7 +148,7 @@ class ShinobiMediaSource(MediaSource, ABC):
 
             item = BrowseMediaSource(
                 domain=DOMAIN,
-                identifier=f"{identifier.category}/{monitor.id}",
+                identifier=f"{identifier.identifier}/{monitor.id}",
                 media_class=MediaClass.DIRECTORY,
                 media_content_type=MediaType.ALBUM,
                 title=monitor.name,
@@ -171,34 +166,40 @@ class ShinobiMediaSource(MediaSource, ABC):
         """Build list of media sources from Shinobi Video Server."""
         items: list[BrowseMediaSource] = []
 
-        today = date.today()
         _LOGGER.debug(
             f"Building camera calendar, "
             f"Monitor: {identifier.monitor_id}"
         )
 
-        for day in range(0, 7):
-            lookup_date = today - timedelta(days=day)
-            monitor = self.api.monitors.get(identifier.monitor_id)
+        video_dates = await self.api.get_videos_dates(identifier.monitor_id)
 
-            day_name = MEDIA_SOURCE_SPECIAL_DAYS.get(day, lookup_date.strftime("%A"))
+        for video_date in video_dates:
+            day_name = video_dates.get(video_date)
 
-            snapshot = monitor.snapshot
+            time_lapse_items = await self.api.async_get_time_lapse_images(identifier.monitor_id, video_date)
+            thumbnail_url = None
+            time_lapse_items_count = len(time_lapse_items)
 
-            if snapshot.startswith("/"):
-                snapshot = snapshot[1:]
+            if time_lapse_items_count > 0:
+                time_lapse_items_selected = int(time_lapse_items_count / 2)
+                time_lapse_item = time_lapse_items[time_lapse_items_selected]
 
-            snapshot = self.api.build_url(f"{{base_url}}{snapshot}")
+                filename = time_lapse_item.get("filename")
+
+                self.api.monitors.get(URL_TIME_LAPSE, identifier.monitor_id)
+
+                thumbnail_base_url = self.api.build_url(URL_TIME_LAPSE, identifier.monitor_id)
+                thumbnail_url = f"{thumbnail_base_url}/{video_date}/{filename}"
 
             item = BrowseMediaSource(
                 domain=DOMAIN,
-                identifier=f"{identifier.category}/{identifier.monitor_id}/{lookup_date}",
+                identifier=f"{identifier.identifier}/{video_date}",
                 media_class=MediaClass.DIRECTORY,
                 media_content_type=MediaType.ALBUM,
                 title=day_name,
                 can_play=False,
                 can_expand=True,
-                thumbnail=snapshot,
+                thumbnail=thumbnail_url,
             )
 
             items.append(item)
@@ -212,36 +213,62 @@ class ShinobiMediaSource(MediaSource, ABC):
 
         videos = await self.api.get_videos(identifier.monitor_id, identifier.day)
 
-        _LOGGER.debug(
-            f"Building video directory, "
-            f"Monitor: {identifier.monitor_id}, "
-            f"Day: {identifier.day}, "
-            f"Videos: {len(videos)}"
-        )
+        if videos is None:
+            _LOGGER.debug(f"No video files found for {identifier.identifier}")
 
-        for video in videos:
-            video_time_iso = video.time_iso
-
-            thumbnail_base_url = self.api.build_url(URL_THUMBNAILS_IMAGE, identifier.monitor_id)
-            thumbnail_url = f"{thumbnail_base_url}/{identifier.day}T{video_time_iso}/{video.extension}"
-
-            thumbnail = thumbnail_url if self._thumbnails_support else None
-
-            category = identifier.category
-            monitor_id = identifier.monitor_id
-            day = identifier.day
-
-            item = BrowseMediaSource(
-                domain=DOMAIN,
-                identifier=f"{category}/{monitor_id}/{day}/{video_time_iso}/{video.extension}",
-                media_class=MediaClass.VIDEO,
-                media_content_type=MediaType.VIDEO,
-                title=video.time,
-                can_play=True,
-                can_expand=False,
-                thumbnail=thumbnail,
+        else:
+            _LOGGER.debug(
+                f"Building video directory, "
+                f"Monitor: {identifier.monitor_id}, "
+                f"Day: {identifier.day}, "
+                f"Videos: {len(videos)}"
             )
 
-            items.append(item)
+            time_lapse_items = await self.api.async_get_time_lapse_images(identifier.monitor_id, identifier.day)
+            time_lapse_items_count = len(time_lapse_items)
 
-        return items
+            for video in videos:
+                video_time_iso = video.start_time_iso
+                video_start_time = video.video_start_time.timestamp()
+                video_end_time = video.video_end_time.timestamp()
+
+                is_valid_file = video_end_time > video_start_time
+
+                if is_valid_file:
+                    video_start_time_tz = video.video_start_time.tzinfo.utcoffset(video.video_start_time)
+                    tz_seconds = video_start_time_tz.total_seconds()
+
+                    day = identifier.day
+
+                    thumbnail_url = None
+
+                    if time_lapse_items_count > 0:
+                        for time_lapse_item in time_lapse_items:
+                            time_lapse_item_time: str | None = time_lapse_item.get(TIME_LAPSE_TIME)
+
+                            if time_lapse_item_time is not None:
+                                item_time = get_date(time_lapse_item_time)
+                                item_time_ts = item_time.timestamp() + tz_seconds
+
+                                if video_end_time >= item_time_ts >= video_start_time:
+                                    filename = time_lapse_item.get(TIME_LAPSE_FILE_NAME)
+
+                                    thumbnail_base_url = self.api.build_url(URL_TIME_LAPSE, identifier.monitor_id)
+                                    thumbnail_url = f"{thumbnail_base_url}/{day}/{filename}"
+
+                                    break
+
+                    item = BrowseMediaSource(
+                        domain=DOMAIN,
+                        identifier=f"{identifier.identifier}/{video_time_iso}/{video.extension}",
+                        media_class=MediaClass.VIDEO,
+                        media_content_type=MediaType.VIDEO,
+                        title=video.start_time,
+                        can_play=True,
+                        can_expand=False,
+                        thumbnail=thumbnail_url,
+                    )
+
+                    items.append(item)
+
+            return items

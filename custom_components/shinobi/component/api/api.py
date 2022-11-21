@@ -72,6 +72,10 @@ class IntegrationAPI(BaseAPI):
         return self.data.get(API_DATA_MONITORS, {})
 
     @property
+    def recorded_days(self):
+        return self.data.get(API_DATA_DAYS, 10)
+
+    @property
     def api_url(self):
         config_data = self.config_data
         protocol = PROTOCOLS[config_data.ssl]
@@ -257,6 +261,7 @@ class IntegrationAPI(BaseAPI):
                     self.data[API_DATA_GROUP_ID] = user_data.get(ATTR_MONITOR_GROUP_ID)
                     temp_api_key = user_data.get("auth_token")
                     uid = user_data.get("uid")
+                    user_details = user_data.get("details")
 
                     self.data[API_DATA_USER_ID] = uid
 
@@ -276,6 +281,8 @@ class IntegrationAPI(BaseAPI):
 
                             if key_uid is not None and key_uid == uid:
                                 self.data[API_DATA_API_KEY] = key.get("code")
+
+                                self.data[API_DATA_DAYS] = int(float(user_details.get(API_DATA_DAYS, 10)))
 
                                 await self._set_socket_io_version()
 
@@ -370,6 +377,42 @@ class IntegrationAPI(BaseAPI):
 
         return monitor
 
+    async def get_videos_dates(self, monitor_id: str) -> dict[str, str] | None:
+        _LOGGER.debug(f"Checking if videos available for Monitor {monitor_id}")
+
+        result = {}
+        today = datetime.today()
+        lookup_date = today - timedelta(days=self.recorded_days)
+
+        to_date = today.strftime("%Y-%m-%d")
+        from_date = lookup_date.strftime("%Y-%m-%d")
+
+        url = f"{URL_VIDEOS}?start={from_date}T00:00:00&end={to_date}T23:59:59&noLimit=1"
+
+        response: dict | None = await self._async_get(url, monitor_id)
+
+        if response is not None:
+            videos = response.get("videos", [])
+
+            for video in videos:
+                video_time_iso = video.get("time")
+
+                video_time = datetime.fromisoformat(video_time_iso)
+                delta: timedelta = (today.date() - video_time.date())
+                delta_days = delta.days
+
+                cleaned_date_iso = video_time.strftime("%Y-%m-%d")
+                weekday_name = video_time.strftime("%A")
+
+                day_name = cleaned_date_iso
+
+                if delta_days <= 7:
+                    day_name = MEDIA_SOURCE_SPECIAL_DAYS.get(delta_days, weekday_name)
+
+                result[cleaned_date_iso] = day_name
+
+        return result
+
     async def get_videos(self, monitor_id: str, lookup_date: str) -> list[VideoData]:
         _LOGGER.debug("Retrieving videos list")
         video_list = []
@@ -409,8 +452,14 @@ class IntegrationAPI(BaseAPI):
 
                 return video_list
 
-    async def has_thumbnails_support(self) -> bool:
-        response: bool = await self._async_get(URL_THUMBNAILS_STATUS, resource_available_check=True)
+    async def async_get_time_lapse_images(self, monitor_id, day: str) -> list | None:
+        url = self.build_url(URL_TIME_LAPSE, monitor_id)
+        endpoint = f"{url}/{day}"
+
+        response: list | None = await self._async_get(endpoint)
+
+        if response is None:
+            _LOGGER.warning(f"Invalid time lapse response, Monitor: {monitor_id}, Day: {day}")
 
         return response
 

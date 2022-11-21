@@ -114,7 +114,14 @@ Shinobi Camera -> Camera -> Day -> List of all videos from that day
 
 **Thumbnails support**
 
-Shinobi Video does not provide out of the box thumbnails endpoint, to add that support, please follow the instructions in [shinobi-thumbnails](https://gitlab.com/elad.bar/shinobi-thumbnails) repository.
+Shinobi Video does not provide dedicated thumbnails endpoint per video file,
+Integration is using the time-lapse endpoint to calculate which time-lapse image is suitable for the video based on the range of start / end recording time of the video,
+to enable thumbnails in the Media Source, please enable `time-lapse` module per monitor:
+- Open Shinobi Video Dashboard
+- Monitors -> Choose Monitor -> Timelapse
+- Change `Enabled` to `Yes`
+- Set the `Creation interval` to `1 minute` (or at most - 1 minute less than the duration of recording)
+- Copy to other monitors
 
 ## Events
 

@@ -17,7 +17,8 @@ class VideoData:
     action_url: str
     mime_type: str
     extension: str
-    video_time: str
+    video_start_time: datetime
+    video_end_time: datetime
 
     def __init__(self, video: dict, monitors: dict[str, MonitorData]):
         try:
@@ -29,13 +30,15 @@ class VideoData:
             monitor = monitors.get(monitor_id)
 
             extension = video.get(VIDEO_DETAILS_EXTENSION)
-            video_time: str = video.get(VIDEO_DETAILS_TIME)
+            video_start_time: str = video.get(VIDEO_DETAILS_TIME)
+            video_end_time: str = video.get(VIDEO_DETAILS_END_TIME)
 
             self.monitor_id = monitor_id
             self.monitor_name = monitor_id if monitor is None else monitor.name
             self.action_url = video.get(VIDEO_DETAILS_URL)
             self.mime_type = get_mime_type(extension)
-            self.video_time = video_time
+            self.video_start_time = get_date(video_start_time)
+            self.video_end_time = get_date(video_end_time)
             self.extension = extension
 
         except HomeAssistantError:
@@ -52,14 +55,14 @@ class VideoData:
             )
 
     @property
-    def time(self) -> str:
-        result = format_datetime(self.video_time, VIDEO_DETAILS_TIME_FORMAT)
+    def start_time(self) -> str:
+        result = self.video_start_time.strftime(VIDEO_DETAILS_TIME_FORMAT)
 
         return result
 
     @property
-    def time_iso(self) -> str:
-        result = format_datetime(self.video_time, VIDEO_DETAILS_TIME_ISO_FORMAT)
+    def start_time_iso(self) -> str:
+        result = self.video_start_time.strftime(VIDEO_DETAILS_TIME_ISO_FORMAT)
 
         return result
 
@@ -75,7 +78,8 @@ class VideoData:
             ATTR_MONITOR_NAME: self.monitor_name,
             VIDEO_DETAILS_URL: self.action_url,
             VIDEO_DETAILS_MIME_TYPE: self.mime_type,
-            VIDEO_DETAILS_TIME: self.video_time,
+            VIDEO_DETAILS_TIME: self.video_start_time.isoformat(),
+            VIDEO_DETAILS_END_TIME: self.video_end_time.isoformat(),
             VIDEO_DETAILS_IDENTIFIER: self.identifier
         }
 
