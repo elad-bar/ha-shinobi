@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import sys
 
@@ -18,6 +20,7 @@ class MonitorData:
     original_stream: str
     mode: str
     status: str
+    snapshot: str | None
 
     def __init__(self, monitor):
         try:

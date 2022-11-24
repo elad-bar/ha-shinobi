@@ -17,7 +17,6 @@ from ...core.helpers.enums import ConnectivityStatus
 from ..helpers.const import *
 from ..helpers.exceptions import APIValidationException
 from ..models.monitor_data import MonitorData
-from ..models.video_data import VideoData
 
 REQUIREMENTS = ["aiohttp"]
 
@@ -377,6 +376,39 @@ class IntegrationAPI(BaseAPI):
 
         return monitor
 
+    async def get_video_wall(self) -> list[dict] | None:
+        response: dict | None = await self._async_get(URL_VIDEO_WALL)
+
+        result = None
+
+        if response is not None:
+            result = response.get("data", [])
+
+        return result
+
+    async def get_video_wall_monitor(self, monitor_id: str) -> list[dict] | None:
+        response: dict | None = await self._async_get(URL_VIDEO_WALL_MONITOR, monitor_id)
+
+        result = None
+
+        if response is not None:
+            result = response.get("data", [])
+
+        return result
+
+    async def get_video_wall_monitor_date(self, monitor_id: str, date: str) -> list[dict] | None:
+        url = self.build_url(URL_VIDEO_WALL_MONITOR, monitor_id)
+        endpoint = f"{url}/{date}"
+
+        response: dict | None = await self._async_get(endpoint)
+
+        result = None
+
+        if response is not None:
+            result = response.get("data", [])
+
+        return result
+
     async def get_videos_dates(self, monitor_id: str) -> dict[str, str] | None:
         _LOGGER.debug(f"Checking if videos available for Monitor {monitor_id}")
 
@@ -412,56 +444,6 @@ class IntegrationAPI(BaseAPI):
                 result[cleaned_date_iso] = day_name
 
         return result
-
-    async def get_videos(self, monitor_id: str, lookup_date: str) -> list[VideoData]:
-        _LOGGER.debug("Retrieving videos list")
-        video_list = []
-
-        url = f"{URL_VIDEOS}?start={lookup_date}T00:00:00&end={lookup_date}T23:59:59&noLimit=1"
-
-        response: dict = await self._async_get(url, monitor_id)
-
-        if response is None:
-            _LOGGER.warning("Invalid video response")
-
-        else:
-            video_details = response.get("videos", [])
-
-            if len(video_details) == 0:
-                _LOGGER.warning("No videos found")
-
-            else:
-                for video in video_details:
-                    try:
-                        if video is None:
-                            _LOGGER.warning(f"Invalid video details found")
-
-                        else:
-                            video_data = VideoData(video, self.monitors)
-
-                            if video_data is not None:
-                                video_list.append(video_data)
-
-                    except Exception as ex:
-                        exc_type, exc_obj, tb = sys.exc_info()
-                        line_number = tb.tb_lineno
-
-                        _LOGGER.error(
-                            f"Failed to load video data: {video}, Error: {ex}, Line: {line_number}"
-                        )
-
-                return video_list
-
-    async def async_get_time_lapse_images(self, monitor_id, day: str) -> list | None:
-        url = self.build_url(URL_TIME_LAPSE, monitor_id)
-        endpoint = f"{url}/{day}"
-
-        response: list | None = await self._async_get(endpoint)
-
-        if response is None:
-            _LOGGER.warning(f"Invalid time lapse response, Monitor: {monitor_id}, Day: {day}")
-
-        return response
 
     async def async_repair_monitors(self):
         monitors = self.data.get("monitors", {})

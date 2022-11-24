@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.25
+
+- More improvements for the Media Source based on the new endpoint of `mediabrowser` of Shinobi Video NVR
+
 ## 2.0.24
 
 - Media Source thumbnails is now working with time-lapse images API instead of customAutoLoad script `shinobi-thumbnails`, more details available in [README](README.md)

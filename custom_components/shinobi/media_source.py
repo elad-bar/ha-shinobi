@@ -136,22 +136,28 @@ class ShinobiMediaSource(MediaSource, ABC):
             "Building monitors list"
         )
 
-        for monitor_id in self.api.monitors:
-            monitor = self.api.monitors.get(monitor_id)
+        monitors = await self.api.get_video_wall()
 
-            snapshot = monitor.snapshot
+        for monitor in monitors:
+            monitor_id = monitor.get(ATTR_MONITOR_ID)
+            monitor_data = self.api.monitors.get(monitor_id)
+            monitor_name = monitor_id
+            snapshot = None
 
-            if snapshot.startswith("/"):
-                snapshot = snapshot[1:]
+            if monitor_data is not None:
+                snapshot = monitor_data.snapshot
 
-            snapshot = self.api.build_url(f"{{base_url}}{snapshot}")
+                if snapshot.startswith("/"):
+                    snapshot = snapshot[1:]
+
+                snapshot = self.api.build_url(f"{{base_url}}{snapshot}")
 
             item = BrowseMediaSource(
                 domain=DOMAIN,
-                identifier=f"{identifier.identifier}/{monitor.id}",
+                identifier=f"{identifier.identifier}/{monitor_id}",
                 media_class=MediaClass.DIRECTORY,
                 media_content_type=MediaType.ALBUM,
-                title=monitor.name,
+                title=monitor_name,
                 can_play=False,
                 can_expand=True,
                 thumbnail=snapshot,
@@ -171,29 +177,29 @@ class ShinobiMediaSource(MediaSource, ABC):
             f"Monitor: {identifier.monitor_id}"
         )
 
-        video_dates = await self.api.get_videos_dates(identifier.monitor_id)
+        today = datetime.today()
+        monitors = await self.api.get_video_wall_monitor(identifier.monitor_id)
 
-        for video_date in video_dates:
-            day_name = video_dates.get(video_date)
+        for monitor in monitors:
+            date_iso = monitor.get(ATTR_DATE)
+            filename = monitor.get(TIME_LAPSE_FILE_NAME)
 
-            time_lapse_items = await self.api.async_get_time_lapse_images(identifier.monitor_id, video_date)
-            thumbnail_url = None
-            time_lapse_items_count = len(time_lapse_items)
+            date = get_date(date_iso)
+            day_delta = today - date
+            days = day_delta.days
 
-            if time_lapse_items_count > 0:
-                time_lapse_items_selected = int(time_lapse_items_count / 2)
-                time_lapse_item = time_lapse_items[time_lapse_items_selected]
+            if days in MEDIA_SOURCE_SPECIAL_DAYS:
+                day_name = MEDIA_SOURCE_SPECIAL_DAYS.get(days, )
+            else:
+                day_name_key = VIDEO_DETAILS_DATE_FORMAT if days > 7 else DATE_FORMAT_WEEKDAY
+                day_name = date.strftime(day_name_key)
 
-                filename = time_lapse_item.get("filename")
-
-                self.api.monitors.get(URL_TIME_LAPSE, identifier.monitor_id)
-
-                thumbnail_base_url = self.api.build_url(URL_TIME_LAPSE, identifier.monitor_id)
-                thumbnail_url = f"{thumbnail_base_url}/{video_date}/{filename}"
+            thumbnail_base_url = self.api.build_url(URL_TIME_LAPSE, identifier.monitor_id)
+            thumbnail_url = None if filename is None else f"{thumbnail_base_url}/{date_iso}/{filename}"
 
             item = BrowseMediaSource(
                 domain=DOMAIN,
-                identifier=f"{identifier.identifier}/{video_date}",
+                identifier=f"{identifier.identifier}/{date_iso}",
                 media_class=MediaClass.DIRECTORY,
                 media_content_type=MediaType.ALBUM,
                 title=day_name,
@@ -211,64 +217,32 @@ class ShinobiMediaSource(MediaSource, ABC):
         """Build list of media sources from Shinobi Video Server."""
         items: list[BrowseMediaSource] = []
 
-        videos = await self.api.get_videos(identifier.monitor_id, identifier.day)
+        monitors = await self.api.get_video_wall_monitor_date(identifier.monitor_id, identifier.day)
 
-        if videos is None:
-            _LOGGER.debug(f"No video files found for {identifier.identifier}")
+        for monitor in monitors:
+            date = monitor.get(ATTR_DATE)
+            filename = monitor.get(TIME_LAPSE_FILE_NAME)
+            video_time_full = monitor.get(TIME_LAPSE_TIME)
+            video_extension = monitor.get(VIDEO_DETAILS_EXTENSION)
 
-        else:
-            _LOGGER.debug(
-                f"Building video directory, "
-                f"Monitor: {identifier.monitor_id}, "
-                f"Day: {identifier.day}, "
-                f"Videos: {len(videos)}"
+            video_time = get_date(video_time_full)
+            video_start_time = video_time.strftime(VIDEO_DETAILS_TIME_FORMAT)
+            video_time_iso = video_time.strftime(VIDEO_DETAILS_TIME_ISO_FORMAT)
+
+            thumbnail_base_url = self.api.build_url(URL_TIME_LAPSE, identifier.monitor_id)
+            thumbnail_url = None if filename is None else f"{thumbnail_base_url}/{date}/{filename}"
+
+            item = BrowseMediaSource(
+                domain=DOMAIN,
+                identifier=f"{identifier.identifier}/{video_time_iso}/{video_extension}",
+                media_class=MediaClass.VIDEO,
+                media_content_type=MediaType.VIDEO,
+                title=video_start_time,
+                can_play=True,
+                can_expand=False,
+                thumbnail=thumbnail_url,
             )
 
-            time_lapse_items = await self.api.async_get_time_lapse_images(identifier.monitor_id, identifier.day)
-            time_lapse_items_count = len(time_lapse_items)
+            items.append(item)
 
-            for video in videos:
-                video_time_iso = video.start_time_iso
-                video_start_time = video.video_start_time.timestamp()
-                video_end_time = video.video_end_time.timestamp()
-
-                is_valid_file = video_end_time > video_start_time
-
-                if is_valid_file:
-                    video_start_time_tz = video.video_start_time.tzinfo.utcoffset(video.video_start_time)
-                    tz_seconds = video_start_time_tz.total_seconds()
-
-                    day = identifier.day
-
-                    thumbnail_url = None
-
-                    if time_lapse_items_count > 0:
-                        for time_lapse_item in time_lapse_items:
-                            time_lapse_item_time: str | None = time_lapse_item.get(TIME_LAPSE_TIME)
-
-                            if time_lapse_item_time is not None:
-                                item_time = get_date(time_lapse_item_time)
-                                item_time_ts = item_time.timestamp() + tz_seconds
-
-                                if video_end_time >= item_time_ts >= video_start_time:
-                                    filename = time_lapse_item.get(TIME_LAPSE_FILE_NAME)
-
-                                    thumbnail_base_url = self.api.build_url(URL_TIME_LAPSE, identifier.monitor_id)
-                                    thumbnail_url = f"{thumbnail_base_url}/{day}/{filename}"
-
-                                    break
-
-                    item = BrowseMediaSource(
-                        domain=DOMAIN,
-                        identifier=f"{identifier.identifier}/{video_time_iso}/{video.extension}",
-                        media_class=MediaClass.VIDEO,
-                        media_content_type=MediaType.VIDEO,
-                        title=video.start_time,
-                        can_play=True,
-                        can_expand=False,
-                        thumbnail=thumbnail_url,
-                    )
-
-                    items.append(item)
-
-            return items
+        return items

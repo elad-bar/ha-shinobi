@@ -70,12 +70,13 @@ SHINOBI_WS_ENDPOINT = "{base_url}socket.io/?EIO={version}&transport=websocket"
 
 URL_MONITORS = "{base_url}{api_key}/monitor/{group_id}"
 URL_VIDEOS = "{base_url}{api_key}/videos/{group_id}/{monitor_id}"
-URL_TIME_LAPSE = "{base_url}{api_key}/timelapse/{group_id}/{monitor_id}"
+URL_VIDEO_WALL = "{base_url}{api_key}/videobrowser/{group_id}"
+URL_VIDEO_WALL_MONITOR = f"{URL_VIDEO_WALL}/{{monitor_id}}"
 URL_API_KEYS = "{base_url}{api_key}/api/{group_id}/list"
 URL_UPDATE_MONITOR = "{base_url}{api_key}/configureMonitor/{group_id}/{monitor_id}"
+URL_TIME_LAPSE = "{base_url}{api_key}/timelapse/{group_id}/{monitor_id}"
 
 URL_UPDATE_MODE = f"{URL_MONITORS}/{{monitor_id}}"
-
 
 LOGIN_USERNAME = "mail"
 LOGIN_PASSWORD = "pass"
@@ -96,6 +97,7 @@ ATTR_MONITOR_DETAILS_DETECTOR_AUDIO = "detector_audio"
 ATTR_MONITOR_MODE = "mode"
 ATTR_FPS = "fps"
 ATTR_DISABLED = "disabled"
+ATTR_DATE = "date"
 
 STREAM_PROTOCOL_SUFFIX = "://"
 
@@ -167,7 +169,7 @@ VIDEO_DETAILS_TITLE = "title"
 VIDEO_DETAILS_TIME_FORMAT = "%X"
 VIDEO_DETAILS_TIME_ISO_FORMAT = "%H-%M-%S"
 VIDEO_DETAILS_DATE_FORMAT = "%x"
-
+DATE_FORMAT_WEEKDAY = "%A"
 MEDIA_SOURCE_ITEM_IDENTIFIER_MODE = "mode"
 MEDIA_SOURCE_ITEM_IDENTIFIER_KEY = "key"
 MEDIA_SOURCE_ITEM_IDENTIFIER_CATEGORY = "category"
