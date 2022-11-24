@@ -70,7 +70,7 @@ SHINOBI_WS_ENDPOINT = "{base_url}socket.io/?EIO={version}&transport=websocket"
 
 URL_MONITORS = "{base_url}{api_key}/monitor/{group_id}"
 URL_VIDEOS = "{base_url}{api_key}/videos/{group_id}/{monitor_id}"
-URL_VIDEO_WALL = "{base_url}{api_key}/videobrowser/{group_id}"
+URL_VIDEO_WALL = "{base_url}{api_key}/videoBrowser/{group_id}"
 URL_VIDEO_WALL_MONITOR = f"{URL_VIDEO_WALL}/{{monitor_id}}"
 URL_API_KEYS = "{base_url}{api_key}/api/{group_id}/list"
 URL_UPDATE_MONITOR = "{base_url}{api_key}/configureMonitor/{group_id}/{monitor_id}"
