@@ -2,7 +2,27 @@
 
 ## 2.0.25
 
-- More improvements for the Media Source based on the new endpoint of `mediabrowser` of Shinobi Video NVR
+- Fix connectivity issues introduced in v2.0.23 [#39](https://github.com/elad-bar/ha-shinobi/issues/39)
+- More improvements for the Media Source based on the new endpoint of `videoBrowser` of Shinobi Video NVR
+
+### More details about Media Browser
+Media Browser supports 3 modes:
+- `Backward compatibility` - getting the list of videos from the video endpoint in Shinobi Video
+- `Video browser` - getting the list of videos from the new endpoint of video browser in Shinobi Video NVR
+- `Video browser with thumbnails` - getting (in addition to the videos from video browser endpoints) also the time-lapse images to present as thumbnails
+
+Main difference between `Backward compatibility` mode to the 2 others are:
+- Endpoint of videos is less efficient for building the Media Browser
+- For specific monitor without videos on specific days, there will be `day` directory, although it's empty.
+
+How to enable `time-lapse` per monitor in Shinobi Video NVR:
+- Open Shinobi Video Dashboard
+- Monitors -> Choose Monitor -> Timelapse
+- Change `Enabled` to `Yes`
+- Set the `Creation interval` to `1 minute` (or at most - 1 minute less than the duration of recording)
+- Copy to other monitors
+
+*Support for new endpoint of video browser in Shinobi Video NVR will be introduced on December 1st 2022, or manually by using the `dev` branch of Shinobi Video*
 
 ## 2.0.24
 

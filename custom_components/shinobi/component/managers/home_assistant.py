@@ -88,7 +88,18 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             await self.ws.initialize(self.config_data)
 
-        if status == ConnectivityStatus.Disconnected:
+        elif status == ConnectivityStatus.Failed:
+            if self.ws.status == ConnectivityStatus.Connected:
+                await self.ws.terminate()
+
+            ws_reconnect_interval = WS_RECONNECT_INTERVAL.total_seconds()
+            await sleep(ws_reconnect_interval)
+
+            _LOGGER.info(f"Attempt to reconnect after {ws_reconnect_interval} seconds")
+
+            await self.api.initialize(self.config_data)
+
+        elif status == ConnectivityStatus.Disconnected:
             if self.ws.status == ConnectivityStatus.Connected:
                 await self.ws.terminate()
 

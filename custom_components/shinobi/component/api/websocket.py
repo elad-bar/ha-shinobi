@@ -113,47 +113,39 @@ class IntegrationWS(BaseAPI):
 
             await self.initialize_session()
 
-            if self.status == ConnectivityStatus.Connecting:
-                data = {
-                    URL_PARAMETER_BASE_URL: self.ws_url,
-                    URL_PARAMETER_VERSION: self.version
-                }
+            data = {
+                URL_PARAMETER_BASE_URL: self.ws_url,
+                URL_PARAMETER_VERSION: self.version
+            }
 
-                url = SHINOBI_WS_ENDPOINT.format(**data)
+            url = SHINOBI_WS_ENDPOINT.format(**data)
 
-                async with self.session.ws_connect(
-                    url,
-                    ssl=False,
-                    autoclose=True,
-                    max_msg_size=MAX_MSG_SIZE,
-                    timeout=WS_TIMEOUT,
-                    compress=WS_COMPRESSION_DEFLATE
-                ) as ws:
+            async with self.session.ws_connect(
+                url,
+                ssl=False,
+                autoclose=True,
+                max_msg_size=MAX_MSG_SIZE,
+                timeout=WS_TIMEOUT,
+                compress=WS_COMPRESSION_DEFLATE
+            ) as ws:
 
-                    await self.set_status(ConnectivityStatus.Connected)
+                await self.set_status(ConnectivityStatus.Connected)
 
-                    self._ws = ws
+                self._ws = ws
 
-                    await self._listen()
-
-                    if self.status != ConnectivityStatus.Disconnected:
-                        await self.set_status(ConnectivityStatus.NotConnected)
+                await self._listen()
 
         except Exception as ex:
-            if self.session is not None and self.session.closed:
-                _LOGGER.info(f"WS Session closed")
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
 
-                await self.terminate()
+            if self.status == ConnectivityStatus.Connected:
+                _LOGGER.info(f"WS got disconnected will try to recover, Error: {ex}, Line: {line_number}")
+
+                await self.set_status(ConnectivityStatus.NotConnected)
 
             else:
-                exc_type, exc_obj, tb = sys.exc_info()
-                line_number = tb.tb_lineno
-
-                if self.status == ConnectivityStatus.Connected:
-                    _LOGGER.info(f"WS got disconnected will try to recover, Error: {ex}, Line: {line_number}")
-
-                else:
-                    _LOGGER.warning(f"Failed to connect WS, Error: {ex}, Line: {line_number}")
+                _LOGGER.warning(f"Failed to connect WS, Error: {ex}, Line: {line_number}")
 
                 await self.set_status(ConnectivityStatus.Failed)
 
@@ -204,6 +196,9 @@ class IntegrationWS(BaseAPI):
                         f"Message: {str(msg)}, "
                         f"Exception: {self._ws.exception()}"
                     )
+
+                    if is_connected:
+                        await self.set_status(ConnectivityStatus.NotConnected)
 
                     listening = False
                     break

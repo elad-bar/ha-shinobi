@@ -109,19 +109,25 @@ Each switch will have the name pattern - {Integration Title} {Monitor Name} {Sou
 - Toggle on to use the original stream directly from the camera
 - Toggle off / or leave as default for default stream from the NVR
 
-#### Media Source
-Shinobi Camera -> Camera -> Day -> List of all videos from that day
+#### Media Browser
 
-**Thumbnails support**
+Media Browser supports 3 modes:
+- `Backward compatibility` - getting the list of videos from the video endpoint in Shinobi Video
+- `Video browser` - getting the list of videos from the new endpoint of video browser in Shinobi Video NVR
+- `Video browser with thumbnails` - getting (in addition to the videos from video browser endpoints) also the time-lapse images to present as thumbnails
 
-Shinobi Video does not provide dedicated thumbnails endpoint per video file,
-Integration is using the time-lapse endpoint to calculate which time-lapse image is suitable for the video based on the range of start / end recording time of the video,
-to enable thumbnails in the Media Source, please enable `time-lapse` module per monitor:
+Main difference between `Backward compatibility` mode to the 2 others are:
+- Endpoint of videos is less efficient for building the Media Browser
+- For specific monitor without videos on specific days, there will be `day` directory, although it's empty.
+
+How to enable `time-lapse` per monitor in Shinobi Video NVR:
 - Open Shinobi Video Dashboard
 - Monitors -> Choose Monitor -> Timelapse
 - Change `Enabled` to `Yes`
 - Set the `Creation interval` to `1 minute` (or at most - 1 minute less than the duration of recording)
 - Copy to other monitors
+
+*Support for new endpoint of video browser in Shinobi Video NVR will be introduced on December 1st 2022*
 
 ## Events
 

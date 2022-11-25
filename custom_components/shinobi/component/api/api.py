@@ -28,7 +28,8 @@ class IntegrationAPI(BaseAPI):
 
     hass: HomeAssistant
     config_data: ConfigData | None
-    repairing: list[str]
+    _repairing: list[str]
+    _support_video_browser_api: bool
 
     def __init__(self,
                  hass: HomeAssistant | None,
@@ -40,7 +41,8 @@ class IntegrationAPI(BaseAPI):
 
         try:
             self.config_data = None
-            self.repairing = []
+            self._repairing = []
+            self._support_video_browser_api = False
 
             self.data = {
                 API_DATA_MONITORS: {}
@@ -125,8 +127,6 @@ class IntegrationAPI(BaseAPI):
 
         url = endpoint.format(**data)
 
-        _LOGGER.debug(url)
-
         return url
 
     def _validate_request(self, endpoint):
@@ -136,7 +136,7 @@ class IntegrationAPI(BaseAPI):
                 ConnectivityStatus.Disconnected
             ]
 
-        elif endpoint in [URL_API_KEYS, URL_SOCKET_IO_V4]:
+        elif endpoint in [URL_API_KEYS, URL_SOCKET_IO_V4, URL_VIDEO_WALL]:
             is_allowed = self.status == ConnectivityStatus.TemporaryConnected
 
         else:
@@ -169,8 +169,6 @@ class IntegrationAPI(BaseAPI):
 
                 result = await response.json()
 
-                self.data[API_DATA_LAST_UPDATE] = datetime.now()
-
         except ClientResponseError as crex:
             _LOGGER.error(
                 f"Failed to post JSON to {endpoint}, HTTP Status: {crex.message} ({crex.status})"
@@ -183,9 +181,6 @@ class IntegrationAPI(BaseAPI):
             _LOGGER.error(
                 f"Failed to post JSON to {endpoint}, Error: {ex}, Line: {line_number}"
             )
-
-            if self.status != ConnectivityStatus.Disconnected:
-                await self.set_status(ConnectivityStatus.Failed)
 
         return result
 
@@ -209,8 +204,6 @@ class IntegrationAPI(BaseAPI):
                     response.raise_for_status()
 
                     result = await response.json()
-
-                self.data[API_DATA_LAST_UPDATE] = datetime.now()
 
         except ClientResponseError as crex:
             _LOGGER.error(
@@ -239,9 +232,8 @@ class IntegrationAPI(BaseAPI):
     async def login(self):
         await super().login()
 
-        exception_data = None
-        original_status = self.status
         try:
+            self._support_video_browser_api = False
             self.data[API_DATA_API_KEY] = None
 
             config_data = self.config_data
@@ -253,11 +245,17 @@ class IntegrationAPI(BaseAPI):
 
             login_data = await self._async_post(URL_LOGIN, data)
 
-            if login_data is not None:
+            if login_data is None:
+                _LOGGER.warning(f"Failed to login, Response is empty")
+
+                await self.set_status(ConnectivityStatus.Failed)
+
+            else:
                 user_data = login_data.get("$user", {})
 
                 if user_data.get("ok", False):
                     self.data[API_DATA_GROUP_ID] = user_data.get(ATTR_MONITOR_GROUP_ID)
+
                     temp_api_key = user_data.get("auth_token")
                     uid = user_data.get("uid")
                     user_details = user_data.get("details")
@@ -272,25 +270,44 @@ class IntegrationAPI(BaseAPI):
 
                     self.data[API_DATA_API_KEY] = None
 
-                    if api_keys_data is not None and api_keys_data.get("ok", False):
-                        keys = api_keys_data.get("keys", [])
+                    if api_keys_data is not None:
+                        if api_keys_data.get("ok", False):
+                            keys = api_keys_data.get("keys", [])
 
-                        for key in keys:
-                            key_uid = key.get("uid", None)
+                            for key in keys:
+                                key_uid = key.get("uid", None)
 
-                            if key_uid is not None and key_uid == uid:
-                                self.data[API_DATA_API_KEY] = key.get("code")
+                                if key_uid is not None and key_uid == uid:
+                                    self.data[API_DATA_API_KEY] = key.get("code")
 
-                                self.data[API_DATA_DAYS] = int(float(user_details.get(API_DATA_DAYS, 10)))
+                                    self.data[API_DATA_DAYS] = int(float(user_details.get(API_DATA_DAYS, 10)))
 
-                                await self._set_socket_io_version()
+                                    await self._set_socket_io_version()
 
-                                await self.set_status(ConnectivityStatus.Connected)
+                                    await self._set_support_video_browser_api()
 
-                                break
+                                    await self.set_status(ConnectivityStatus.Connected)
 
-                    if self.api_key is None and self.status != ConnectivityStatus.Disconnected:
-                        await self.set_status(ConnectivityStatus.MissingAPIKey)
+                                    break
+
+                            if self.api_key is None:
+                                _LOGGER.warning(
+                                    f"No API key associated with user, Payload: {api_keys_data}"
+                                )
+
+                        else:
+                            _LOGGER.warning(
+                                f"Invalid response while trying to get API keys, Payload: {api_keys_data}")
+
+                    else:
+                        _LOGGER.warning(f"Invalid response while trying to get API keys, Payload is empty")
+
+                    if self.status != ConnectivityStatus.Disconnected:
+                        if self.status == ConnectivityStatus.Connected:
+                            await self.fire_data_changed_event()
+
+                        else:
+                            await self.set_status(ConnectivityStatus.MissingAPIKey)
 
                 else:
                     await self.set_status(ConnectivityStatus.InvalidCredentials)
@@ -301,21 +318,10 @@ class IntegrationAPI(BaseAPI):
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
-            exception_data = f"Error: {ex}, Line: {line_number}"
-
-            if self.status not in [ConnectivityStatus.NotFound, ConnectivityStatus.Disconnected]:
+            if self.status != ConnectivityStatus.Disconnected:
                 await self.set_status(ConnectivityStatus.Failed)
 
-        log_level = ConnectivityStatus.get_log_level(self.status)
-
-        error_message = f"Login attempt failed, Status: {self.status}"
-
-        message = error_message if exception_data is None else f"{error_message}, {exception_data}"
-
-        if original_status == ConnectivityStatus.Disconnected:
-            _LOGGER.log(log_level, message)
-
-        await self.fire_data_changed_event()
+                _LOGGER.error(f"Login attempt failed, Error: {ex}, Line: {line_number}")
 
     async def _set_socket_io_version(self):
         _LOGGER.debug("Set SocketIO version")
@@ -327,6 +333,15 @@ class IntegrationAPI(BaseAPI):
             version = 4
 
         self.data[API_DATA_SOCKET_IO_VERSION] = version
+
+    async def _set_support_video_browser_api(self):
+        _LOGGER.debug("Set support flag for video browser API")
+
+        support_video_browser_api: bool = await self._async_get(URL_VIDEO_WALL, resource_available_check=True)
+
+        self._support_video_browser_api = support_video_browser_api
+
+        _LOGGER.debug("Video browser API, supported: {support_video_browser_api}")
 
     async def _load_monitors(self):
         _LOGGER.debug("Retrieving monitors")
@@ -368,6 +383,11 @@ class IntegrationAPI(BaseAPI):
 
             await self.fire_data_changed_event()
 
+    async def fire_data_changed_event(self):
+        self.data[API_DATA_LAST_UPDATE] = datetime.now()
+
+        await super().fire_data_changed_event()
+
     def _set_monitor_data(self, monitor: MonitorData):
         self.data[API_DATA_MONITORS][monitor.id] = monitor
 
@@ -377,71 +397,83 @@ class IntegrationAPI(BaseAPI):
         return monitor
 
     async def get_video_wall(self) -> list[dict] | None:
-        response: dict | None = await self._async_get(URL_VIDEO_WALL)
+        result = []
 
-        result = None
+        if self._support_video_browser_api:
+            response: dict | None = await self._async_get(URL_VIDEO_WALL)
 
-        if response is not None:
-            result = response.get("data", [])
+            if response is not None:
+                result = response.get("data", [])
+
+        else:
+            for monitor_id in self.monitors:
+                monitor_data = {
+                    ATTR_MONITOR_ID: monitor_id,
+                    ATTR_MONITOR_GROUP_ID: self.group_id
+                }
+
+                result.append(monitor_data)
 
         return result
 
     async def get_video_wall_monitor(self, monitor_id: str) -> list[dict] | None:
-        response: dict | None = await self._async_get(URL_VIDEO_WALL_MONITOR, monitor_id)
+        result = []
 
-        result = None
+        if self._support_video_browser_api:
+            response: dict | None = await self._async_get(URL_VIDEO_WALL_MONITOR, monitor_id)
 
-        if response is not None:
-            result = response.get("data", [])
+            if response is not None:
+                result = response.get("data", [])
+
+        else:
+            today = datetime.today()
+
+            for day_offset in range(0, self.recorded_days):
+                lookup_date = today - timedelta(days=day_offset)
+
+                video_date_time_iso = lookup_date.isoformat()
+                video_date_time_iso_parts = video_date_time_iso.split("T")
+                video_date_iso = video_date_time_iso_parts[0]
+
+                monitor_data = {
+                    ATTR_MONITOR_ID: monitor_id,
+                    ATTR_MONITOR_GROUP_ID: self.group_id,
+                    ATTR_DATE: video_date_iso
+                }
+
+                result.append(monitor_data)
 
         return result
 
     async def get_video_wall_monitor_date(self, monitor_id: str, date: str) -> list[dict] | None:
-        url = self.build_url(URL_VIDEO_WALL_MONITOR, monitor_id)
-        endpoint = f"{url}/{date}"
+        result = []
 
-        response: dict | None = await self._async_get(endpoint)
+        if self._support_video_browser_api:
+            url = self.build_url(URL_VIDEO_WALL_MONITOR, monitor_id)
+            endpoint = f"{url}/{date}"
 
-        result = None
+            response: dict | None = await self._async_get(endpoint)
 
-        if response is not None:
-            result = response.get("data", [])
+            if response is not None:
+                result = response.get("data", [])
 
-        return result
+        else:
+            url = self.build_url(URL_VIDEOS, monitor_id)
+            endpoint = f"{url}?start={date}T00:00:00&end={date}T23:59:59&noLimit=1"
+            response: dict | None = await self._async_get(endpoint)
 
-    async def get_videos_dates(self, monitor_id: str) -> dict[str, str] | None:
-        _LOGGER.debug(f"Checking if videos available for Monitor {monitor_id}")
+            if response is not None:
+                videos = response.get("data", [])
 
-        result = {}
-        today = datetime.today()
-        lookup_date = today - timedelta(days=self.recorded_days)
+                for video_data in videos:
+                    monitor_data = {
+                        ATTR_MONITOR_ID: monitor_id,
+                        ATTR_MONITOR_GROUP_ID: self.group_id,
+                        VIDEO_DETAILS_TIME: video_data.get(VIDEO_DETAILS_TIME),
+                        VIDEO_DETAILS_EXTENSION: video_data.get(VIDEO_DETAILS_EXTENSION)
+                    }
 
-        to_date = today.strftime("%Y-%m-%d")
-        from_date = lookup_date.strftime("%Y-%m-%d")
-
-        url = f"{URL_VIDEOS}?start={from_date}T00:00:00&end={to_date}T23:59:59&noLimit=1"
-
-        response: dict | None = await self._async_get(url, monitor_id)
-
-        if response is not None:
-            videos = response.get("videos", [])
-
-            for video in videos:
-                video_time_iso = video.get("time")
-
-                video_time = datetime.fromisoformat(video_time_iso)
-                delta: timedelta = (today.date() - video_time.date())
-                delta_days = delta.days
-
-                cleaned_date_iso = video_time.strftime("%Y-%m-%d")
-                weekday_name = video_time.strftime("%A")
-
-                day_name = cleaned_date_iso
-
-                if delta_days <= 7:
-                    day_name = MEDIA_SOURCE_SPECIAL_DAYS.get(delta_days, weekday_name)
-
-                result[cleaned_date_iso] = day_name
+                    result.append(monitor_data)
 
         return result
 
@@ -451,13 +483,13 @@ class IntegrationAPI(BaseAPI):
         for monitor_id in monitors:
             monitor = monitors.get(monitor_id)
 
-            if monitor_id not in self.repairing and monitor.should_repair:
+            if monitor_id not in self._repairing and monitor.should_repair:
                 await self._async_repair_monitor(monitor_id)
 
     async def _async_repair_monitor(self, monitor_id: str):
         monitor = self._get_monitor_data(monitor_id)
 
-        if monitor_id in self.repairing:
+        if monitor_id in self._repairing:
             _LOGGER.warning(f"Monitor {monitor_id} is in progress, cannot start additional repair job")
 
         elif not monitor.should_repair:
@@ -467,7 +499,7 @@ class IntegrationAPI(BaseAPI):
             try:
                 _LOGGER.info(f"Repairing monitor {monitor_id}")
 
-                self.repairing.append(monitor_id)
+                self._repairing.append(monitor_id)
 
                 await self.async_set_monitor_mode(monitor_id, MONITOR_MODE_STOP)
 
@@ -505,7 +537,7 @@ class IntegrationAPI(BaseAPI):
                 )
 
             finally:
-                self.repairing.remove(monitor_id)
+                self._repairing.remove(monitor_id)
 
     async def async_set_monitor_mode(self, monitor_id: str, mode: str):
         _LOGGER.info(f"Updating monitor {monitor_id} mode to {mode}")
