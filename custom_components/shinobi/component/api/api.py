@@ -136,7 +136,13 @@ class IntegrationAPI(BaseAPI):
                 ConnectivityStatus.Disconnected
             ]
 
-        elif endpoint in [URL_API_KEYS, URL_SOCKET_IO_V4, URL_VIDEO_WALL]:
+        elif endpoint in [URL_VIDEO_WALL]:
+            is_allowed = self.status in [
+                ConnectivityStatus.TemporaryConnected,
+                ConnectivityStatus.Connected
+            ]
+
+        elif endpoint in [URL_API_KEYS, URL_SOCKET_IO_V4]:
             is_allowed = self.status == ConnectivityStatus.TemporaryConnected
 
         else:

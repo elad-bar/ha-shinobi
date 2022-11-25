@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.26
+
+- Hotfix for Media Browser missing validation
+
 ## 2.0.25
 
 - Fix connectivity issues introduced in v2.0.23 [#39](https://github.com/elad-bar/ha-shinobi/issues/39)
