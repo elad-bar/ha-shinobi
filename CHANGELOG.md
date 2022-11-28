@@ -1,8 +1,12 @@
 # Changelog
 
+## 2.0.28
+
+- Add potential fix for cases when `aiohttp` throws `server disconnected` error while the server is up and running, based on [aiohttp issue #4549](https://github.com/aio-libs/aiohttp/issues/4549)
+
 ## 2.0.27
 
-- Fix extraction of days to keep video files when settings were not changed (default) [#39](https://github.com/elad-bar/ha-shinobi/issues/39)
+- [Fix extraction of days to keep video files when settings were not changed (default)]() [#39](https://github.com/elad-bar/ha-shinobi/issues/39)
 
 ## 2.0.26
 

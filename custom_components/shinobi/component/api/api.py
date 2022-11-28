@@ -188,6 +188,8 @@ class IntegrationAPI(BaseAPI):
                 f"Failed to post JSON to {endpoint}, Error: {ex}, Line: {line_number}"
             )
 
+        await sleep(0.001)
+
         return result
 
     async def _async_get(self, endpoint, monitor_id: str = None, resource_available_check: bool = False):
@@ -223,6 +225,8 @@ class IntegrationAPI(BaseAPI):
             _LOGGER.error(
                 f"Failed to get data from {endpoint}, Error: {ex}, Line: {line_number}"
             )
+
+        await sleep(0.001)
 
         return result
 
