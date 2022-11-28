@@ -286,7 +286,9 @@ class IntegrationAPI(BaseAPI):
                                 if key_uid is not None and key_uid == uid:
                                     self.data[API_DATA_API_KEY] = key.get("code")
 
-                                    self.data[API_DATA_DAYS] = int(float(user_details.get(API_DATA_DAYS, 10)))
+                                    days = user_details.get(API_DATA_DAYS)
+
+                                    self.data[API_DATA_DAYS] = 10 if days is None or days == "" else int(float(days))
 
                                     await self._set_socket_io_version()
 

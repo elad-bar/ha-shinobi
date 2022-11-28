@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.27
+
+- Fix extraction of days to keep video files when settings were not changed (default) [#39](https://github.com/elad-bar/ha-shinobi/issues/39)
+
 ## 2.0.26
 
 - Hotfix for Media Browser missing validation
