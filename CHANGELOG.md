@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.29
+
+- Fix `No API key associated with user` warning message when restarting HA
+
 ## 2.0.28
 
 - Add potential fix for cases when `aiohttp` throws `server disconnected` error while the server is up and running, based on [aiohttp issue #4549](https://github.com/aio-libs/aiohttp/issues/4549)

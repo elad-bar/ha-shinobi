@@ -298,14 +298,15 @@ class IntegrationAPI(BaseAPI):
 
                                     await self._set_support_video_browser_api()
 
-                                    await self.set_status(ConnectivityStatus.Connected)
-
                                     break
 
                             if self.api_key is None:
                                 _LOGGER.warning(
                                     f"No API key associated with user, Payload: {api_keys_data}"
                                 )
+
+                            else:
+                                await self.set_status(ConnectivityStatus.Connected)
 
                         else:
                             _LOGGER.warning(
