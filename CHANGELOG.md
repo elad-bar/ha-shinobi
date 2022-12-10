@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.30
+
+- Skip Shinobi Video WebSockets non-textual message handling
+
 ## 2.0.29
 
 - Fix `No API key associated with user` warning message when restarting HA

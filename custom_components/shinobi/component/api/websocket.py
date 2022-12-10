@@ -187,6 +187,7 @@ class IntegrationWS(BaseAPI):
                 is_connected = self.status == ConnectivityStatus.Connected
                 is_closing_type = msg.type in WS_CLOSING_MESSAGE
                 is_error = msg.type == aiohttp.WSMsgType.ERROR
+                can_try_parse_message = msg.type == aiohttp.WSMsgType.TEXT
                 is_closing_data = False if is_closing_type or is_error else msg.data == "close"
                 session_is_closed = self.session is None or self.session.closed
 
@@ -203,7 +204,7 @@ class IntegrationWS(BaseAPI):
                     listening = False
                     break
 
-                else:
+                elif can_try_parse_message:
                     self.data[API_DATA_LAST_UPDATE] = datetime.now().isoformat()
 
                     await self._parse_message(msg.data)
