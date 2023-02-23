@@ -133,51 +133,6 @@ How to enable `time-lapse` per monitor in Shinobi Video NVR:
 
 Any Shinobi Video NVR event from type `detector_trigger` will be sent as an HA event as well with the same payload
 
-## API
-
-| Endpoint Name               | Method | Description                                                                                         |
-|-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
-| /api/shinobi/list           | GET    | List all the endpoints available (supporting multiple integrations), available once for integration |
-| /api/shinobi/{ENTRY_ID}/api | GET    | JSON of all raw data from the Shinobi API, per integration                                          |
-| /api/shinobi/{ENTRY_ID}/ws  | GET    | JSON of all raw data from the Shinobi WebSocket, per integration                                    |
-
-**Authentication: Requires long-living token from HA**
-
-### Examples
-
-#### List
-
-*Request*
-```bash
-curl https://ha_url:8123/api/shinobi/list
-   -H "Accept: application/json"
-   -H "Authorization: Bearer {token}"
-```
-
-*[Response](/docs/examples/list.json)*
-
-#### WebSockets Data
-
-*Request*
-```bash
-curl https://ha_url:8123/api/shinobi/{ENTRY_ID}/ws
-   -H "Accept: application/json"
-   -H "Authorization: Bearer {token}"
-```
-
-*[Response](/docs/examples/ws_data.json)*
-
-#### API Data
-
-```bash
-curl https://ha_url:8123/api/shinobi/{ENTRY_ID}/api
-   -H "Accept: application/json"
-   -H "Authorization: Bearer {token}"
-```
-
-*[Response](/docs/examples/api_data.json)*
-
-
 ## Troubleshooting
 
 Before opening an issue, please provide logs related to the issue,

@@ -22,8 +22,6 @@ DOMAIN = "shinobi"
 
 DEFAULT_PORT = 8080
 
-MAIN_VIEW = f"main_view_{DOMAIN}"
-
 DATA_KEYS = [
     CONF_HOST,
     CONF_PATH,

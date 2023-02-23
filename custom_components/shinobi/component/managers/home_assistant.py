@@ -12,7 +12,7 @@ import sys
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 from homeassistant.components.camera import CameraEntityDescription
 from homeassistant.components.select import SelectEntityDescription
-from homeassistant.components.switch import SwitchEntityDescription
+from homeassistant.components.switch import SwitchDeviceClass, SwitchEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
@@ -64,17 +64,11 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         api_connected = self.api.status == ConnectivityStatus.Connected
         ws_connected = self.ws.status == ConnectivityStatus.Connected
 
-        if api_connected:
-            await self.storage_api.debug_log_api(self.api.data)
-
         if api_connected and ws_connected:
             await self.api.async_repair_monitors()
 
     async def _ws_data_changed(self):
         ws_connected = self.ws.status == ConnectivityStatus.Connected
-
-        if ws_connected:
-            await self.storage_api.debug_log_ws(self.ws.data)
 
     async def _api_status_changed(self, status: ConnectivityStatus):
         _LOGGER.info(f"API Status changed to {status.name}, WS Status: {self.ws.status.name}")
@@ -169,7 +163,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
         for monitor_id in self._api.monitors:
             monitor = self._api.monitors.get(monitor_id)
-            device_name = self._get_monitor_device_name(monitor)
+            device_name = self.get_monitor_device_name(monitor)
             monitor_device = self.device_manager.get(device_name)
 
             monitor_device_info = {
@@ -191,7 +185,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
         for monitor_id in self.api.monitors:
             monitor = self.api.monitors.get(monitor_id)
-            device = self._get_monitor_device_name(monitor)
+            device = self.get_monitor_device_name(monitor)
 
             if not monitor.jpeg_api_enabled:
                 _LOGGER.warning(f"JPEG API is not enabled for {monitor.name}, Camera will not be created")
@@ -205,7 +199,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             self._load_switch_entity(monitor, BinarySensorDeviceClass.SOUND, device)
             self._load_switch_entity(monitor, BinarySensorDeviceClass.MOTION, device)
 
-    def _get_monitor_device_name(self, monitor: MonitorData):
+    def get_monitor_device_name(self, monitor: MonitorData):
         device_name = f"{self.entry_title} {monitor.name} ({monitor.id})"
 
         return device_name
@@ -404,7 +398,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 key=unique_id,
                 name=entity_name,
                 icon=icon,
-                device_class=sensor_type,
+                device_class=SwitchDeviceClass.SWITCH,
                 entity_category=EntityCategory.CONFIG
             )
 

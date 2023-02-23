@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.32
+
+- Add support for Home Assistant integration and device diagnostics
+- Removed debug API
+
 ## 2.0.31
 
 - Avoid sending ping when no active WebSockets connection [#44](https://github.com/elad-bar/ha-shinobi/issues/44)
