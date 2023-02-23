@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.31
+
+- Avoid sending ping when no active WebSockets connection [#44](https://github.com/elad-bar/ha-shinobi/issues/44)
+
 ## 2.0.30
 
 - Skip Shinobi Video WebSockets non-textual message handling
