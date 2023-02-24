@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.33
+
+- Upgrade pre-commit-configuration by [@tetienne](https://github.com/tetienne)
+
 ## 2.0.32
 
 - Add support for Home Assistant integration and device diagnostics
@@ -35,23 +39,27 @@
 - More improvements for the Media Source based on the new endpoint of `videoBrowser` of Shinobi Video NVR
 
 ### More details about Media Browser
+
 Media Browser supports 3 modes:
+
 - `Backward compatibility` - getting the list of videos from the video endpoint in Shinobi Video
 - `Video browser` - getting the list of videos from the new endpoint of video browser in Shinobi Video NVR
 - `Video browser with thumbnails` - getting (in addition to the videos from video browser endpoints) also the time-lapse images to present as thumbnails
 
 Main difference between `Backward compatibility` mode to the 2 others are:
+
 - Endpoint of videos is less efficient for building the Media Browser
 - For specific monitor without videos on specific days, there will be `day` directory, although it's empty.
 
 How to enable `time-lapse` per monitor in Shinobi Video NVR:
+
 - Open Shinobi Video Dashboard
 - Monitors -> Choose Monitor -> Timelapse
 - Change `Enabled` to `Yes`
 - Set the `Creation interval` to `1 minute` (or at most - 1 minute less than the duration of recording)
 - Copy to other monitors
 
-*Support for new endpoint of video browser in Shinobi Video NVR will be introduced on December 1st 2022, or manually by using the `dev` branch of Shinobi Video*
+_Support for new endpoint of video browser in Shinobi Video NVR will be introduced on December 1st 2022, or manually by using the `dev` branch of Shinobi Video_
 
 ## 2.0.24
 
@@ -87,6 +95,7 @@ How to enable `time-lapse` per monitor in Shinobi Video NVR:
 ## 2.0.18
 
 Major refactor for the media source component:
+
 - Browsing now support up to 7 days of videos per camera
 - Navigation model changed - Shinobi Camera -> Camera -> Day -> List of all videos from that day
 - Thumbnails support added (requires Shinobi Thumbnail customAutoLoad script, more details in README)
@@ -104,7 +113,7 @@ Shinobi Video does not provide out of the box thumbnails endpoint, to add that s
 
 **Version requires HA v2022.11.0 and above**
 
-- Aligned *Core Select* according to new HA *SelectEntityDescription* object
+- Aligned _Core Select_ according to new HA _SelectEntityDescription_ object
 
 ## 2.0.15
 
@@ -130,7 +139,7 @@ Shinobi Video does not provide out of the box thumbnails endpoint, to add that s
 ## Endpoints
 
 | Endpoint Name               | Method | Description                                                                                         |
-|-----------------------------|--------|-----------------------------------------------------------------------------------------------------|
+| --------------------------- | ------ | --------------------------------------------------------------------------------------------------- |
 | /api/shinobi/list           | GET    | List all the endpoints available (supporting multiple integrations), available once for integration |
 | /api/shinobi/{ENTRY_ID}/api | GET    | JSON of all raw data from the Shinobi API, per integration                                          |
 | /api/shinobi/{ENTRY_ID}/ws  | GET    | JSON of all raw data from the Shinobi WebSocket, per integration                                    |
@@ -196,7 +205,7 @@ Shinobi Video does not provide out of the box thumbnails endpoint, to add that s
 ## 1.3.2
 
 - Add auto reconnect monitor when fails
-- Add "_" to make private functions of Shinobi API - private
+- Add "\_" to make private functions of Shinobi API - private
 
 ## 1.3.1
 
@@ -215,6 +224,7 @@ Shinobi Video does not provide out of the box thumbnails endpoint, to add that s
 ## 1.2.2
 
 - Add support to control monitor motion / sound detection using switch per monitor
+
   - Toggle off detector (motion / sound) will remove the entity
   - Toggle on will restore the entity
   - Switch for sound detection will not be available if monitor has no audio channel
@@ -357,8 +367,8 @@ Shinobi Video does not provide out of the box thumbnails endpoint, to add that s
 ## 1.1.4
 
 - Better handling FPS values
-    - Empty: default value of HA will be 1FPS [#6](https://github.com/elad-bar/ha-shinobi/issues/6)
-    - Decimal: ignore decimal numbers
+  - Empty: default value of HA will be 1FPS [#6](https://github.com/elad-bar/ha-shinobi/issues/6)
+  - Decimal: ignore decimal numbers
 
 ## 1.1.3
 
@@ -380,6 +390,7 @@ A new version rely on WebSocket instead of MQTT,
 Permanent API Key must support WebSocket connection, otherwise, integration will not work,
 
 **What's new**
+
 - Switched from MQTT to WebSocket events
 - Motion sensors rely on motion detection instead of object detection
 - Object detection and Face identification are being represented as an event

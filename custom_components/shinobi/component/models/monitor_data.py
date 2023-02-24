@@ -3,7 +3,32 @@ from __future__ import annotations
 import logging
 import sys
 
-from ...component.helpers.const import *
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+
+from ...component.helpers.const import (
+    ATTR_DISABLED,
+    ATTR_FPS,
+    ATTR_MONITOR_DETAILS,
+    ATTR_MONITOR_DETAILS_AUDIO_CODEC,
+    ATTR_MONITOR_DETAILS_DETECTOR,
+    ATTR_MONITOR_DETAILS_DETECTOR_AUDIO,
+    ATTR_MONITOR_ID,
+    ATTR_MONITOR_MODE,
+    ATTR_MONITOR_NAME,
+    ATTR_MONITOR_SNAPSHOT,
+    ATTR_MONITOR_STATUS,
+    ATTR_MONITOR_STREAMS,
+    ATTR_ORIGINAL_STREAM,
+    ATTR_STREAM_FPS,
+    ATTR_STREAM_PASSWORD,
+    ATTR_STREAM_USERNAME,
+    MONITOR_MODE_RECORD,
+    MONITOR_MODE_STOP,
+    MOTION_DETECTION,
+    SOUND_DETECTION,
+    STREAM_PROTOCOL_SUFFIX,
+    TRIGGER_PLUG_DB,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,16 +66,29 @@ class MonitorData:
                 fps = fps.split(".")[0]
 
             self.fps = 1 if fps == "" else int(fps)
-            self.has_audio = monitor_details.get(ATTR_MONITOR_DETAILS_AUDIO_CODEC, "no") != "no"
-            self.has_audio_detector = monitor_details.get(ATTR_MONITOR_DETAILS_DETECTOR_AUDIO, "0") != "0"
-            self.has_motion_detector = monitor_details.get(ATTR_MONITOR_DETAILS_DETECTOR, "0") != "0"
+            self.has_audio = (
+                monitor_details.get(ATTR_MONITOR_DETAILS_AUDIO_CODEC, "no") != "no"
+            )
+            self.has_audio_detector = (
+                monitor_details.get(ATTR_MONITOR_DETAILS_DETECTOR_AUDIO, "0") != "0"
+            )
+            self.has_motion_detector = (
+                monitor_details.get(ATTR_MONITOR_DETAILS_DETECTOR, "0") != "0"
+            )
             original_stream = monitor_details.get(ATTR_ORIGINAL_STREAM)
             stream_username = monitor_details.get(ATTR_STREAM_USERNAME)
             stream_password = monitor_details.get(ATTR_STREAM_PASSWORD)
-            stream_credentials = f"{STREAM_PROTOCOL_SUFFIX}{stream_username}:{stream_password}@"
+            stream_credentials = (
+                f"{STREAM_PROTOCOL_SUFFIX}{stream_username}:{stream_password}@"
+            )
 
-            if original_stream is not None and stream_credentials not in original_stream:
-                original_stream = original_stream.replace(STREAM_PROTOCOL_SUFFIX, stream_credentials)
+            if (
+                original_stream is not None
+                and stream_credentials not in original_stream
+            ):
+                original_stream = original_stream.replace(
+                    STREAM_PROTOCOL_SUFFIX, stream_credentials
+                )
 
             self.original_stream = original_stream
 
@@ -100,7 +138,7 @@ class MonitorData:
             TRIGGER_PLUG_DB: self.has_audio,
             ATTR_FPS: self.fps,
             ATTR_MONITOR_MODE: self.mode,
-            ATTR_DISABLED: self.disabled
+            ATTR_DISABLED: self.disabled,
         }
 
         return obj

@@ -10,10 +10,11 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntry
 
-from . import API_DATA_DAYS, API_DATA_SOCKET_IO_VERSION, DOMAIN
-from .component.helpers import get_ha
+from .component.helpers.common import get_ha
+from .component.helpers.const import API_DATA_DAYS, API_DATA_SOCKET_IO_VERSION
 from .component.managers.home_assistant import ShinobiHomeAssistantManager
 from .component.models.monitor_data import MonitorData
+from .configuration.helpers.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,7 +67,9 @@ def _async_get_diagnostics(
             monitor = monitors.get(monitor_id)
 
             if manager.get_monitor_device_name(monitor) == device_name:
-                _LOGGER.debug(f"Getting diagnostic information for monitor #{monitor.id}")
+                _LOGGER.debug(
+                    f"Getting diagnostic information for monitor #{monitor.id}"
+                )
 
                 data |= _async_device_as_dict(hass, monitor, manager)
 
@@ -76,9 +79,10 @@ def _async_get_diagnostics(
 
         data.update(
             monitors=[
-                _async_device_as_dict(hass, monitors[monitor_id], manager) for monitor_id in monitors
+                _async_device_as_dict(hass, monitors[monitor_id], manager)
+                for monitor_id in monitors
             ],
-            events=manager.ws.data
+            events=manager.ws.data,
         )
 
     return data
@@ -86,10 +90,8 @@ def _async_get_diagnostics(
 
 @callback
 def _async_device_as_dict(
-        hass: HomeAssistant,
-        monitor: MonitorData,
-        manager: ShinobiHomeAssistantManager) -> dict[str, Any]:
-
+    hass: HomeAssistant, monitor: MonitorData, manager: ShinobiHomeAssistantManager
+) -> dict[str, Any]:
     """Represent a Shinobi monitor as a dictionary."""
 
     data = monitor.to_dict()
@@ -97,7 +99,9 @@ def _async_device_as_dict(
     monitor_unique_id = manager.get_monitor_device_name(monitor)
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
-    ha_device = device_registry.async_get_device(identifiers={(DOMAIN, monitor_unique_id)})
+    ha_device = device_registry.async_get_device(
+        identifiers={(DOMAIN, monitor_unique_id)}
+    )
 
     if ha_device:
         data["home_assistant"] = {

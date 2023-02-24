@@ -6,26 +6,64 @@ https://home-assistant.io/components/shinobi/
 from __future__ import annotations
 
 from asyncio import sleep
+from datetime import timedelta
 import logging
 import sys
 
-from homeassistant.components.binary_sensor import BinarySensorEntityDescription
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntityDescription,
+)
 from homeassistant.components.camera import CameraEntityDescription
+from homeassistant.components.homeassistant import SERVICE_RELOAD_CONFIG_ENTRY
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntityDescription
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import ATTR_FRIENDLY_NAME, STATE_OFF
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
+from ...configuration.helpers.const import DEFAULT_NAME, DOMAIN
 from ...configuration.managers.configuration_manager import ConfigurationManager
 from ...configuration.models.config_data import ConfigData
+from ...core.helpers.const import (
+    ACTION_CORE_ENTITY_DISABLE_MOTION_DETECTION,
+    ACTION_CORE_ENTITY_ENABLE_MOTION_DETECTION,
+    ACTION_CORE_ENTITY_SELECT_OPTION,
+    ACTION_CORE_ENTITY_TURN_OFF,
+    ACTION_CORE_ENTITY_TURN_ON,
+    ATTR_MODE_RECORD,
+    CONF_STILL_IMAGE_URL,
+    CONF_STREAM_SOURCE,
+    DOMAIN_BINARY_SENSOR,
+    DOMAIN_CAMERA,
+    DOMAIN_SELECT,
+    DOMAIN_SWITCH,
+    ENTITY_CONFIG_ENTRY_ID,
+    HA_NAME,
+)
 from ...core.helpers.enums import ConnectivityStatus
 from ...core.managers.home_assistant import HomeAssistantManager
 from ...core.models.entity_data import EntityData
 from ..api.api import IntegrationAPI
 from ..api.storage_api import StorageAPI
 from ..api.websocket import IntegrationWS
-from ..helpers.const import *
+from ..helpers.const import (
+    ATTR_MONITOR_DETAILS,
+    ATTR_MONITOR_ID,
+    ATTR_MONITOR_MODE,
+    BINARY_SENSOR_ATTRIBUTES,
+    DEFAULT_ICON,
+    HEARTBEAT_INTERVAL_SECONDS,
+    ICON_MONITOR_MODES,
+    MONITOR_ATTRIBUTES,
+    MONITOR_DETAILS_ATTRIBUTES,
+    MONITOR_MODE_RECORD,
+    SCAN_INTERVAL,
+    TRIGGER_INTERVAL,
+    TRIGGER_STATE,
+    WS_RECONNECT_INTERVAL,
+)
 from ..models.monitor_data import MonitorData
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,8 +73,12 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
     def __init__(self, hass: HomeAssistant):
         super().__init__(hass, SCAN_INTERVAL, HEARTBEAT_INTERVAL_SECONDS)
 
-        self._api: IntegrationAPI = IntegrationAPI(self._hass, self._api_data_changed, self._api_status_changed)
-        self._ws: IntegrationWS = IntegrationWS(self._hass, self._ws_data_changed, self._ws_status_changed)
+        self._api: IntegrationAPI = IntegrationAPI(
+            self._hass, self._api_data_changed, self._api_status_changed
+        )
+        self._ws: IntegrationWS = IntegrationWS(
+            self._hass, self._ws_data_changed, self._ws_status_changed
+        )
         self._storage_api = StorageAPI(self._hass)
         self._config_manager: ConfigurationManager | None = None
 
@@ -57,7 +99,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         return self._config_manager.get(self.entry_id)
 
     async def async_send_heartbeat(self):
-        """ Must be implemented to be able to send heartbeat to API """
+        """Must be implemented to be able to send heartbeat to API"""
         await self.ws.async_send_heartbeat()
 
     async def _api_data_changed(self):
@@ -70,8 +112,12 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
     async def _ws_data_changed(self):
         ws_connected = self.ws.status == ConnectivityStatus.Connected
 
+        _LOGGER.debug(f"WebSockets data changed, Connection: {ws_connected}")
+
     async def _api_status_changed(self, status: ConnectivityStatus):
-        _LOGGER.info(f"API Status changed to {status.name}, WS Status: {self.ws.status.name}")
+        _LOGGER.info(
+            f"API Status changed to {status.name}, WS Status: {self.ws.status.name}"
+        )
 
         if status == ConnectivityStatus.Connected:
             await self.api.async_update()
@@ -98,11 +144,16 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 await self.ws.terminate()
 
     async def _ws_status_changed(self, status: ConnectivityStatus):
-        _LOGGER.info(f"WS Status changed to {status.name}, API Status: {self.api.status.name}")
+        _LOGGER.info(
+            f"WS Status changed to {status.name}, API Status: {self.api.status.name}"
+        )
 
         api_connected = self.api.status == ConnectivityStatus.Connected
         ws_connected = status == ConnectivityStatus.Connected
-        ws_reconnect = status in [ConnectivityStatus.NotConnected, ConnectivityStatus.Failed]
+        ws_reconnect = status in [
+            ConnectivityStatus.NotConnected,
+            ConnectivityStatus.Failed,
+        ]
 
         self._can_load_components = ws_connected
 
@@ -116,7 +167,9 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             self._config_manager = ConfigurationManager(self._hass, self.api)
             await self._config_manager.load(entry)
 
-            update_entities_interval = timedelta(seconds=TRIGGER_INTERVAL.total_seconds())
+            update_entities_interval = timedelta(
+                seconds=TRIGGER_INTERVAL.total_seconds()
+            )
             update_api_interval = timedelta(seconds=SCAN_INTERVAL.total_seconds())
 
             self.update_intervals(update_entities_interval, update_api_interval)
@@ -125,7 +178,9 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
-            _LOGGER.error(f"Failed to async_component_initialize, error: {ex}, line: {line_number}")
+            _LOGGER.error(
+                f"Failed to async_component_initialize, error: {ex}, line: {line_number}"
+            )
 
     async def async_initialize_data_providers(self):
         await self.storage_api.initialize(self.config_data)
@@ -142,7 +197,9 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
-            _LOGGER.error(f"Failed to async_update_data_providers, Error: {ex}, Line: {line_number}")
+            _LOGGER.error(
+                f"Failed to async_update_data_providers, Error: {ex}, Line: {line_number}"
+            )
 
     def load_devices(self):
         server_name = f"{self.entry_title} Server"
@@ -153,7 +210,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             "identifiers": {(DEFAULT_NAME, server_name)},
             "name": server_name,
             "manufacturer": DEFAULT_NAME,
-            "model": "Server"
+            "model": "Server",
         }
 
         if server_device is None or server_device != server_device_info:
@@ -170,13 +227,15 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 "identifiers": {(DEFAULT_NAME, device_name)},
                 "name": device_name,
                 "manufacturer": DEFAULT_NAME,
-                "model": "Camera"
+                "model": "Camera",
             }
 
             if monitor_device is None or monitor_device != monitor_device_info:
                 self.device_manager.set(device_name, monitor_device_info)
 
-                _LOGGER.info(f"Created device {device_name}, Data: {monitor_device_info}")
+                _LOGGER.info(
+                    f"Created device {device_name}, Data: {monitor_device_info}"
+                )
 
     def load_entities(self):
         server_name = f"{self.entry_title} Server"
@@ -188,13 +247,19 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             device = self.get_monitor_device_name(monitor)
 
             if not monitor.jpeg_api_enabled:
-                _LOGGER.warning(f"JPEG API is not enabled for {monitor.name}, Camera will not be created")
+                _LOGGER.warning(
+                    f"JPEG API is not enabled for {monitor.name}, Camera will not be created"
+                )
 
             self._load_camera_component(monitor, device)
             self._load_select_component(monitor, device)
 
-            self._load_binary_sensor_entity(monitor, BinarySensorDeviceClass.SOUND, device)
-            self._load_binary_sensor_entity(monitor, BinarySensorDeviceClass.MOTION, device)
+            self._load_binary_sensor_entity(
+                monitor, BinarySensorDeviceClass.SOUND, device
+            )
+            self._load_binary_sensor_entity(
+                monitor, BinarySensorDeviceClass.MOTION, device
+            )
 
             self._load_switch_entity(monitor, BinarySensorDeviceClass.SOUND, device)
             self._load_switch_entity(monitor, BinarySensorDeviceClass.MOTION, device)
@@ -234,7 +299,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             attributes = {
                 ATTR_FRIENDLY_NAME: entity_name,
                 CONF_STREAM_SOURCE: stream_source,
-                CONF_STILL_IMAGE_URL: snapshot
+                CONF_STILL_IMAGE_URL: snapshot,
             }
 
             for key in MONITOR_ATTRIBUTES:
@@ -252,22 +317,30 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
             unique_id = EntityData.generate_unique_id(DOMAIN_CAMERA, entity_name)
 
             entity_description = CameraEntityDescription(
-                key=unique_id,
-                name=entity_name,
-                icon=DEFAULT_ICON
+                key=unique_id, name=entity_name, icon=DEFAULT_ICON
             )
 
-            self.set_action(unique_id, ACTION_CORE_ENTITY_ENABLE_MOTION_DETECTION, self._enable_motion_detection)
-            self.set_action(unique_id, ACTION_CORE_ENTITY_DISABLE_MOTION_DETECTION, self._disable_motion_detection)
+            self.set_action(
+                unique_id,
+                ACTION_CORE_ENTITY_ENABLE_MOTION_DETECTION,
+                self._enable_motion_detection,
+            )
+            self.set_action(
+                unique_id,
+                ACTION_CORE_ENTITY_DISABLE_MOTION_DETECTION,
+                self._disable_motion_detection,
+            )
 
-            self.entity_manager.set_entity(DOMAIN_CAMERA,
-                                           self.entry_id,
-                                           monitor.mode,
-                                           attributes,
-                                           device_name,
-                                           entity_description,
-                                           destructors=[monitor.disabled, not monitor.jpeg_api_enabled],
-                                           details=monitor_details)
+            self.entity_manager.set_entity(
+                DOMAIN_CAMERA,
+                self.entry_id,
+                monitor.mode,
+                attributes,
+                device_name,
+                entity_description,
+                destructors=[monitor.disabled, not monitor.jpeg_api_enabled],
+                details=monitor_details,
+            )
 
         except Exception as ex:
             self.log_exception(ex, f"Failed to load camera for {monitor}")
@@ -290,93 +363,95 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 icon=icon,
                 device_class=f"{DOMAIN}__{ATTR_MONITOR_MODE}",
                 options=list(ICON_MONITOR_MODES.keys()),
-                entity_category=EntityCategory.CONFIG
+                entity_category=EntityCategory.CONFIG,
             )
 
-            monitor_details = {
-                ATTR_MONITOR_ID: monitor.id
-            }
+            monitor_details = {ATTR_MONITOR_ID: monitor.id}
 
-            self.set_action(unique_id, ACTION_CORE_ENTITY_SELECT_OPTION, self._set_monitor_mode)
+            self.set_action(
+                unique_id, ACTION_CORE_ENTITY_SELECT_OPTION, self._set_monitor_mode
+            )
 
-            self.entity_manager.set_entity(DOMAIN_SELECT,
-                                           self.entry_id,
-                                           monitor.mode,
-                                           attributes,
-                                           device_name,
-                                           entity_description,
-                                           details=monitor_details)
+            self.entity_manager.set_entity(
+                DOMAIN_SELECT,
+                self.entry_id,
+                monitor.mode,
+                attributes,
+                device_name,
+                entity_description,
+                details=monitor_details,
+            )
 
         except Exception as ex:
             self.log_exception(ex, f"Failed to load select for {monitor}")
 
     def _load_binary_sensor_entity(
-            self,
-            monitor: MonitorData,
-            sensor_type: BinarySensorDeviceClass,
-            device_name: str
+        self,
+        monitor: MonitorData,
+        sensor_type: BinarySensorDeviceClass,
+        device_name: str,
     ):
         try:
-            entity_name = f"{self.entry_title} {monitor.name} {sensor_type.capitalize()}"
+            entity_name = (
+                f"{self.entry_title} {monitor.name} {sensor_type.capitalize()}"
+            )
 
             state_topic = f"{self.api.group_id}/{monitor.id}"
 
             event_state = self.ws.get_data(state_topic, sensor_type)
             state = event_state.get(TRIGGER_STATE, STATE_OFF)
 
-            attributes = {
-                ATTR_FRIENDLY_NAME: entity_name
-            }
+            attributes = {ATTR_FRIENDLY_NAME: entity_name}
 
             for attr in BINARY_SENSOR_ATTRIBUTES:
                 if attr in event_state:
                     attributes[attr] = event_state.get(attr)
 
             is_sound = sensor_type == BinarySensorDeviceClass.SOUND
-            detector_active = monitor.has_audio_detector if is_sound else monitor.has_motion_detector
+            detector_active = (
+                monitor.has_audio_detector if is_sound else monitor.has_motion_detector
+            )
 
             unique_id = EntityData.generate_unique_id(DOMAIN_BINARY_SENSOR, entity_name)
 
             entity_description = BinarySensorEntityDescription(
-                key=unique_id,
-                name=entity_name,
-                device_class=sensor_type
+                key=unique_id, name=entity_name, device_class=sensor_type
             )
 
-            monitor_details = {
-                ATTR_MONITOR_ID: monitor.id
-            }
+            monitor_details = {ATTR_MONITOR_ID: monitor.id}
 
-            self.entity_manager.set_entity(DOMAIN_BINARY_SENSOR,
-                                           self.entry_id,
-                                           state,
-                                           attributes,
-                                           device_name,
-                                           entity_description,
-                                           destructors=[monitor.disabled, not detector_active],
-                                           details=monitor_details)
+            self.entity_manager.set_entity(
+                DOMAIN_BINARY_SENSOR,
+                self.entry_id,
+                state,
+                attributes,
+                device_name,
+                entity_description,
+                destructors=[monitor.disabled, not detector_active],
+                details=monitor_details,
+            )
 
         except Exception as ex:
-            self.log_exception(
-                ex, f"Failed to load binary sensor for {monitor.name}"
-            )
+            self.log_exception(ex, f"Failed to load binary sensor for {monitor.name}")
 
     def _load_switch_entity(
-            self,
-            monitor: MonitorData,
-            sensor_type: BinarySensorDeviceClass,
-            device_name: str
+        self,
+        monitor: MonitorData,
+        sensor_type: BinarySensorDeviceClass,
+        device_name: str,
     ):
         try:
-            entity_name = f"{self.entry_title} {monitor.name} {sensor_type.capitalize()}"
+            entity_name = (
+                f"{self.entry_title} {monitor.name} {sensor_type.capitalize()}"
+            )
 
-            state = monitor.has_motion_detector \
-                if sensor_type == BinarySensorDeviceClass.MOTION \
+            state = (
+                monitor.has_motion_detector
+                if sensor_type == BinarySensorDeviceClass.MOTION
                 else monitor.has_audio_detector
+            )
 
-            attributes = {
-                ATTR_FRIENDLY_NAME: entity_name
-            }
+            attributes = {ATTR_FRIENDLY_NAME: entity_name}
 
             is_sound = sensor_type == BinarySensorDeviceClass.SOUND
 
@@ -386,39 +461,49 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             if sensor_type == BinarySensorDeviceClass.SOUND:
                 icon = "mdi:music-note" if state else "mdi:music-note-off"
-                self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_sound_detection)
-                self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._disable_sound_detection)
+                self.set_action(
+                    unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_sound_detection
+                )
+                self.set_action(
+                    unique_id,
+                    ACTION_CORE_ENTITY_TURN_OFF,
+                    self._disable_sound_detection,
+                )
 
             elif sensor_type == BinarySensorDeviceClass.MOTION:
                 icon = "mdi:motion-sensor" if state else "mdi:motion-sensor-off"
-                self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_motion_detection)
-                self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._disable_motion_detection)
+                self.set_action(
+                    unique_id, ACTION_CORE_ENTITY_TURN_ON, self._enable_motion_detection
+                )
+                self.set_action(
+                    unique_id,
+                    ACTION_CORE_ENTITY_TURN_OFF,
+                    self._disable_motion_detection,
+                )
 
             entity_description = SwitchEntityDescription(
                 key=unique_id,
                 name=entity_name,
                 icon=icon,
                 device_class=SwitchDeviceClass.SWITCH,
-                entity_category=EntityCategory.CONFIG
+                entity_category=EntityCategory.CONFIG,
             )
 
-            monitor_details = {
-                ATTR_MONITOR_ID: monitor.id
-            }
+            monitor_details = {ATTR_MONITOR_ID: monitor.id}
 
-            self.entity_manager.set_entity(DOMAIN_SWITCH,
-                                           self.entry_id,
-                                           state,
-                                           attributes,
-                                           device_name,
-                                           entity_description,
-                                           destructors=[monitor.disabled, is_sound and not monitor.has_audio],
-                                           details=monitor_details)
+            self.entity_manager.set_entity(
+                DOMAIN_SWITCH,
+                self.entry_id,
+                state,
+                attributes,
+                device_name,
+                entity_description,
+                destructors=[monitor.disabled, is_sound and not monitor.has_audio],
+                details=monitor_details,
+            )
 
         except Exception as ex:
-            self.log_exception(
-                ex, f"Failed to load switch for {monitor.name}"
-            )
+            self.log_exception(ex, f"Failed to load switch for {monitor.name}")
 
     def _load_original_stream_switch_entity(self, device_name: str):
         try:
@@ -426,9 +511,7 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
 
             state = self.storage_api.use_original_stream
 
-            attributes = {
-                ATTR_FRIENDLY_NAME: entity_name
-            }
+            attributes = {ATTR_FRIENDLY_NAME: entity_name}
 
             unique_id = EntityData.generate_unique_id(DOMAIN_SWITCH, entity_name)
 
@@ -438,26 +521,30 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
                 key=unique_id,
                 name=entity_name,
                 icon=icon,
-                entity_category=EntityCategory.CONFIG
+                entity_category=EntityCategory.CONFIG,
             )
 
-            self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_ON, self._use_original_stream)
-            self.set_action(unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._use_default_stream)
+            self.set_action(
+                unique_id, ACTION_CORE_ENTITY_TURN_ON, self._use_original_stream
+            )
+            self.set_action(
+                unique_id, ACTION_CORE_ENTITY_TURN_OFF, self._use_default_stream
+            )
 
-            self.entity_manager.set_entity(DOMAIN_SWITCH,
-                                           self.entry_id,
-                                           state,
-                                           attributes,
-                                           device_name,
-                                           entity_description)
+            self.entity_manager.set_entity(
+                DOMAIN_SWITCH,
+                self.entry_id,
+                state,
+                attributes,
+                device_name,
+                entity_description,
+            )
 
         except Exception as ex:
-            self.log_exception(
-                ex, f"Failed to load switch for Original Stream"
-            )
+            self.log_exception(ex, "Failed to load switch for Original Stream")
 
     async def _set_monitor_mode(self, entity: EntityData, option: str) -> None:
-        """ Handles ACTION_CORE_ENTITY_SELECT_OPTION. """
+        """Handles ACTION_CORE_ENTITY_SELECT_OPTION."""
         monitor_id = self._get_monitor_id(entity.id)
 
         if monitor_id is not None:
@@ -514,8 +601,6 @@ class ShinobiHomeAssistantManager(HomeAssistantManager):
         return monitor_id
 
     async def _reload_integration(self):
-        data = {
-            ENTITY_CONFIG_ENTRY_ID: self.entry_id
-        }
+        data = {ENTITY_CONFIG_ENTRY_ID: self.entry_id}
 
-        await self._hass.services.async_call(HA_NAME, SERVICE_RELOAD, data)
+        await self._hass.services.async_call(HA_NAME, SERVICE_RELOAD_CONFIG_ENTRY, data)

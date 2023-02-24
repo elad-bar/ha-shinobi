@@ -7,14 +7,22 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_PATH,
+    CONF_PORT,
+    CONF_SSL,
+    CONF_USERNAME,
+)
 from homeassistant.core import HomeAssistant
 
 from ...configuration.helpers.exceptions import LoginError
 from ...configuration.models.config_data import ConfigData
 from ...core.api.base_api import BaseAPI
-from ...core.helpers.const import *
 from ...core.helpers.enums import ConnectivityStatus
 from ...core.managers.password_manager import PasswordManager
+from ..helpers.const import DATA_KEYS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -117,7 +125,9 @@ class ConfigurationManager:
 
         return fields
 
-    def get_options_fields(self, user_input: dict[str, Any] | None) -> dict[vol.Marker, Any]:
+    def get_options_fields(
+        self, user_input: dict[str, Any] | None
+    ) -> dict[vol.Marker, Any]:
         if user_input is None:
             data = ConfigData.from_dict().to_dict()
 
@@ -138,7 +148,9 @@ class ConfigurationManager:
 
         return fields
 
-    def remap_entry_data(self, entry: ConfigEntry, options: dict[str, Any]) -> dict[str, Any]:
+    def remap_entry_data(
+        self, entry: ConfigEntry, options: dict[str, Any]
+    ) -> dict[str, Any]:
         config_options = {}
         config_data = {}
 

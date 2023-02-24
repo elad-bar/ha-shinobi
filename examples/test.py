@@ -9,9 +9,16 @@ import sys
 
 from custom_components.shinobi.component.api.api import IntegrationAPI
 from custom_components.shinobi.component.api.websocket import IntegrationWS
-from custom_components.shinobi.component.helpers.const import *
 from custom_components.shinobi.configuration.models.config_data import ConfigData
 from custom_components.shinobi.core.helpers.enums import ConnectivityStatus
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_PATH,
+    CONF_PORT,
+    CONF_SSL,
+    CONF_USERNAME,
+)
 
 DATA_KEYS = [CONF_HOST, CONF_PORT, CONF_SSL, CONF_PATH, CONF_USERNAME, CONF_PASSWORD]
 

@@ -8,7 +8,9 @@ class APIValidationException(HomeAssistantError):
     status: ConnectivityStatus
 
     def __init__(self, endpoint: str, status: ConnectivityStatus):
-        super().__init__(f"API cannot process request to '{endpoint}', Status: {status}")
+        super().__init__(
+            f"API cannot process request to '{endpoint}', Status: {status}"
+        )
 
         self.endpoint = endpoint
         self.status = status

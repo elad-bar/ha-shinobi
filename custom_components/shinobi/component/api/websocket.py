@@ -6,19 +6,59 @@ https://home-assistant.io/components/shinobi/
 from __future__ import annotations
 
 import asyncio
-from asyncio import sleep
 from collections.abc import Awaitable, Callable
 from datetime import datetime
 import json
 import logging
 import sys
 
+import aiohttp
+from aiohttp.http_websocket import WS_CLOSING_MESSAGE
+
+from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 
-from ...component.helpers.const import *
+from ...component.helpers.const import (
+    API_DATA_API_KEY,
+    API_DATA_GROUP_ID,
+    API_DATA_LAST_UPDATE,
+    API_DATA_MONITORS,
+    API_DATA_SOCKET_IO_VERSION,
+    API_DATA_USER_ID,
+    ATTR_MONITOR_GROUP_ID,
+    ATTR_MONITOR_ID,
+    DISCONNECT_INTERVAL,
+    INVALID_JSON_FORMATS,
+    MAX_MSG_SIZE,
+    PLUG_SENSOR_TYPE,
+    SENSOR_AUTO_OFF_INTERVAL,
+    SHINOBI_EVENT,
+    SHINOBI_WS_ACTION_MESSAGE,
+    SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE,
+    SHINOBI_WS_CONNECTION_READY_MESSAGE,
+    SHINOBI_WS_ENDPOINT,
+    SHINOBI_WS_PING_MESSAGE,
+    SHINOBI_WS_PONG_MESSAGE,
+    TRIGGER_DEFAULT,
+    TRIGGER_DETAILS,
+    TRIGGER_DETAILS_PLUG,
+    TRIGGER_DETAILS_REASON,
+    TRIGGER_INTERVAL,
+    TRIGGER_NAME,
+    TRIGGER_PLUG,
+    TRIGGER_STARTS_WITH,
+    TRIGGER_STATE,
+    TRIGGER_TIMESTAMP,
+    TRIGGER_TOPIC,
+    URL_PARAMETER_BASE_URL,
+    URL_PARAMETER_VERSION,
+    WS_COMPRESSION_DEFLATE,
+    WS_TIMEOUT,
+)
 from ...configuration.models.config_data import ConfigData
 from ...core.api.base_api import BaseAPI
+from ...core.helpers.const import WS_PROTOCOLS
 from ...core.helpers.enums import ConnectivityStatus
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,12 +68,13 @@ class IntegrationWS(BaseAPI):
     _config_data: ConfigData | None
     _api_data: dict
 
-    def __init__(self,
-                 hass: HomeAssistant | None,
-                 async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
-                 async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]] | None = None
-                 ):
-
+    def __init__(
+        self,
+        hass: HomeAssistant | None,
+        async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
+        async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]]
+        | None = None,
+    ):
         super().__init__(hass, async_on_data_changed, async_on_status_changed)
 
         self._config_data = None
@@ -48,12 +89,12 @@ class IntegrationWS(BaseAPI):
             SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE: self._handle_connection_established_message,
             SHINOBI_WS_PONG_MESSAGE: self._handle_pong_message,
             SHINOBI_WS_CONNECTION_READY_MESSAGE: self._handle_ready_state_message,
-            SHINOBI_WS_ACTION_MESSAGE: self._handle_action_message
+            SHINOBI_WS_ACTION_MESSAGE: self._handle_action_message,
         }
 
         self._handlers = {
             "log": self._handle_log,
-            "detector_trigger": self._handle_detector_trigger
+            "detector_trigger": self._handle_detector_trigger,
         }
 
     @property
@@ -63,9 +104,7 @@ class IntegrationWS(BaseAPI):
 
         path = "/" if config_data.path == "" else config_data.path
 
-        url = (
-            f"{protocol}://{config_data.host}:{config_data.port}{path}"
-        )
+        url = f"{protocol}://{config_data.host}:{config_data.port}{path}"
 
         return url
 
@@ -94,12 +133,12 @@ class IntegrationWS(BaseAPI):
 
     async def initialize(self, config_data: ConfigData | None = None):
         if config_data is None:
-            _LOGGER.debug(f"Reinitializing WebSocket connection")
+            _LOGGER.debug("Reinitializing WebSocket connection")
 
         else:
             self._config_data = config_data
 
-            _LOGGER.debug(f"Initializing WebSocket connection")
+            _LOGGER.debug("Initializing WebSocket connection")
 
         try:
             if self.is_home_assistant:
@@ -109,13 +148,15 @@ class IntegrationWS(BaseAPI):
 
             else:
                 loop = asyncio.get_running_loop()
-                loop.call_later(TRIGGER_INTERVAL.total_seconds(), self._check_triggers, None)
+                loop.call_later(
+                    TRIGGER_INTERVAL.total_seconds(), self._check_triggers, None
+                )
 
             await self.initialize_session()
 
             data = {
                 URL_PARAMETER_BASE_URL: self.ws_url,
-                URL_PARAMETER_VERSION: self.version
+                URL_PARAMETER_VERSION: self.version,
             }
 
             url = SHINOBI_WS_ENDPOINT.format(**data)
@@ -126,9 +167,8 @@ class IntegrationWS(BaseAPI):
                 autoclose=True,
                 max_msg_size=MAX_MSG_SIZE,
                 timeout=WS_TIMEOUT,
-                compress=WS_COMPRESSION_DEFLATE
+                compress=WS_COMPRESSION_DEFLATE,
             ) as ws:
-
                 await self.set_status(ConnectivityStatus.Connected)
 
                 self._ws = ws
@@ -140,12 +180,16 @@ class IntegrationWS(BaseAPI):
             line_number = tb.tb_lineno
 
             if self.status == ConnectivityStatus.Connected:
-                _LOGGER.info(f"WS got disconnected will try to recover, Error: {ex}, Line: {line_number}")
+                _LOGGER.info(
+                    f"WS got disconnected will try to recover, Error: {ex}, Line: {line_number}"
+                )
 
                 await self.set_status(ConnectivityStatus.NotConnected)
 
             else:
-                _LOGGER.warning(f"Failed to connect WS, Error: {ex}, Line: {line_number}")
+                _LOGGER.warning(
+                    f"Failed to connect WS, Error: {ex}, Line: {line_number}"
+                )
 
                 await self.set_status(ConnectivityStatus.Failed)
 
@@ -172,7 +216,9 @@ class IntegrationWS(BaseAPI):
                 await self._ws.ping(SHINOBI_WS_PING_MESSAGE)
 
             except ConnectionResetError as crex:
-                _LOGGER.debug(f"Gracefully failed to send heartbeat - Restarting connection, Error: {crex}")
+                _LOGGER.debug(
+                    f"Gracefully failed to send heartbeat - Restarting connection, Error: {crex}"
+                )
                 await self.set_status(ConnectivityStatus.NotConnected)
 
             except Exception as ex:
@@ -186,17 +232,25 @@ class IntegrationWS(BaseAPI):
         return state
 
     async def _listen(self):
-        _LOGGER.info(f"Starting to listen connected")
+        _LOGGER.info("Starting to listen connected")
 
         async for msg in self._ws:
             is_connected = self.status == ConnectivityStatus.Connected
             is_closing_type = msg.type in WS_CLOSING_MESSAGE
             is_error = msg.type == aiohttp.WSMsgType.ERROR
             can_try_parse_message = msg.type == aiohttp.WSMsgType.TEXT
-            is_closing_data = False if is_closing_type or is_error else msg.data == "close"
+            is_closing_data = (
+                False if is_closing_type or is_error else msg.data == "close"
+            )
             session_is_closed = self.session is None or self.session.closed
 
-            if is_closing_type or is_error or is_closing_data or session_is_closed or not is_connected:
+            if (
+                is_closing_type
+                or is_error
+                or is_closing_data
+                or session_is_closed
+                or not is_connected
+            ):
                 _LOGGER.warning(
                     f"WS stopped listening, "
                     f"Message: {str(msg)}, "
@@ -234,10 +288,14 @@ class IntegrationWS(BaseAPI):
                 await message_handler(current_key, message_data)
 
         except Exception as ex:
-            _LOGGER.error(f"Failed to parse message, Message: {message}, Error: {str(ex)}")
+            _LOGGER.error(
+                f"Failed to parse message, Message: {message}, Error: {str(ex)}"
+            )
 
     async def _handle_connection_established_message(self, prefix, data):
-        _LOGGER.debug(f"WebSocket connection established, ID: {prefix}, Payload: {data}")
+        _LOGGER.debug(
+            f"WebSocket connection established, ID: {prefix}, Payload: {data}"
+        )
 
         if self.version == 4:
             await self._send(SHINOBI_WS_CONNECTION_READY_MESSAGE)
@@ -247,7 +305,9 @@ class IntegrationWS(BaseAPI):
         _LOGGER.debug(f"Pong message received, ID: {prefix}, Payload: {data}")
 
     async def _handle_ready_state_message(self, prefix, data):
-        _LOGGER.debug(f"WebSocket connection state changed to ready, ID: {prefix}, Payload: {data}")
+        _LOGGER.debug(
+            f"WebSocket connection state changed to ready, ID: {prefix}, Payload: {data}"
+        )
 
         await self._send_connect_message()
 
@@ -278,7 +338,9 @@ class IntegrationWS(BaseAPI):
                 await self._send_pong_message(data)
 
             else:
-                _LOGGER.debug(f"No payload handler available ({prefix}), Payload: {payload}")
+                _LOGGER.debug(
+                    f"No payload handler available ({prefix}), Payload: {payload}"
+                )
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -291,7 +353,9 @@ class IntegrationWS(BaseAPI):
                     break
 
             if supported_event:
-                _LOGGER.error(f"Failed to parse message, Data: {data}, Error: {ex}, Line: {line_number}")
+                _LOGGER.error(
+                    f"Failed to parse message, Data: {data}, Error: {ex}, Line: {line_number}"
+                )
 
             else:
                 key = "Unknown"
@@ -299,12 +363,14 @@ class IntegrationWS(BaseAPI):
 
                 if unsupported_data.startswith(TRIGGER_STARTS_WITH):
                     key_tmp = unsupported_data.replace(TRIGGER_STARTS_WITH, "")
-                    key_arr = key_tmp.split("\"")
+                    key_arr = key_tmp.split('"')
 
                     if len(key_arr) > 0:
                         key = key_arr[0]
 
-                _LOGGER.debug(f"Ignoring unsupported event message, Key: {key}, Data: {unsupported_data}")
+                _LOGGER.debug(
+                    f"Ignoring unsupported event message, Key: {key}, Data: {unsupported_data}"
+                )
 
     async def _handle_log(self, data):
         monitor_id = data.get(ATTR_MONITOR_ID)
@@ -312,7 +378,7 @@ class IntegrationWS(BaseAPI):
         log_type = log.get("type")
 
         if monitor_id == "$USER" and log_type == "Websocket Connected":
-            _LOGGER.debug(f"WebSocket Connected")
+            _LOGGER.debug("WebSocket Connected")
 
             for monitor_id in self.monitors:
                 await self._send_connect_monitor(monitor_id)
@@ -334,8 +400,8 @@ class IntegrationWS(BaseAPI):
                 "auth": self.api_key,
                 "f": "init",
                 ATTR_MONITOR_GROUP_ID: self.group_id,
-                "uid": self.user_id
-            }
+                "uid": self.user_id,
+            },
         ]
 
         json_str = json.dumps(message_data)
@@ -344,9 +410,7 @@ class IntegrationWS(BaseAPI):
         await self._send(message)
 
     async def _send_pong_message(self, data):
-        message_data = [
-            "pong", data
-        ]
+        message_data = ["pong", data]
 
         json_str = json.dumps(message_data)
         message = f"42{json_str}"
@@ -362,8 +426,8 @@ class IntegrationWS(BaseAPI):
                 "ff": "watch_on",
                 "id": monitor_id,
                 ATTR_MONITOR_GROUP_ID: self.group_id,
-                "uid": self.user_id
-            }
+                "uid": self.user_id,
+            },
         ]
 
         json_str = json.dumps(message_data)
@@ -399,7 +463,7 @@ class IntegrationWS(BaseAPI):
                     TRIGGER_DETAILS_REASON: trigger_reason,
                     TRIGGER_STATE: STATE_ON,
                     TRIGGER_TIMESTAMP: datetime.now().timestamp(),
-                    TRIGGER_TOPIC: topic
+                    TRIGGER_TOPIC: topic,
                 }
 
                 previous_data = self.get_data(topic, sensor_type)
@@ -415,7 +479,9 @@ class IntegrationWS(BaseAPI):
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
-            _LOGGER.error(f"Failed to handle sensor message, Error: {ex}, Line: {line_number}")
+            _LOGGER.error(
+                f"Failed to handle sensor message, Error: {ex}, Line: {line_number}"
+            )
 
     def fire_event(self, trigger: str, data: dict):
         event_name = f"{SHINOBI_EVENT}{trigger}"
@@ -436,7 +502,9 @@ class IntegrationWS(BaseAPI):
             loop = asyncio.get_running_loop()
             loop.create_task(self._async_check_triggers(datetime.now()))
 
-            loop.call_later(TRIGGER_INTERVAL.total_seconds(), self._check_triggers, datetime.now())
+            loop.call_later(
+                TRIGGER_INTERVAL.total_seconds(), self._check_triggers, datetime.now()
+            )
 
     async def _async_check_triggers(self, event_time):
         try:
@@ -460,7 +528,9 @@ class IntegrationWS(BaseAPI):
                             sensor_type = PLUG_SENSOR_TYPE[trigger_reason]
 
                             diff = current_time - trigger_timestamp
-                            event_duration = SENSOR_AUTO_OFF_INTERVAL.get(sensor_type, 20)
+                            event_duration = SENSOR_AUTO_OFF_INTERVAL.get(
+                                sensor_type, 20
+                            )
 
                             if diff >= event_duration:
                                 data[TRIGGER_STATE] = STATE_OFF

@@ -1,6 +1,6 @@
 {
-    "ENTRY_ID": {
-        "api": "/api/shinobi/{ENTRY_ID}/api",
-        "ws": "/api/shinobi/{ENTRY_ID}/ws"
-    }
+  "ENTRY_ID": {
+    "api": "/api/shinobi/{ENTRY_ID}/api",
+    "ws": "/api/shinobi/{ENTRY_ID}/ws"
+  }
 }

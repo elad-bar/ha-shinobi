@@ -8,12 +8,12 @@ from datetime import timedelta
 import aiohttp
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.const import STATE_OFF
 
-from ...core.helpers.const import *
+from ...configuration.helpers.const import DEFAULT_NAME
+from ...core.helpers.const import ATTR_STREAM_FPS
 
 CONF_SUPPORT_STREAM = "support_stream"
-
-ENTRY_PRIMARY_KEY = CONF_NAME
 
 VERSION = "1.0.0"
 
@@ -97,21 +97,14 @@ ATTR_MONITOR_DETAILS_DETECTOR_AUDIO = "detector_audio"
 ATTR_MONITOR_MODE = "mode"
 ATTR_FPS = "fps"
 ATTR_DISABLED = "disabled"
-ATTR_DATE = "date"
 
 STREAM_PROTOCOL_SUFFIX = "://"
 
-MONITOR_ATTRIBUTES = {
-    "status": "Status",
-    "mode": "Mode",
-    "type": "Type"
-}
+MONITOR_ATTRIBUTES = {"status": "Status", "mode": "Mode", "type": "Type"}
 
-MONITOR_DETAILS_ATTRIBUTES = {
-    ATTR_STREAM_FPS: ATTR_FPS
-}
+MONITOR_DETAILS_ATTRIBUTES = {ATTR_STREAM_FPS: ATTR_FPS}
 
-TRIGGER_STARTS_WITH = "[\"f\",{\"f\":\""
+TRIGGER_STARTS_WITH = '["f",{"f":"'
 
 TRIGGER_PLUG = "plug"
 TRIGGER_NAME = "name"
@@ -135,25 +128,23 @@ REASON_SOUND = "soundChange"
 
 PLUG_SENSOR_TYPE = {
     REASON_MOTION: BinarySensorDeviceClass.MOTION,
-    REASON_SOUND: BinarySensorDeviceClass.SOUND
+    REASON_SOUND: BinarySensorDeviceClass.SOUND,
 }
 
 SENSOR_AUTO_OFF_INTERVAL = {
     BinarySensorDeviceClass.MOTION: 20,
-    BinarySensorDeviceClass.SOUND: 10
+    BinarySensorDeviceClass.SOUND: 10,
 }
 
-TRIGGER_DEFAULT = {
-    TRIGGER_STATE: STATE_OFF
-}
+TRIGGER_DEFAULT = {TRIGGER_STATE: STATE_OFF}
 
 BINARY_SENSOR_ATTRIBUTES = []
 
 INVALID_JSON_FORMATS = {
-    "\":,\"": "\": null,\"",
-    "\":.": "\": 0.",
-    "\":,}": "\": null}",
-    "\":}": "\": null}"
+    '":,"': '": null,"',
+    '":.': '": 0.',
+    '":,}': '": null}',
+    '":}': '": null}',
 }
 
 VIDEO_DETAILS_MONITOR_ID = "mid"
@@ -188,18 +179,13 @@ MONITOR_MODE_RECORD = "record"
 ICON_MONITOR_MODES = {
     MONITOR_MODE_STOP: "mdi:cctv-off",
     MONITOR_MODE_START: "mdi:cctv",
-    MONITOR_MODE_RECORD: "mdi:record-rec"
+    MONITOR_MODE_RECORD: "mdi:record-rec",
 }
 
 STORAGE_DATA_USE_ORIGINAL_STREAM = "useOriginalStream"
 
 STORAGE_DATA_FILE_CONFIG = "config"
 
-STORAGE_DATA_FILES = [
-    STORAGE_DATA_FILE_CONFIG
-]
+STORAGE_DATA_FILES = [STORAGE_DATA_FILE_CONFIG]
 
-MEDIA_SOURCE_SPECIAL_DAYS = {
-    0: "Today",
-    1: "Yesterday"
-}
+MEDIA_SOURCE_SPECIAL_DAYS = {0: "Today", 1: "Yesterday"}

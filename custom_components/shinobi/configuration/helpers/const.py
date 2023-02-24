@@ -7,14 +7,11 @@ Following constants are mandatory for CORE:
 
 from homeassistant.const import (
     CONF_HOST,
-    CONF_NAME,
     CONF_PASSWORD,
     CONF_PATH,
     CONF_PORT,
     CONF_SSL,
     CONF_USERNAME,
-    STATE_OFF,
-    STATE_ON,
 )
 
 DEFAULT_NAME = "Shinobi Video"
@@ -22,11 +19,4 @@ DOMAIN = "shinobi"
 
 DEFAULT_PORT = 8080
 
-DATA_KEYS = [
-    CONF_HOST,
-    CONF_PATH,
-    CONF_PORT,
-    CONF_SSL,
-    CONF_USERNAME,
-    CONF_PASSWORD
-]
+DATA_KEYS = [CONF_HOST, CONF_PATH, CONF_PORT, CONF_SSL, CONF_USERNAME, CONF_PASSWORD]

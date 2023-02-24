@@ -8,10 +8,16 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.json import JSONEncoder
 from homeassistant.helpers.storage import Store
 
+from ...configuration.helpers.const import DOMAIN
 from ...configuration.models.config_data import ConfigData
 from ...core.api.base_api import BaseAPI
+from ...core.helpers.const import STORAGE_VERSION
 from ...core.helpers.enums import ConnectivityStatus
-from ..helpers.const import *
+from ..helpers.const import (
+    STORAGE_DATA_FILE_CONFIG,
+    STORAGE_DATA_FILES,
+    STORAGE_DATA_USE_ORIGINAL_STREAM,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,12 +27,13 @@ class StorageAPI(BaseAPI):
     _config_data: ConfigData | None
     _data: dict
 
-    def __init__(self,
-                 hass: HomeAssistant | None,
-                 async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
-                 async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]] | None = None
-                 ):
-
+    def __init__(
+        self,
+        hass: HomeAssistant | None,
+        async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
+        async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]]
+        | None = None,
+    ):
         super().__init__(hass, async_on_data_changed, async_on_status_changed)
 
         self._config_data = None
@@ -60,7 +67,9 @@ class StorageAPI(BaseAPI):
         for storage_data_file in STORAGE_DATA_FILES:
             file_name = f"{DOMAIN}.{entry_id}.{storage_data_file}.json"
 
-            stores[storage_data_file] = Store(self.hass, STORAGE_VERSION, file_name, encoder=JSONEncoder)
+            stores[storage_data_file] = Store(
+                self.hass, STORAGE_VERSION, file_name, encoder=JSONEncoder
+            )
 
         self._stores = stores
 
@@ -69,9 +78,7 @@ class StorageAPI(BaseAPI):
         self.data = await self._storage_config.async_load()
 
         if self.data is None:
-            self.data = {
-                STORAGE_DATA_USE_ORIGINAL_STREAM: False
-            }
+            self.data = {STORAGE_DATA_USE_ORIGINAL_STREAM: False}
 
             await self._async_save()
 

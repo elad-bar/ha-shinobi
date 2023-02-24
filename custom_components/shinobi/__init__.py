@@ -9,8 +9,8 @@ import sys
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .component.helpers import async_set_ha, clear_ha, get_ha
-from .component.helpers.const import *
+from .component.helpers.common import async_set_ha, clear_ha, get_ha
+from .configuration.helpers.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

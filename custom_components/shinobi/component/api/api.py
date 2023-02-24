@@ -2,19 +2,56 @@ from __future__ import annotations
 
 from asyncio import sleep
 from collections.abc import Awaitable, Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import logging
 import sys
 
 from aiohttp import ClientResponseError
 
+from homeassistant.const import ATTR_DATE
 from homeassistant.core import HomeAssistant
 
 from ...configuration.models.config_data import ConfigData
 from ...core.api.base_api import BaseAPI
+from ...core.helpers.const import PROTOCOLS
 from ...core.helpers.enums import ConnectivityStatus
-from ..helpers.const import *
+from ..helpers.const import (
+    API_DATA_API_KEY,
+    API_DATA_DAYS,
+    API_DATA_GROUP_ID,
+    API_DATA_LAST_UPDATE,
+    API_DATA_MONITORS,
+    API_DATA_SOCKET_IO_VERSION,
+    API_DATA_USER_ID,
+    ATTR_MONITOR_DETAILS,
+    ATTR_MONITOR_DETAILS_DETECTOR,
+    ATTR_MONITOR_DETAILS_DETECTOR_AUDIO,
+    ATTR_MONITOR_GROUP_ID,
+    ATTR_MONITOR_ID,
+    LOGIN_PASSWORD,
+    LOGIN_USERNAME,
+    MONITOR_MODE_RECORD,
+    MONITOR_MODE_STOP,
+    REPAIR_REPAIR_RECORD_INTERVAL,
+    REPAIR_UPDATE_STATUS_ATTEMPTS,
+    REPAIR_UPDATE_STATUS_INTERVAL,
+    URL_API_KEYS,
+    URL_LOGIN,
+    URL_MONITORS,
+    URL_PARAMETER_API_KEY,
+    URL_PARAMETER_BASE_URL,
+    URL_PARAMETER_GROUP_ID,
+    URL_PARAMETER_MONITOR_ID,
+    URL_SOCKET_IO_V4,
+    URL_UPDATE_MODE,
+    URL_UPDATE_MONITOR,
+    URL_VIDEO_WALL,
+    URL_VIDEO_WALL_MONITOR,
+    URL_VIDEOS,
+    VIDEO_DETAILS_EXTENSION,
+    VIDEO_DETAILS_TIME,
+)
 from ..helpers.exceptions import APIValidationException
 from ..models.monitor_data import MonitorData
 
@@ -31,12 +68,13 @@ class IntegrationAPI(BaseAPI):
     _repairing: list[str]
     _support_video_browser_api: bool
 
-    def __init__(self,
-                 hass: HomeAssistant | None,
-                 async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
-                 async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]] | None = None
-                 ):
-
+    def __init__(
+        self,
+        hass: HomeAssistant | None,
+        async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
+        async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]]
+        | None = None,
+    ):
         super().__init__(hass, async_on_data_changed, async_on_status_changed)
 
         try:
@@ -44,9 +82,7 @@ class IntegrationAPI(BaseAPI):
             self._repairing = []
             self._support_video_browser_api = False
 
-            self.data = {
-                API_DATA_MONITORS: {}
-            }
+            self.data = {API_DATA_MONITORS: {}}
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -83,9 +119,7 @@ class IntegrationAPI(BaseAPI):
 
         path = "/" if config_data.path == "" else config_data.path
 
-        url = (
-            f"{protocol}://{config_data.host}:{config_data.port}{path}"
-        )
+        url = f"{protocol}://{config_data.host}:{config_data.port}{path}"
 
         return url
 
@@ -122,7 +156,7 @@ class IntegrationAPI(BaseAPI):
             URL_PARAMETER_BASE_URL: self.api_url,
             URL_PARAMETER_GROUP_ID: self.group_id,
             URL_PARAMETER_API_KEY: self.api_key,
-            URL_PARAMETER_MONITOR_ID: monitor_id
+            URL_PARAMETER_MONITOR_ID: monitor_id,
         }
 
         url = endpoint.format(**data)
@@ -133,13 +167,13 @@ class IntegrationAPI(BaseAPI):
         if endpoint == URL_LOGIN:
             is_allowed = self.status not in [
                 ConnectivityStatus.NotConnected,
-                ConnectivityStatus.Disconnected
+                ConnectivityStatus.Disconnected,
             ]
 
         elif endpoint in [URL_VIDEO_WALL]:
             is_allowed = self.status in [
                 ConnectivityStatus.TemporaryConnected,
-                ConnectivityStatus.Connected
+                ConnectivityStatus.Connected,
             ]
 
         elif endpoint in [URL_API_KEYS, URL_SOCKET_IO_V4]:
@@ -151,11 +185,13 @@ class IntegrationAPI(BaseAPI):
         if not is_allowed:
             raise APIValidationException(endpoint, self.status)
 
-    async def _async_post(self,
-                          endpoint,
-                          request_data: dict,
-                          monitor_id: str | None = None,
-                          is_url_encoded: bool = False):
+    async def _async_post(
+        self,
+        endpoint,
+        request_data: dict,
+        monitor_id: str | None = None,
+        is_url_encoded: bool = False,
+    ):
         result = None
 
         try:
@@ -168,7 +204,9 @@ class IntegrationAPI(BaseAPI):
             data = None if is_url_encoded else request_data
             json_data = request_data if is_url_encoded else None
 
-            async with self.session.post(url, data=data, json=json_data, ssl=False) as response:
+            async with self.session.post(
+                url, data=data, json=json_data, ssl=False
+            ) as response:
                 _LOGGER.debug(f"Status of {url}: {response.status}")
 
                 response.raise_for_status()
@@ -192,7 +230,9 @@ class IntegrationAPI(BaseAPI):
 
         return result
 
-    async def _async_get(self, endpoint, monitor_id: str = None, resource_available_check: bool = False):
+    async def _async_get(
+        self, endpoint, monitor_id: str = None, resource_available_check: bool = False
+    ):
         result = None
 
         try:
@@ -231,7 +271,9 @@ class IntegrationAPI(BaseAPI):
         return result
 
     async def async_update(self):
-        _LOGGER.debug(f"Updating data from Shinobi Video Server ({self.config_data.host})")
+        _LOGGER.debug(
+            f"Updating data from Shinobi Video Server ({self.config_data.host})"
+        )
 
         if self.status == ConnectivityStatus.Failed:
             await self.initialize(self.config_data)
@@ -250,13 +292,13 @@ class IntegrationAPI(BaseAPI):
 
             data = {
                 LOGIN_USERNAME: config_data.username,
-                LOGIN_PASSWORD: config_data.password
+                LOGIN_PASSWORD: config_data.password,
             }
 
             login_data = await self._async_post(URL_LOGIN, data)
 
             if login_data is None:
-                _LOGGER.warning(f"Failed to login, Response is empty")
+                _LOGGER.warning("Failed to login, Response is empty")
 
                 await self.set_status(ConnectivityStatus.Failed)
 
@@ -292,7 +334,11 @@ class IntegrationAPI(BaseAPI):
 
                                     days = user_details.get(API_DATA_DAYS)
 
-                                    self.data[API_DATA_DAYS] = 10 if days is None or days == "" else int(float(days))
+                                    self.data[API_DATA_DAYS] = (
+                                        10
+                                        if days is None or days == ""
+                                        else int(float(days))
+                                    )
 
                                     await self._set_socket_io_version()
 
@@ -310,10 +356,13 @@ class IntegrationAPI(BaseAPI):
 
                         else:
                             _LOGGER.warning(
-                                f"Invalid response while trying to get API keys, Payload: {api_keys_data}")
+                                f"Invalid response while trying to get API keys, Payload: {api_keys_data}"
+                            )
 
                     else:
-                        _LOGGER.warning(f"Invalid response while trying to get API keys, Payload is empty")
+                        _LOGGER.warning(
+                            "Invalid response while trying to get API keys, Payload is empty"
+                        )
 
                     if self.status != ConnectivityStatus.Disconnected:
                         if self.status == ConnectivityStatus.Connected:
@@ -340,7 +389,9 @@ class IntegrationAPI(BaseAPI):
         _LOGGER.debug("Set SocketIO version")
         version = 3
 
-        response: bool = await self._async_get(URL_SOCKET_IO_V4, resource_available_check=True)
+        response: bool = await self._async_get(
+            URL_SOCKET_IO_V4, resource_available_check=True
+        )
 
         if response:
             version = 4
@@ -350,7 +401,9 @@ class IntegrationAPI(BaseAPI):
     async def _set_support_video_browser_api(self):
         _LOGGER.debug("Set support flag for video browser API")
 
-        support_video_browser_api: bool = await self._async_get(URL_VIDEO_WALL, resource_available_check=True)
+        support_video_browser_api: bool = await self._async_get(
+            URL_VIDEO_WALL, resource_available_check=True
+        )
 
         self._support_video_browser_api = support_video_browser_api
 
@@ -374,7 +427,7 @@ class IntegrationAPI(BaseAPI):
             for monitor in monitors:
                 try:
                     if monitor is None:
-                        _LOGGER.warning(f"Invalid monitor details found")
+                        _LOGGER.warning("Invalid monitor details found")
 
                     else:
                         monitor_details_str = monitor.get(ATTR_MONITOR_DETAILS)
@@ -422,7 +475,7 @@ class IntegrationAPI(BaseAPI):
             for monitor_id in self.monitors:
                 monitor_data = {
                     ATTR_MONITOR_ID: monitor_id,
-                    ATTR_MONITOR_GROUP_ID: self.group_id
+                    ATTR_MONITOR_GROUP_ID: self.group_id,
                 }
 
                 result.append(monitor_data)
@@ -433,7 +486,9 @@ class IntegrationAPI(BaseAPI):
         result = []
 
         if self._support_video_browser_api:
-            response: dict | None = await self._async_get(URL_VIDEO_WALL_MONITOR, monitor_id)
+            response: dict | None = await self._async_get(
+                URL_VIDEO_WALL_MONITOR, monitor_id
+            )
 
             if response is not None:
                 result = response.get("data", [])
@@ -451,14 +506,16 @@ class IntegrationAPI(BaseAPI):
                 monitor_data = {
                     ATTR_MONITOR_ID: monitor_id,
                     ATTR_MONITOR_GROUP_ID: self.group_id,
-                    ATTR_DATE: video_date_iso
+                    ATTR_DATE: video_date_iso,
                 }
 
                 result.append(monitor_data)
 
         return result
 
-    async def get_video_wall_monitor_date(self, monitor_id: str, date: str) -> list[dict] | None:
+    async def get_video_wall_monitor_date(
+        self, monitor_id: str, date: str
+    ) -> list[dict] | None:
         result = []
 
         if self._support_video_browser_api:
@@ -483,7 +540,9 @@ class IntegrationAPI(BaseAPI):
                         ATTR_MONITOR_ID: monitor_id,
                         ATTR_MONITOR_GROUP_ID: self.group_id,
                         VIDEO_DETAILS_TIME: video_data.get(VIDEO_DETAILS_TIME),
-                        VIDEO_DETAILS_EXTENSION: video_data.get(VIDEO_DETAILS_EXTENSION)
+                        VIDEO_DETAILS_EXTENSION: video_data.get(
+                            VIDEO_DETAILS_EXTENSION
+                        ),
                     }
 
                     result.append(monitor_data)
@@ -503,10 +562,14 @@ class IntegrationAPI(BaseAPI):
         monitor = self._get_monitor_data(monitor_id)
 
         if monitor_id in self._repairing:
-            _LOGGER.warning(f"Monitor {monitor_id} is in progress, cannot start additional repair job")
+            _LOGGER.warning(
+                f"Monitor {monitor_id} is in progress, cannot start additional repair job"
+            )
 
         elif not monitor.should_repair:
-            _LOGGER.warning(f"Monitor {monitor_id} is working properly, no need to repair")
+            _LOGGER.warning(
+                f"Monitor {monitor_id} is working properly, no need to repair"
+            )
 
         else:
             try:
@@ -529,15 +592,24 @@ class IntegrationAPI(BaseAPI):
 
                     if self.status != ConnectivityStatus.Connected:
                         status_message = ConnectivityStatus.get_log_level(self.status)
-                        _LOGGER.warning(f"Stopped sampling status for {monitor_id}, Reason: {status_message}")
+                        _LOGGER.warning(
+                            f"Stopped sampling status for {monitor_id}, Reason: {status_message}"
+                        )
                         break
 
                     if not monitor.should_repair:
-                        _LOGGER.info(f"Monitor {monitor_id} is repaired, Attempt #{index + 1}")
+                        _LOGGER.info(
+                            f"Monitor {monitor_id} is repaired, Attempt #{index + 1}"
+                        )
                         break
 
-                if monitor.should_repair and self.status == ConnectivityStatus.Connected:
-                    _LOGGER.warning(f"Unable to repair monitor {monitor_id}, Attempts: {REPAIR_UPDATE_STATUS_ATTEMPTS}")
+                if (
+                    monitor.should_repair
+                    and self.status == ConnectivityStatus.Connected
+                ):
+                    _LOGGER.warning(
+                        f"Unable to repair monitor {monitor_id}, Attempts: {REPAIR_UPDATE_STATUS_ATTEMPTS}"
+                    )
 
                 await self.fire_data_changed_event()
 
@@ -571,12 +643,18 @@ class IntegrationAPI(BaseAPI):
         return result
 
     async def async_set_motion_detection(self, monitor_id: str, enabled: bool):
-        await self._async_set_detection_mode(monitor_id, ATTR_MONITOR_DETAILS_DETECTOR, enabled)
+        await self._async_set_detection_mode(
+            monitor_id, ATTR_MONITOR_DETAILS_DETECTOR, enabled
+        )
 
     async def async_set_sound_detection(self, monitor_id: str, enabled: bool):
-        await self._async_set_detection_mode(monitor_id, ATTR_MONITOR_DETAILS_DETECTOR_AUDIO, enabled)
+        await self._async_set_detection_mode(
+            monitor_id, ATTR_MONITOR_DETAILS_DETECTOR_AUDIO, enabled
+        )
 
-    async def _async_set_detection_mode(self, monitor_id: str, detector: str, enabled: bool):
+    async def _async_set_detection_mode(
+        self, monitor_id: str, detector: str, enabled: bool
+    ):
         _LOGGER.info(f"Updating monitor {monitor_id} {detector} to {enabled}")
 
         url = f"{URL_MONITORS}/{monitor_id}"
@@ -590,9 +668,7 @@ class IntegrationAPI(BaseAPI):
 
         monitor_data[ATTR_MONITOR_DETAILS] = details
 
-        data = {
-            "data": monitor_data
-        }
+        data = {"data": monitor_data}
 
         response = await self._async_post(URL_UPDATE_MONITOR, data, monitor_id, True)
 

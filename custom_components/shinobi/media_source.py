@@ -14,13 +14,27 @@ from homeassistant.components.media_source.models import (
     PlayMedia,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import ATTR_DATE
 from homeassistant.core import HomeAssistant, callback
 
 from .component.api.api import IntegrationAPI
-from .component.helpers import get_ha
-from .component.helpers.common import get_date
-from .component.helpers.const import *
+from .component.helpers.common import get_date, get_ha
+from .component.helpers.const import (
+    ATTR_MONITOR_ID,
+    DATE_FORMAT_WEEKDAY,
+    MEDIA_BROWSER_NAME,
+    MEDIA_SOURCE_SPECIAL_DAYS,
+    TIME_LAPSE_FILE_NAME,
+    TIME_LAPSE_TIME,
+    URL_TIME_LAPSE,
+    URL_VIDEOS,
+    VIDEO_DETAILS_DATE_FORMAT,
+    VIDEO_DETAILS_EXTENSION,
+    VIDEO_DETAILS_TIME_FORMAT,
+    VIDEO_DETAILS_TIME_ISO_FORMAT,
+)
 from .component.models.media_source_item_identifier import MediaSourceItemIdentifier
+from .configuration.helpers.const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,14 +49,17 @@ async def async_get_media_source(hass: HomeAssistant) -> ShinobiMediaSource:
 
 class ShinobiMediaSource(MediaSource, ABC):
     """Provide Radio stations as media sources."""
+
     name = MEDIA_BROWSER_NAME
     hass: HomeAssistant = None
     _ha = None
-    _ui_modes: dict[int, Callable[[MediaSourceItemIdentifier], Awaitable[list[BrowseMediaSource]]]]
+    _ui_modes: dict[
+        int, Callable[[MediaSourceItemIdentifier], Awaitable[list[BrowseMediaSource]]]
+    ]
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize CameraMediaSource."""
-        _LOGGER.debug(f"Loading Shinobi Media Source")
+        _LOGGER.debug("Loading Shinobi Media Source")
 
         super().__init__(DOMAIN)
         self.hass = hass
@@ -90,9 +107,7 @@ class ShinobiMediaSource(MediaSource, ABC):
         action = self._ui_modes.get(identifier.current_mode)
 
         _LOGGER.debug(
-            f"Browse media, "
-            f"Identifier: {identifier.identifier}, "
-            f"Title: {title}"
+            f"Browse media, " f"Identifier: {identifier.identifier}, " f"Title: {title}"
         )
 
         return BrowseMediaSource(
@@ -110,9 +125,7 @@ class ShinobiMediaSource(MediaSource, ABC):
         )
 
     def _get_title(self, identifier: MediaSourceItemIdentifier) -> str:
-        title_parts = [
-            self.entry.title
-        ]
+        title_parts = [self.entry.title]
 
         if identifier.monitor_id is not None:
             monitor = self.api.monitors.get(identifier.monitor_id)
@@ -128,13 +141,13 @@ class ShinobiMediaSource(MediaSource, ABC):
         return title
 
     @callback
-    async def _async_build_monitors(self, identifier: MediaSourceItemIdentifier) -> list[BrowseMediaSource]:
+    async def _async_build_monitors(
+        self, identifier: MediaSourceItemIdentifier
+    ) -> list[BrowseMediaSource]:
         """Build list of media sources from Shinobi Video Server."""
         items: list[BrowseMediaSource] = []
 
-        _LOGGER.debug(
-            "Building monitors list"
-        )
+        _LOGGER.debug("Building monitors list")
 
         monitors = await self.api.get_video_wall()
 
@@ -168,14 +181,13 @@ class ShinobiMediaSource(MediaSource, ABC):
         return items
 
     @callback
-    async def _async_build_calendar(self, identifier: MediaSourceItemIdentifier) -> list[BrowseMediaSource]:
+    async def _async_build_calendar(
+        self, identifier: MediaSourceItemIdentifier
+    ) -> list[BrowseMediaSource]:
         """Build list of media sources from Shinobi Video Server."""
         items: list[BrowseMediaSource] = []
 
-        _LOGGER.debug(
-            f"Building camera calendar, "
-            f"Monitor: {identifier.monitor_id}"
-        )
+        _LOGGER.debug(f"Building camera calendar, " f"Monitor: {identifier.monitor_id}")
 
         today = datetime.today()
         monitors = await self.api.get_video_wall_monitor(identifier.monitor_id)
@@ -189,13 +201,23 @@ class ShinobiMediaSource(MediaSource, ABC):
             days = day_delta.days
 
             if days in MEDIA_SOURCE_SPECIAL_DAYS:
-                day_name = MEDIA_SOURCE_SPECIAL_DAYS.get(days, )
+                day_name = MEDIA_SOURCE_SPECIAL_DAYS.get(
+                    days,
+                )
             else:
-                day_name_key = VIDEO_DETAILS_DATE_FORMAT if days > 7 else DATE_FORMAT_WEEKDAY
+                day_name_key = (
+                    VIDEO_DETAILS_DATE_FORMAT if days > 7 else DATE_FORMAT_WEEKDAY
+                )
                 day_name = date.strftime(day_name_key)
 
-            thumbnail_base_url = self.api.build_url(URL_TIME_LAPSE, identifier.monitor_id)
-            thumbnail_url = None if filename is None else f"{thumbnail_base_url}/{date_iso}/{filename}"
+            thumbnail_base_url = self.api.build_url(
+                URL_TIME_LAPSE, identifier.monitor_id
+            )
+            thumbnail_url = (
+                None
+                if filename is None
+                else f"{thumbnail_base_url}/{date_iso}/{filename}"
+            )
 
             item = BrowseMediaSource(
                 domain=DOMAIN,
@@ -213,11 +235,15 @@ class ShinobiMediaSource(MediaSource, ABC):
         return items
 
     @callback
-    async def _async_build_videos(self, identifier: MediaSourceItemIdentifier) -> list[BrowseMediaSource]:
+    async def _async_build_videos(
+        self, identifier: MediaSourceItemIdentifier
+    ) -> list[BrowseMediaSource]:
         """Build list of media sources from Shinobi Video Server."""
         items: list[BrowseMediaSource] = []
 
-        monitors = await self.api.get_video_wall_monitor_date(identifier.monitor_id, identifier.day)
+        monitors = await self.api.get_video_wall_monitor_date(
+            identifier.monitor_id, identifier.day
+        )
 
         for monitor in monitors:
             date = monitor.get(ATTR_DATE)
@@ -229,8 +255,12 @@ class ShinobiMediaSource(MediaSource, ABC):
             video_start_time = video_time.strftime(VIDEO_DETAILS_TIME_FORMAT)
             video_time_iso = video_time.strftime(VIDEO_DETAILS_TIME_ISO_FORMAT)
 
-            thumbnail_base_url = self.api.build_url(URL_TIME_LAPSE, identifier.monitor_id)
-            thumbnail_url = None if filename is None else f"{thumbnail_base_url}/{date}/{filename}"
+            thumbnail_base_url = self.api.build_url(
+                URL_TIME_LAPSE, identifier.monitor_id
+            )
+            thumbnail_url = (
+                None if filename is None else f"{thumbnail_base_url}/{date}/{filename}"
+            )
 
             item = BrowseMediaSource(
                 domain=DOMAIN,
