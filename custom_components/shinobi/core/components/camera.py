@@ -12,7 +12,11 @@ import sys
 import aiohttp
 import async_timeout
 
-from homeassistant.components.camera import DEFAULT_CONTENT_TYPE, SUPPORT_STREAM, Camera, CameraEntityFeature
+from homeassistant.components.camera import (
+    DEFAULT_CONTENT_TYPE,
+    Camera,
+    CameraEntityFeature,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import TemplateError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession

@@ -2,6 +2,10 @@
 
 ## 2.0.33
 
+- Fix camera stream flags
+
+## 2.0.33
+
 - Upgrade pre-commit-configuration by [@tetienne](https://github.com/tetienne)
 
 ## 2.0.32
