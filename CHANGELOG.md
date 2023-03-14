@@ -1,8 +1,9 @@
 # Changelog
 
-## 2.0.33
+## 2.0.34
 
 - Fix camera stream flags
+- Throttle repair process when camera `died` to 60 seconds
 
 ## 2.0.33
 

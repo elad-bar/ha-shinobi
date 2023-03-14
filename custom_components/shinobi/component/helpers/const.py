@@ -46,6 +46,7 @@ DEFAULT_ICON = "mdi:alarm-light"
 ATTR_FRIENDLY_NAME = "friendly_name"
 
 SCAN_INTERVAL = timedelta(seconds=60)
+REPAIR_INTERVAL = timedelta(seconds=60)
 HEARTBEAT_INTERVAL_SECONDS = timedelta(seconds=25)
 TRIGGER_INTERVAL = timedelta(seconds=1)
 WS_RECONNECT_INTERVAL = timedelta(seconds=30)

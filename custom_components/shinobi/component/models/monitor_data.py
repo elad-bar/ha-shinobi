@@ -51,7 +51,7 @@ class MonitorData:
         try:
             self.id = monitor.get(ATTR_MONITOR_ID)
             self.name = monitor.get(ATTR_MONITOR_NAME)
-            self.status = monitor.get(ATTR_MONITOR_STATUS)
+            self.status = monitor.get(ATTR_MONITOR_STATUS, MONITOR_MODE_STOP)
             self.snapshot = monitor.get(ATTR_MONITOR_SNAPSHOT)
             self.streams = monitor.get(ATTR_MONITOR_STREAMS)
             self.mode = monitor.get(ATTR_MONITOR_MODE)

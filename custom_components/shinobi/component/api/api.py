@@ -33,6 +33,7 @@ from ..helpers.const import (
     LOGIN_USERNAME,
     MONITOR_MODE_RECORD,
     MONITOR_MODE_STOP,
+    REPAIR_INTERVAL,
     REPAIR_REPAIR_RECORD_INTERVAL,
     REPAIR_UPDATE_STATUS_ATTEMPTS,
     REPAIR_UPDATE_STATUS_INTERVAL,
@@ -67,6 +68,7 @@ class IntegrationAPI(BaseAPI):
     config_data: ConfigData | None
     _repairing: list[str]
     _support_video_browser_api: bool
+    _last_repair_monitors: datetime
 
     def __init__(
         self,
@@ -80,6 +82,7 @@ class IntegrationAPI(BaseAPI):
         try:
             self.config_data = None
             self._repairing = []
+            self._last_repair_monitors = datetime.fromtimestamp(0)
             self._support_video_browser_api = False
 
             self.data = {API_DATA_MONITORS: {}}
@@ -550,6 +553,13 @@ class IntegrationAPI(BaseAPI):
         return result
 
     async def async_repair_monitors(self):
+        now = datetime.now()
+        last_repair_monitors = self._last_repair_monitors
+        diff = (now - last_repair_monitors).total_seconds()
+
+        if diff < REPAIR_INTERVAL.total_seconds():
+            return
+
         monitors = self.data.get("monitors", {})
 
         for monitor_id in monitors:
@@ -557,6 +567,8 @@ class IntegrationAPI(BaseAPI):
 
             if monitor_id not in self._repairing and monitor.should_repair:
                 await self._async_repair_monitor(monitor_id)
+
+                self._last_repair_monitors = now
 
     async def _async_repair_monitor(self, monitor_id: str):
         monitor = self._get_monitor_data(monitor_id)
