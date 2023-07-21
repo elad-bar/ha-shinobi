@@ -2,15 +2,7 @@
 
 ## Description
 
-Integration with Shinobi Video NVR. Creates the following components:
-
-- Camera - per-monitor defined.
-- Binary Sensors (MOTION, SOUND) - per-monitor defined.
-- Support HLS Streams instead of H264.
-- Support SSL with self-signed certificate.
-- Support Face-Recognition plugin as an event
-- Select to set the monitor mode
-- Switch to set the monitor's detectors (motion / sound) - per-monitor defined.
+Integration with Shinobi Video NVR to present and control camera (monitor) including plugin events.
 
 [Changelog](https://github.com/elad-bar/ha-shinobi/blob/master/CHANGELOG.md)
 
@@ -165,3 +157,72 @@ logger:
   logs:
     custom_components.shinobi: debug
 ```
+
+Please attach also diagnostic details of the integration, available in:
+Settings -> Devices & Services -> Shinobi Video NVR -> 3 dots menu -> Download diagnostics
+
+### Invalid Token
+
+In case you have referenced to that section, something went wrong with the encryption key,
+Encryption key should be located in `.storage/shinobi.config.json` file under `data.key` property,
+below are the steps to solve that issue.
+
+#### File not exists or File exists, data.key is not
+
+Please report as issue
+
+#### File exists, data.key is available
+
+Example:
+
+```json
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "shinobi.config.json",
+  "data": {
+    "key": "ox-qQsAiHb67Kz3ypxY19uU2_YwVcSjvdbaBVHZJQFY="
+  }
+}
+```
+
+OR
+
+```json
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "shinobi.config.json",
+  "data": {
+    "key": "ox-qQsAiHb67Kz3ypxY19uU2_YwVcSjvdbaBVHZJQFY="
+  }
+}
+```
+
+1. Remove the integration
+2. Delete the file
+3. Restart HA
+4. Try to re-add the integration
+5. If still happens - report as issue
+
+#### File exists, key is available under one of the entry configurations
+
+Example:
+
+```json
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "shinobi.config.json",
+  "data": {
+    "b8fa11c50331d2647b8aa7e37935efeb": {
+      "key": "ox-qQsAiHb67Kz3ypxY19uU2_YwVcSjvdbaBVHZJQFY="
+    }
+  }
+}
+```
+
+1. Move the `key` to the root of the JSON
+2. Restart HA
+3. Try to re-add the integration
+4. If still happens - follow instructions of section #1 (_i._)

@@ -6,6 +6,9 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime
 import logging
 
+from custom_components.shinobi.common.media_source_item_identifier import (
+    MediaSourceItemIdentifier,
+)
 from homeassistant.components.media_player.const import MediaClass, MediaType
 from homeassistant.components.media_source.models import (
     BrowseMediaSource,
@@ -17,11 +20,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_DATE
 from homeassistant.core import HomeAssistant, callback
 
-from .component.api.api import IntegrationAPI
-from .component.helpers.common import get_date, get_ha
-from .component.helpers.const import (
+from .common.consts import (
     ATTR_MONITOR_ID,
     DATE_FORMAT_WEEKDAY,
+    DOMAIN,
     MEDIA_BROWSER_NAME,
     MEDIA_SOURCE_SPECIAL_DAYS,
     TIME_LAPSE_FILE_NAME,
@@ -31,23 +33,25 @@ from .component.helpers.const import (
     VIDEO_DETAILS_DATE_FORMAT,
     VIDEO_DETAILS_EXTENSION,
     VIDEO_DETAILS_TIME_FORMAT,
+    VIDEO_DETAILS_TIME_INVALID_CHAR,
     VIDEO_DETAILS_TIME_ISO_FORMAT,
 )
-from .component.models.media_source_item_identifier import MediaSourceItemIdentifier
-from .configuration.helpers.const import DOMAIN
+from .managers.coordinator import Coordinator
+from .managers.rest_api import RestAPI
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_get_media_source(hass: HomeAssistant) -> ShinobiMediaSource:
+async def async_get_media_source(hass: HomeAssistant) -> IntegrationMediaSource:
     """Set up Shinobi Video Browser media source."""
     entries = hass.config_entries.async_entries(DOMAIN)
 
     for entry in entries:
-        return ShinobiMediaSource(hass, entry)
+        coordinator = hass.data[DOMAIN][entry.entry_id]
+        return IntegrationMediaSource(hass, entry, coordinator)
 
 
-class ShinobiMediaSource(MediaSource, ABC):
+class IntegrationMediaSource(MediaSource, ABC):
     """Provide Radio stations as media sources."""
 
     name = MEDIA_BROWSER_NAME
@@ -57,7 +61,9 @@ class ShinobiMediaSource(MediaSource, ABC):
         int, Callable[[MediaSourceItemIdentifier], Awaitable[list[BrowseMediaSource]]]
     ]
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(
+        self, hass: HomeAssistant, entry: ConfigEntry, coordinator: Coordinator
+    ) -> None:
         """Initialize CameraMediaSource."""
         _LOGGER.debug("Loading Shinobi Media Source")
 
@@ -65,7 +71,7 @@ class ShinobiMediaSource(MediaSource, ABC):
         self.hass = hass
         self.entry = entry
 
-        self._ha = get_ha(self.hass, entry.entry_id)
+        self._coordinator = coordinator
 
         self._ui_modes = {
             1: self._async_build_monitors,
@@ -76,8 +82,8 @@ class ShinobiMediaSource(MediaSource, ABC):
         }
 
     @property
-    def api(self) -> IntegrationAPI:
-        return self._ha.api
+    def api(self) -> RestAPI:
+        return self._coordinator.api
 
     async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:
         """Resolve selected Video to a streaming URL."""
@@ -128,7 +134,7 @@ class ShinobiMediaSource(MediaSource, ABC):
         title_parts = [self.entry.title]
 
         if identifier.monitor_id is not None:
-            monitor = self.api.monitors.get(identifier.monitor_id)
+            monitor = self._coordinator.get_monitor(identifier.monitor_id)
 
             title_parts.append(monitor.name)
 
@@ -153,7 +159,7 @@ class ShinobiMediaSource(MediaSource, ABC):
 
         for monitor in monitors:
             monitor_id = monitor.get(ATTR_MONITOR_ID)
-            monitor_data = self.api.monitors.get(monitor_id)
+            monitor_data = self._coordinator.get_monitor(monitor_id)
             monitor_name = monitor_id
             snapshot = None
 
@@ -196,7 +202,7 @@ class ShinobiMediaSource(MediaSource, ABC):
             date_iso = monitor.get(ATTR_DATE)
             filename = monitor.get(TIME_LAPSE_FILE_NAME)
 
-            date = get_date(date_iso)
+            date = self._get_date(date_iso)
             day_delta = today - date
             days = day_delta.days
 
@@ -251,7 +257,7 @@ class ShinobiMediaSource(MediaSource, ABC):
             video_time_full = monitor.get(TIME_LAPSE_TIME)
             video_extension = monitor.get(VIDEO_DETAILS_EXTENSION)
 
-            video_time = get_date(video_time_full)
+            video_time = self._get_date(video_time_full)
             video_start_time = video_time.strftime(VIDEO_DETAILS_TIME_FORMAT)
             video_time_iso = video_time.strftime(VIDEO_DETAILS_TIME_ISO_FORMAT)
 
@@ -276,3 +282,17 @@ class ShinobiMediaSource(MediaSource, ABC):
             items.append(item)
 
         return items
+
+    @staticmethod
+    def _get_date(date: str) -> datetime | None:
+        result = None
+
+        try:
+            if date is not None:
+                if date.lower().endswith(VIDEO_DETAILS_TIME_INVALID_CHAR):
+                    date = date[0 : len(date) - 1]
+
+                result = datetime.fromisoformat(date)
+
+        finally:
+            return result

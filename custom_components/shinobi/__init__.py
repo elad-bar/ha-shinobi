@@ -1,7 +1,7 @@
 """
 This component provides support for Shinobi Video.
 For more details about this component, please refer to the documentation at
-https://home-assistant.io/components/shinobi/
+https://github.com/elad-bar/ha-shinobi
 """
 import logging
 import sys
@@ -9,13 +9,16 @@ import sys
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .component.helpers.common import async_set_ha, clear_ha, get_ha
-from .configuration.helpers.const import DOMAIN
+from .common.consts import DEFAULT_NAME, DOMAIN
+from .common.entity_descriptions import PLATFORMS
+from .common.exceptions import LoginError
+from .managers.config_manager import ConfigManager
+from .managers.coordinator import Coordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(hass, config):
+async def async_setup(_hass, _config):
     return True
 
 
@@ -24,39 +27,54 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     initialized = False
 
     try:
-        _LOGGER.debug(f"Starting async_setup_entry of {DOMAIN}")
-        entry.add_update_listener(async_options_updated)
+        config_manager = ConfigManager(hass, entry)
+        await config_manager.initialize()
 
-        await async_set_ha(hass, entry)
+        is_initialized = config_manager.is_initialized
 
-        initialized = True
+        if is_initialized:
+            coordinator = Coordinator(hass, config_manager)
+            await coordinator.initialize()
+
+            hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+
+            await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+            _LOGGER.info(
+                f"Start loading {DOMAIN} integration, Entry ID: {entry.entry_id}"
+            )
+
+            await coordinator.async_config_entry_first_refresh()
+
+            _LOGGER.info("Finished loading integration")
+
+        initialized = is_initialized
+
+    except LoginError:
+        _LOGGER.info(f"Failed to login {DEFAULT_NAME} API, cannot log integration")
 
     except Exception as ex:
         exc_type, exc_obj, tb = sys.exc_info()
         line_number = tb.tb_lineno
 
-        _LOGGER.error(f"Failed to load Shinobi Video, error: {ex}, line: {line_number}")
+        _LOGGER.error(
+            f"Failed to load {DEFAULT_NAME}, error: {ex}, line: {line_number}"
+        )
 
     return initialized
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Unload a config entry."""
-    ha = get_ha(hass, entry.entry_id)
+    _LOGGER.info(f"Unloading {DOMAIN} integration, Entry ID: {entry.entry_id}")
 
-    if ha is not None:
-        await ha.async_remove(entry)
+    coordinator: Coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    clear_ha(hass, entry.entry_id)
+    await coordinator.config_manager.remove()
+
+    for platform in PLATFORMS:
+        await hass.config_entries.async_forward_entry_unload(entry, platform)
+
+    del hass.data[DOMAIN][entry.entry_id]
 
     return True
-
-
-async def async_options_updated(hass: HomeAssistant, entry: ConfigEntry):
-    """Triggered by config entry options updates."""
-    _LOGGER.info(f"async_options_updated, Entry: {entry.as_dict()} ")
-
-    ha = get_ha(hass, entry.entry_id)
-
-    if ha is not None:
-        await ha.async_update_entry(entry)

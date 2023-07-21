@@ -1,6 +1,17 @@
+from custom_components.shinobi.common.connectivity_status import ConnectivityStatus
 from homeassistant.exceptions import HomeAssistantError
 
-from ...core.helpers.enums import ConnectivityStatus
+
+class LoginError(Exception):
+    def __init__(self):
+        self.error = "Failed to login"
+
+
+class AlreadyExistsError(HomeAssistantError):
+    title: str
+
+    def __init__(self, title: str):
+        self.title = title
 
 
 class APIValidationException(HomeAssistantError):

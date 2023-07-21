@@ -1,27 +1,24 @@
 from __future__ import annotations
 
 from asyncio import sleep
-from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
 import json
 import logging
 import sys
+from typing import Any
 
-from aiohttp import ClientResponseError
+from aiohttp import ClientResponseError, ClientSession
 
 from homeassistant.const import ATTR_DATE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from ...configuration.models.config_data import ConfigData
-from ...core.api.base_api import BaseAPI
-from ...core.helpers.const import PROTOCOLS
-from ...core.helpers.enums import ConnectivityStatus
-from ..helpers.const import (
+from ..common.connectivity_status import ConnectivityStatus
+from ..common.consts import (
     API_DATA_API_KEY,
     API_DATA_DAYS,
     API_DATA_GROUP_ID,
-    API_DATA_LAST_UPDATE,
-    API_DATA_MONITORS,
     API_DATA_SOCKET_IO_VERSION,
     API_DATA_USER_ID,
     ATTR_MONITOR_DETAILS,
@@ -31,12 +28,9 @@ from ..helpers.const import (
     ATTR_MONITOR_ID,
     LOGIN_PASSWORD,
     LOGIN_USERNAME,
-    MONITOR_MODE_RECORD,
-    MONITOR_MODE_STOP,
-    REPAIR_INTERVAL,
-    REPAIR_REPAIR_RECORD_INTERVAL,
-    REPAIR_UPDATE_STATUS_ATTEMPTS,
-    REPAIR_UPDATE_STATUS_INTERVAL,
+    MONITOR_SIGNALS,
+    SIGNAL_API_STATUS,
+    SIGNAL_SERVER_DISCOVERED,
     URL_API_KEYS,
     URL_LOGIN,
     URL_MONITORS,
@@ -53,47 +47,68 @@ from ..helpers.const import (
     VIDEO_DETAILS_EXTENSION,
     VIDEO_DETAILS_TIME,
 )
-from ..helpers.exceptions import APIValidationException
-from ..models.monitor_data import MonitorData
-
-REQUIREMENTS = ["aiohttp"]
+from ..common.exceptions import APIValidationException
+from ..common.monitor_data import MonitorData
+from .config_manager import ConfigManager
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class IntegrationAPI(BaseAPI):
-    """The Class for handling the data retrieval."""
+class RestAPI:
+    data: dict
 
-    hass: HomeAssistant
-    config_data: ConfigData | None
-    _repairing: list[str]
-    _support_video_browser_api: bool
-    _last_repair_monitors: datetime
+    _hass: HomeAssistant | None
+    _base_url: str | None
+    _status: ConnectivityStatus | None
+    _session: ClientSession | None
+    _config_manager: ConfigManager
+
+    _dispatched_devices: list
 
     def __init__(
         self,
         hass: HomeAssistant | None,
-        async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
-        async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]]
-        | None = None,
+        config_manager: ConfigManager,
     ):
-        super().__init__(hass, async_on_data_changed, async_on_status_changed)
-
         try:
-            self.config_data = None
-            self._repairing = []
-            self._last_repair_monitors = datetime.fromtimestamp(0)
+            self._hass = hass
+
             self._support_video_browser_api = False
 
-            self.data = {API_DATA_MONITORS: {}}
+            self.data = {}
+
+            self._config_manager = config_manager
+
+            self._local_async_dispatcher_send = None
+
+            self._status = None
+
+            self._session = None
+            self._dispatched_devices = []
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
             _LOGGER.error(
-                f"Failed to load Shinobi Video API, error: {ex}, line: {line_number}"
+                f"Failed to load MyDolphin Plus API, error: {ex}, line: {line_number}"
             )
+
+    @property
+    def is_connected(self):
+        result = self._session is not None
+
+        return result
+
+    @property
+    def status(self) -> str | None:
+        status = self._status
+
+        return status
+
+    @property
+    def _is_home_assistant(self):
+        return self._hass is not None
 
     @property
     def group_id(self):
@@ -108,55 +123,36 @@ class IntegrationAPI(BaseAPI):
         return self.data.get(API_DATA_API_KEY)
 
     @property
-    def monitors(self):
-        return self.data.get(API_DATA_MONITORS, {})
-
-    @property
     def recorded_days(self):
         return self.data.get(API_DATA_DAYS, 10)
 
     @property
-    def api_url(self):
-        config_data = self.config_data
-        protocol = PROTOCOLS[config_data.ssl]
+    def support_video_browser_api(self):
+        return self._support_video_browser_api
 
-        path = "/" if config_data.path == "" else config_data.path
+    async def _do_nothing(self, _status: ConnectivityStatus):
+        pass
 
-        url = f"{protocol}://{config_data.host}:{config_data.port}{path}"
+    async def initialize(self):
+        _LOGGER.info("Initializing Shinobi Server API")
 
-        return url
+        self._set_status(ConnectivityStatus.Connecting)
 
-    async def initialize(self, config_data: ConfigData):
-        _LOGGER.info("Initializing Shinobi Video")
+        await self._initialize_session()
 
-        try:
-            await self.set_status(ConnectivityStatus.Connecting)
+        await self.login()
 
-            self.config_data = config_data
+    async def validate(self):
+        await self.initialize()
 
-            await self.initialize_session()
-
-        except Exception as ex:
-            exc_type, exc_obj, tb = sys.exc_info()
-            line_number = tb.tb_lineno
-
-            _LOGGER.error(
-                f"Failed to initialize Shinobi Video API ({self.api_url}), error: {ex}, line: {line_number}"
-            )
-
-            await self.set_status(ConnectivityStatus.Failed)
-
-    async def validate(self, data: dict | None = None):
-        config_data = ConfigData.from_dict(data)
-
-        await self.initialize(config_data)
+        await self.login()
 
     def build_url(self, endpoint, monitor_id: str = None):
         if endpoint.startswith("/"):
             endpoint = endpoint[1:]
 
         data = {
-            URL_PARAMETER_BASE_URL: self.api_url,
+            URL_PARAMETER_BASE_URL: self._config_manager.api_url,
             URL_PARAMETER_GROUP_ID: self.group_id,
             URL_PARAMETER_API_KEY: self.api_key,
             URL_PARAMETER_MONITOR_ID: monitor_id,
@@ -186,7 +182,7 @@ class IntegrationAPI(BaseAPI):
             is_allowed = self.status == ConnectivityStatus.Connected
 
         if not is_allowed:
-            raise APIValidationException(endpoint, self.status)
+            raise APIValidationException(endpoint, self._status)
 
     async def _async_post(
         self,
@@ -207,7 +203,7 @@ class IntegrationAPI(BaseAPI):
             data = None if is_url_encoded else request_data
             json_data = request_data if is_url_encoded else None
 
-            async with self.session.post(
+            async with self._session.post(
                 url, data=data, json=json_data, ssl=False
             ) as response:
                 _LOGGER.debug(f"Status of {url}: {response.status}")
@@ -233,6 +229,12 @@ class IntegrationAPI(BaseAPI):
 
         return result
 
+    async def get_snapshot(self, url) -> bytes:
+        async with self._session.get(url, ssl=False) as response:
+            result = await response.read()
+
+            return result
+
     async def _async_get(
         self, endpoint, monitor_id: str = None, resource_available_check: bool = False
     ):
@@ -245,7 +247,7 @@ class IntegrationAPI(BaseAPI):
 
             _LOGGER.debug(f"GET {url}")
 
-            async with self.session.get(url, ssl=False) as response:
+            async with self._session.get(url, ssl=False) as response:
                 _LOGGER.debug(f"Status of {url}: {response.status}")
 
                 if resource_available_check:
@@ -273,29 +275,27 @@ class IntegrationAPI(BaseAPI):
 
         return result
 
-    async def async_update(self):
+    async def update(self):
         _LOGGER.debug(
-            f"Updating data from Shinobi Video Server ({self.config_data.host})"
+            f"Updating data from Shinobi Video Server ({self._config_manager.host})"
         )
 
         if self.status == ConnectivityStatus.Failed:
-            await self.initialize(self.config_data)
+            await self.initialize()
 
         if self.status == ConnectivityStatus.Connected:
+            self._async_dispatcher_send(self._hass, SIGNAL_SERVER_DISCOVERED)
+
             await self._load_monitors()
 
     async def login(self):
-        await super().login()
-
         try:
             self._support_video_browser_api = False
             self.data[API_DATA_API_KEY] = None
 
-            config_data = self.config_data
-
             data = {
-                LOGIN_USERNAME: config_data.username,
-                LOGIN_PASSWORD: config_data.password,
+                LOGIN_USERNAME: self._config_manager.username,
+                LOGIN_PASSWORD: self._config_manager.password,
             }
 
             login_data = await self._async_post(URL_LOGIN, data)
@@ -303,7 +303,7 @@ class IntegrationAPI(BaseAPI):
             if login_data is None:
                 _LOGGER.warning("Failed to login, Response is empty")
 
-                await self.set_status(ConnectivityStatus.Failed)
+                self._set_status(ConnectivityStatus.Failed)
 
             else:
                 user_data = login_data.get("$user", {})
@@ -319,7 +319,7 @@ class IntegrationAPI(BaseAPI):
 
                     self.data[API_DATA_API_KEY] = temp_api_key
 
-                    await self.set_status(ConnectivityStatus.TemporaryConnected)
+                    self._set_status(ConnectivityStatus.TemporaryConnected)
 
                     api_keys_data: dict = await self._async_get(URL_API_KEYS)
 
@@ -355,7 +355,7 @@ class IntegrationAPI(BaseAPI):
                                 )
 
                             else:
-                                await self.set_status(ConnectivityStatus.Connected)
+                                self._set_status(ConnectivityStatus.Connected)
 
                         else:
                             _LOGGER.warning(
@@ -368,14 +368,11 @@ class IntegrationAPI(BaseAPI):
                         )
 
                     if self.status != ConnectivityStatus.Disconnected:
-                        if self.status == ConnectivityStatus.Connected:
-                            await self.fire_data_changed_event()
-
-                        else:
-                            await self.set_status(ConnectivityStatus.MissingAPIKey)
+                        if self.status != ConnectivityStatus.Connected:
+                            self._set_status(ConnectivityStatus.MissingAPIKey)
 
                 else:
-                    await self.set_status(ConnectivityStatus.InvalidCredentials)
+                    self._set_status(ConnectivityStatus.InvalidCredentials)
 
         except Exception as ex:
             self.data[API_DATA_API_KEY] = None
@@ -384,7 +381,7 @@ class IntegrationAPI(BaseAPI):
             line_number = tb.tb_lineno
 
             if self.status != ConnectivityStatus.Disconnected:
-                await self.set_status(ConnectivityStatus.Failed)
+                self._set_status(ConnectivityStatus.Failed)
 
                 _LOGGER.error(f"Login attempt failed, Error: {ex}, Line: {line_number}")
 
@@ -450,38 +447,45 @@ class IntegrationAPI(BaseAPI):
                         f"Failed to load monitor data: {monitor}, Error: {ex}, Line: {line_number}"
                     )
 
-            await self.fire_data_changed_event()
+    async def _initialize_session(self):
+        try:
+            if self._is_home_assistant:
+                self._session = async_create_clientsession(hass=self._hass)
 
-    async def fire_data_changed_event(self):
-        self.data[API_DATA_LAST_UPDATE] = datetime.now()
+            else:
+                self._session = ClientSession()
 
-        await super().fire_data_changed_event()
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            _LOGGER.warning(
+                f"Failed to initialize session, Error: {str(ex)}, Line: {line_number}"
+            )
+
+            self._set_status(ConnectivityStatus.Failed)
 
     def _set_monitor_data(self, monitor: MonitorData):
-        self.data[API_DATA_MONITORS][monitor.id] = monitor
+        new_device = monitor.id not in self._dispatched_devices
+        monitor_signal = MONITOR_SIGNALS.get(new_device)
 
-    def _get_monitor_data(self, monitor_id: str) -> MonitorData:
-        monitor = self.data[API_DATA_MONITORS][monitor_id]
+        if new_device:
+            self._dispatched_devices.append(monitor.id)
 
-        return monitor
+        self._async_dispatcher_send(
+            self._hass,
+            monitor_signal,
+            monitor,
+        )
 
     async def get_video_wall(self) -> list[dict] | None:
-        result = []
+        result = None
 
         if self._support_video_browser_api:
             response: dict | None = await self._async_get(URL_VIDEO_WALL)
 
             if response is not None:
                 result = response.get("data", [])
-
-        else:
-            for monitor_id in self.monitors:
-                monitor_data = {
-                    ATTR_MONITOR_ID: monitor_id,
-                    ATTR_MONITOR_GROUP_ID: self.group_id,
-                }
-
-                result.append(monitor_data)
 
         return result
 
@@ -552,91 +556,7 @@ class IntegrationAPI(BaseAPI):
 
         return result
 
-    async def async_repair_monitors(self):
-        now = datetime.now()
-        last_repair_monitors = self._last_repair_monitors
-        diff = (now - last_repair_monitors).total_seconds()
-
-        if diff < REPAIR_INTERVAL.total_seconds():
-            return
-
-        monitors = self.data.get("monitors", {})
-
-        for monitor_id in monitors:
-            monitor = monitors.get(monitor_id)
-
-            if monitor_id not in self._repairing and monitor.should_repair:
-                await self._async_repair_monitor(monitor_id)
-
-                self._last_repair_monitors = now
-
-    async def _async_repair_monitor(self, monitor_id: str):
-        monitor = self._get_monitor_data(monitor_id)
-
-        if monitor_id in self._repairing:
-            _LOGGER.warning(
-                f"Monitor {monitor_id} is in progress, cannot start additional repair job"
-            )
-
-        elif not monitor.should_repair:
-            _LOGGER.warning(
-                f"Monitor {monitor_id} is working properly, no need to repair"
-            )
-
-        else:
-            try:
-                _LOGGER.info(f"Repairing monitor {monitor_id}")
-
-                self._repairing.append(monitor_id)
-
-                await self.async_set_monitor_mode(monitor_id, MONITOR_MODE_STOP)
-
-                await sleep(REPAIR_REPAIR_RECORD_INTERVAL)
-
-                await self.async_set_monitor_mode(monitor_id, MONITOR_MODE_RECORD)
-
-                for index in range(REPAIR_UPDATE_STATUS_ATTEMPTS):
-                    await sleep(REPAIR_UPDATE_STATUS_INTERVAL)
-
-                    await self._async_update_monitor_details(monitor_id)
-
-                    monitor = self._get_monitor_data(monitor_id)
-
-                    if self.status != ConnectivityStatus.Connected:
-                        status_message = ConnectivityStatus.get_log_level(self.status)
-                        _LOGGER.warning(
-                            f"Stopped sampling status for {monitor_id}, Reason: {status_message}"
-                        )
-                        break
-
-                    if not monitor.should_repair:
-                        _LOGGER.info(
-                            f"Monitor {monitor_id} is repaired, Attempt #{index + 1}"
-                        )
-                        break
-
-                if (
-                    monitor.should_repair
-                    and self.status == ConnectivityStatus.Connected
-                ):
-                    _LOGGER.warning(
-                        f"Unable to repair monitor {monitor_id}, Attempts: {REPAIR_UPDATE_STATUS_ATTEMPTS}"
-                    )
-
-                await self.fire_data_changed_event()
-
-            except Exception as ex:
-                exc_type, exc_obj, tb = sys.exc_info()
-                line_number = tb.tb_lineno
-
-                _LOGGER.error(
-                    f"Failed to repair monitor: {monitor_id}, Error: {ex}, Line: {line_number}"
-                )
-
-            finally:
-                self._repairing.remove(monitor_id)
-
-    async def async_set_monitor_mode(self, monitor_id: str, mode: str):
+    async def set_monitor_mode(self, monitor_id: str, mode: str):
         _LOGGER.info(f"Updating monitor {monitor_id} mode to {mode}")
 
         endpoint = f"{URL_UPDATE_MODE}/{mode}"
@@ -654,12 +574,12 @@ class IntegrationAPI(BaseAPI):
 
         return result
 
-    async def async_set_motion_detection(self, monitor_id: str, enabled: bool):
+    async def set_motion_detection(self, monitor_id: str, enabled: bool):
         await self._async_set_detection_mode(
             monitor_id, ATTR_MONITOR_DETAILS_DETECTOR, enabled
         )
 
-    async def async_set_sound_detection(self, monitor_id: str, enabled: bool):
+    async def set_sound_detection(self, monitor_id: str, enabled: bool):
         await self._async_set_detection_mode(
             monitor_id, ATTR_MONITOR_DETAILS_DETECTOR_AUDIO, enabled
         )
@@ -693,8 +613,6 @@ class IntegrationAPI(BaseAPI):
         else:
             _LOGGER.warning(f"{response_message} for {monitor_id}")
 
-        await self.fire_data_changed_event()
-
     async def _async_update_monitor_details(self, monitor_id: str):
         _LOGGER.debug(f"Updating monitor details for {monitor_id}")
 
@@ -714,4 +632,29 @@ class IntegrationAPI(BaseAPI):
             if monitor_data is not None:
                 self._set_monitor_data(monitor_data)
 
-            await self.fire_data_changed_event()
+    def _set_status(self, status: ConnectivityStatus):
+        if status != self._status:
+            log_level = ConnectivityStatus.get_log_level(status)
+
+            _LOGGER.log(
+                log_level,
+                f"Status changed from '{self._status}' to '{status}'",
+            )
+
+            self._status = status
+
+            self._async_dispatcher_send(self._hass, SIGNAL_API_STATUS, status)
+
+    def set_local_async_dispatcher_send(self, callback):
+        self._local_async_dispatcher_send = callback
+
+    def _async_dispatcher_send(
+        self, hass: HomeAssistant, signal: str, *args: Any
+    ) -> None:
+        if hass is None:
+            self._local_async_dispatcher_send(
+                signal, self._config_manager.entry_id, *args
+            )
+
+        else:
+            async_dispatcher_send(hass, signal, self._config_manager.entry_id, *args)

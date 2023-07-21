@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.0
+
+- Major refactor to integration
+- Removed previous infrastructure for creating and managing components, switched to native UpdateCoordinator
+- Improved camera component
+  - Fix wrong usage of mode vs. status
+  - Snapshot image is taken directly from the server
+- Add status component per camera to present the camera status
+
 ## 2.0.34
 
 - Fix camera stream flags

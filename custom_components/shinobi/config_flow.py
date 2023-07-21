@@ -3,17 +3,23 @@ from __future__ import annotations
 
 import logging
 
-from cryptography.fernet import InvalidToken
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import callback
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_PATH,
+    CONF_PORT,
+    CONF_SSL,
+    CONF_USERNAME,
+)
 
-from .component.api.api import IntegrationAPI
-from .configuration.helpers.const import DEFAULT_NAME, DOMAIN
-from .configuration.helpers.exceptions import AlreadyExistsError, LoginError
-from .configuration.managers.configuration_manager import ConfigurationManager
+from . import LoginError
+from .common.connectivity_status import ConnectivityStatus
+from .common.consts import DEFAULT_NAME, DEFAULT_PORT, DOMAIN
+from .managers.config_manager import ConfigManager
+from .managers.rest_api import RestAPI
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,104 +34,56 @@ class DomainFlowHandler(config_entries.ConfigFlow):
     def __init__(self):
         super().__init__()
 
-        self._config_manager: ConfigurationManager | None = None
-
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry):
-        """Get the options flow for this handler."""
-        return DomainOptionsFlowHandler(config_entry)
-
     async def async_step_user(self, user_input=None):
         """Handle a flow start."""
         _LOGGER.debug(f"Starting async_step_user of {DEFAULT_NAME}")
 
-        api = IntegrationAPI(self.hass)
-        self._config_manager = ConfigurationManager(self.hass, api)
-
-        await self._config_manager.initialize()
-
         errors = None
 
         if user_input is not None:
             try:
-                await self._config_manager.validate(user_input)
+                config_manager = ConfigManager(self.hass, None)
+                config_manager.update_credentials(user_input)
 
-                _LOGGER.debug("User inputs are valid")
+                await config_manager.initialize()
 
-                return self.async_create_entry(title=DEFAULT_NAME, data=user_input)
-            except LoginError as lex:
-                errors = lex.errors
+                api = RestAPI(self.hass, config_manager)
 
-            except InvalidToken:
-                errors = {"base": "corrupted_encryption_key"}
+                await api.validate()
 
-            except AlreadyExistsError:
-                errors = {"base": "already_configured"}
+                if api.status == ConnectivityStatus.Connected:
+                    _LOGGER.debug("User inputs are valid")
+
+                    user_input[CONF_PASSWORD] = config_manager.password_hashed
+
+                    return self.async_create_entry(title=DEFAULT_NAME, data=user_input)
+
+                else:
+                    _LOGGER.warning("Failed to create integration")
+
+                    errors = {"base": ConnectivityStatus.get_ha_error(api.status)}
+
+            except LoginError:
+                errors = {"base": "invalid_admin_credentials"}
 
             if errors is not None:
                 error_message = errors.get("base")
 
                 _LOGGER.warning(f"Failed to create integration, Error: {error_message}")
+        else:
+            user_input = {}
 
-        new_user_input = self._config_manager.get_data_fields(user_input)
+        new_user_input = {
+            vol.Optional(CONF_HOST, default=user_input.get(CONF_HOST)): str,
+            vol.Optional(CONF_PATH, default=user_input.get(CONF_PATH, "/")): str,
+            vol.Optional(
+                CONF_PORT, default=user_input.get(CONF_PORT, DEFAULT_PORT)
+            ): int,
+            vol.Optional(CONF_SSL, default=user_input.get(CONF_SSL, False)): bool,
+            vol.Optional(CONF_USERNAME, default=user_input.get(CONF_USERNAME)): str,
+            vol.Optional(CONF_PASSWORD, default=user_input.get(CONF_PASSWORD)): str,
+        }
 
         schema = vol.Schema(new_user_input)
 
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
-
-
-class DomainOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle domain options."""
-
-    def __init__(self, config_entry: ConfigEntry):
-        """Initialize domain options flow."""
-        super().__init__()
-
-        self._config_entry = config_entry
-        self._config_manager: ConfigurationManager | None = None
-
-    async def async_step_init(self, user_input=None):
-        """Manage the domain options."""
-        _LOGGER.info(f"Starting additional settings step: {user_input}")
-
-        api = IntegrationAPI(self.hass)
-        self._config_manager = ConfigurationManager(self.hass, api)
-        await self._config_manager.initialize()
-
-        errors = None
-
-        if user_input is not None:
-            try:
-                await self._config_manager.validate(user_input)
-
-                _LOGGER.debug("User inputs are valid")
-
-                options = self._config_manager.remap_entry_data(
-                    self._config_entry, user_input
-                )
-
-                return self.async_create_entry(
-                    title=self._config_entry.title, data=options
-                )
-            except LoginError as lex:
-                errors = lex.errors
-
-            except InvalidToken:
-                errors = {"base": "corrupted_encryption_key"}
-
-            except AlreadyExistsError:
-                errors = {"base": "already_configured"}
-
-            if errors is not None:
-                error_message = errors.get("base")
-
-                _LOGGER.warning(f"Failed to create integration, Error: {error_message}")
-
-        new_user_input = self._config_manager.get_options_fields(
-            self._config_entry.data
-        )
-
-        schema = vol.Schema(new_user_input)
-
-        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)

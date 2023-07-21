@@ -1,20 +1,13 @@
-from abc import ABC
 import logging
-from typing import Any
 
-from homeassistant.components.switch import SwitchEntity
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_ICON, Platform
+from homeassistant.const import ATTR_ICON, ATTR_STATE, Platform
 from homeassistant.core import HomeAssistant
 
 from .common.base_entity import IntegrationBaseEntity, async_setup_base_entry
-from .common.consts import (
-    ACTION_ENTITY_TURN_OFF,
-    ACTION_ENTITY_TURN_ON,
-    ATTR_ATTRIBUTES,
-    ATTR_IS_ON,
-)
-from .common.entity_descriptions import IntegrationSwitchEntityDescription
+from .common.consts import ATTR_ATTRIBUTES
+from .common.entity_descriptions import IntegrationSensorEntityDescription
 from .common.monitor_data import MonitorData
 from .managers.coordinator import Coordinator
 
@@ -27,19 +20,19 @@ async def async_setup_entry(
     await async_setup_base_entry(
         hass,
         entry,
-        Platform.SWITCH,
-        IntegrationSwitchEntity,
+        Platform.SENSOR,
+        IntegrationSensorEntity,
         async_add_entities,
     )
 
 
-class IntegrationSwitchEntity(IntegrationBaseEntity, SwitchEntity, ABC):
+class IntegrationSensorEntity(IntegrationBaseEntity, SensorEntity):
     """Representation of a sensor."""
 
     def __init__(
         self,
         hass: HomeAssistant,
-        entity_description: IntegrationSwitchEntityDescription,
+        entity_description: IntegrationSensorEntityDescription,
         coordinator: Coordinator,
         monitor: MonitorData,
     ):
@@ -47,26 +40,18 @@ class IntegrationSwitchEntity(IntegrationBaseEntity, SwitchEntity, ABC):
 
         self._attr_device_class = entity_description.device_class
 
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the entity on."""
-        await self.async_execute_device_action(ACTION_ENTITY_TURN_ON)
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the entity off."""
-        await self.async_execute_device_action(ACTION_ENTITY_TURN_OFF)
-
     def update_component(self, data):
         """Fetch new state parameters for the sensor."""
         if data is not None:
-            is_on = data.get(ATTR_IS_ON)
+            state = data.get(ATTR_STATE)
             attributes = data.get(ATTR_ATTRIBUTES)
             icon = data.get(ATTR_ICON)
 
-            self._attr_is_on = is_on
+            self._attr_native_value = state
             self._attr_extra_state_attributes = attributes
 
             if icon is not None:
                 self._attr_icon = icon
 
         else:
-            self._attr_is_on = None
+            self._attr_native_value = None

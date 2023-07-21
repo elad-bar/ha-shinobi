@@ -7,7 +7,6 @@
         "data": {
           "host": "Host",
           "port": "Port",
-          "path": "Path",
           "username": "Username",
           "password": "Password",
           "ssl": "Is SSL",
@@ -32,7 +31,6 @@
           "host": "Host",
           "port": "Port",
           "ssl": "Is SSL",
-          "path": "Path",
           "username": "Username",
           "password": "Password",
           "use_original_stream": "Use original stream"
@@ -42,9 +40,21 @@
     "error": {
       "invalid_admin_credentials": "Invalid administrator credentials",
       "invalid_server_details": "Invalid server details",
-      "already_configured": "Integration already configured with the name",
+      "already_configured": "integration already configured with the name",
       "missing_permanent_api_key": "Missing permanent API key",
       "corrupted_encryption_key": "Encryption key got corrupted, please remove the integration and re-add it"
+    }
+  },
+  "entity": {
+    "select": {
+      "mode": {
+        "name": "Mode",
+        "state": {
+          "stop": "Disabled",
+          "start": "Watch-Only",
+          "record": "Record"
+        }
+      }
     }
   }
 }

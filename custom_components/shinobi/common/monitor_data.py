@@ -5,13 +5,14 @@ import sys
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
-from ...component.helpers.const import (
+from .consts import (
     ATTR_DISABLED,
     ATTR_FPS,
     ATTR_MONITOR_DETAILS,
     ATTR_MONITOR_DETAILS_AUDIO_CODEC,
     ATTR_MONITOR_DETAILS_DETECTOR,
     ATTR_MONITOR_DETAILS_DETECTOR_AUDIO,
+    ATTR_MONITOR_GROUP_ID,
     ATTR_MONITOR_ID,
     ATTR_MONITOR_MODE,
     ATTR_MONITOR_NAME,
@@ -22,19 +23,19 @@ from ...component.helpers.const import (
     ATTR_STREAM_FPS,
     ATTR_STREAM_PASSWORD,
     ATTR_STREAM_USERNAME,
-    MONITOR_MODE_RECORD,
-    MONITOR_MODE_STOP,
     MOTION_DETECTION,
     SOUND_DETECTION,
     STREAM_PROTOCOL_SUFFIX,
     TRIGGER_PLUG_DB,
 )
+from .enums import MonitorMode, MonitorState
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class MonitorData:
     id: str
+    group_id: str
     name: str
     details: dict
     has_audio: bool
@@ -50,8 +51,9 @@ class MonitorData:
     def __init__(self, monitor):
         try:
             self.id = monitor.get(ATTR_MONITOR_ID)
+            self.group_id = monitor.get(ATTR_MONITOR_GROUP_ID)
             self.name = monitor.get(ATTR_MONITOR_NAME)
-            self.status = monitor.get(ATTR_MONITOR_STATUS, MONITOR_MODE_STOP)
+            self.status = monitor.get(ATTR_MONITOR_STATUS, MonitorState.STOPPED)
             self.snapshot = monitor.get(ATTR_MONITOR_SNAPSHOT)
             self.streams = monitor.get(ATTR_MONITOR_STREAMS)
             self.mode = monitor.get(ATTR_MONITOR_MODE)
@@ -102,16 +104,9 @@ class MonitorData:
 
     @property
     def disabled(self):
-        is_disabled = self.mode == MONITOR_MODE_STOP
+        is_disabled = self.mode == MonitorMode.STOP
 
         return is_disabled
-
-    @property
-    def should_repair(self):
-        is_mode_recording = self.mode == MONITOR_MODE_RECORD
-        is_status_recording = self.status.lower().startswith(MONITOR_MODE_RECORD)
-
-        return is_mode_recording and not is_status_recording
 
     def is_detector_active(self, sensor_type: BinarySensorDeviceClass):
         result = False
@@ -128,7 +123,7 @@ class MonitorData:
         obj = {
             ATTR_MONITOR_ID: self.id,
             ATTR_MONITOR_NAME: self.name,
-            ATTR_MONITOR_STATUS: self.name,
+            ATTR_MONITOR_STATUS: self.status,
             ATTR_MONITOR_SNAPSHOT: self.snapshot,
             ATTR_MONITOR_STREAMS: self.streams,
             ATTR_MONITOR_DETAILS: self.details,

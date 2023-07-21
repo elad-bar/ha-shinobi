@@ -1,21 +1,90 @@
-"""
-Support for Shinobi Video.
-For more details about this platform, please refer to the documentation at
-https://home-assistant.io/components/switch.shinobi/
-"""
 from datetime import timedelta
 
 import aiohttp
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
-from homeassistant.const import STATE_OFF
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_PATH,
+    CONF_PORT,
+    CONF_SSL,
+    CONF_USERNAME,
+)
 
-from ...configuration.helpers.const import DEFAULT_NAME
-from ...core.helpers.const import ATTR_STREAM_FPS
+DEFAULT_NAME = "Shinobi Video"
+DOMAIN = "shinobi"
 
-CONF_SUPPORT_STREAM = "support_stream"
+DEFAULT_PORT = 8080
 
-VERSION = "1.0.0"
+DATA_KEYS = [CONF_HOST, CONF_PATH, CONF_PORT, CONF_SSL, CONF_USERNAME, CONF_PASSWORD]
+
+DATA = f"{DOMAIN}_DATA"
+LEGACY_KEY_FILE = f"{DOMAIN}.key"
+CONFIGURATION_FILE = f"{DOMAIN}.config.json"
+
+SIGNAL_MONITOR_DISCOVERED = f"{DOMAIN}_MONITOR_DISCOVERED_SIGNAL"
+SIGNAL_MONITOR_ADDED = f"{DOMAIN}_MONITOR_ADDED_SIGNAL"
+SIGNAL_MONITOR_UPDATED = f"{DOMAIN}_MONITOR_UPDATED_SIGNAL"
+SIGNAL_MONITOR_TRIGGER = f"{DOMAIN}_MONITOR_TRIGGERED_SIGNAL"
+
+SIGNAL_SERVER_DISCOVERED = f"{DOMAIN}_SERVER_DISCOVERED_SIGNAL"
+SIGNAL_SERVER_ADDED = f"{DOMAIN}_SERVER_ADDED_SIGNAL"
+
+SIGNAL_WS_STATUS = f"{DOMAIN}_WS_STATUS_SIGNAL"
+SIGNAL_API_STATUS = f"{DOMAIN}_API_STATUS_SIGNAL"
+
+MONITOR_SIGNALS = {True: SIGNAL_MONITOR_DISCOVERED, False: SIGNAL_MONITOR_UPDATED}
+ADD_COMPONENT_SIGNALS = [SIGNAL_MONITOR_ADDED, SIGNAL_SERVER_ADDED]
+
+
+PROTOCOLS = {True: "https", False: "http"}
+WS_PROTOCOLS = {True: "wss", False: "ws"}
+
+INVALID_TOKEN_SECTION = "https://github.com/elad-bar/ha-shinobi#invalid-token"
+
+ENTRY_ID_CONFIG = "config"
+
+DATA_KEY_CAMERA = "Camera"
+DATA_KEY_MONITOR_MODE = "Mode"
+DATA_KEY_MONITOR_STATUS = "Status"
+DATA_KEY_MOTION = "Motion"
+DATA_KEY_SOUND = "Sound"
+DATA_KEY_MOTION_DETECTION = "Motion Detector"
+DATA_KEY_SOUND_DETECTION = "Sound Detector"
+DATA_KEY_ORIGINAL_STREAM = "Use Original Stream"
+
+ATTR_IS_ON = "is_on"
+ATTR_FRIENDLY_NAME = "friendly_name"
+ATTR_START_TIME = "start_time"
+
+ATTR_ENABLE = "enable"
+ATTR_DISABLED = "disabled"
+
+DEFAULT_ENABLE = False
+
+WS_LAST_UPDATE = "last-update"
+
+BLOCK_SIZE = 16
+
+MQTT_QOS_0 = 0
+MQTT_QOS_1 = 1
+
+MQTT_MESSAGE_ENCODING = "utf-8"
+
+ATTR_ATTRIBUTES = "attributes"
+ATTR_ACTIONS = "actions"
+
+STORAGE_DATA_KEY = "key"
+STORAGE_DATA_LOCATING = "locating"
+
+STORAGE_DATA_FILE_CONFIG = "config"
+
+STORAGE_DATA_FILES = [STORAGE_DATA_FILE_CONFIG]
+
+ACTION_ENTITY_TURN_ON = "turn_on"
+ACTION_ENTITY_TURN_OFF = "turn_off"
+ACTION_ENTITY_SELECT_OPTION = "select_option"
 
 API_DATA_MONITORS = "monitors"
 API_DATA_USER_ID = "user-id"
@@ -43,13 +112,13 @@ SHINOBI_WS_CONNECTION_READY_MESSAGE = "40"
 SHINOBI_WS_ACTION_MESSAGE = "42"
 
 DEFAULT_ICON = "mdi:alarm-light"
-ATTR_FRIENDLY_NAME = "friendly_name"
 
-SCAN_INTERVAL = timedelta(seconds=60)
-REPAIR_INTERVAL = timedelta(seconds=60)
-HEARTBEAT_INTERVAL_SECONDS = timedelta(seconds=25)
+UPDATE_API_INTERVAL = timedelta(seconds=60)
+HEARTBEAT_INTERVAL = timedelta(seconds=25)
 TRIGGER_INTERVAL = timedelta(seconds=1)
 WS_RECONNECT_INTERVAL = timedelta(seconds=30)
+API_RECONNECT_INTERVAL = timedelta(seconds=30)
+UPDATE_ENTITIES_INTERVAL = timedelta(seconds=1)
 
 MAX_MSG_SIZE = 0
 DISCONNECT_INTERVAL = 5
@@ -97,7 +166,7 @@ ATTR_MONITOR_DETAILS_DETECTOR = "detector"
 ATTR_MONITOR_DETAILS_DETECTOR_AUDIO = "detector_audio"
 ATTR_MONITOR_MODE = "mode"
 ATTR_FPS = "fps"
-ATTR_DISABLED = "disabled"
+ATTR_STREAM_FPS = "fps"
 
 STREAM_PROTOCOL_SUFFIX = "://"
 
@@ -137,7 +206,7 @@ SENSOR_AUTO_OFF_INTERVAL = {
     BinarySensorDeviceClass.SOUND: 10,
 }
 
-TRIGGER_DEFAULT = {TRIGGER_STATE: STATE_OFF}
+TRIGGER_DEFAULT = {TRIGGER_STATE: False, TRIGGER_TIMESTAMP: 0}
 
 BINARY_SENSOR_ATTRIBUTES = []
 
@@ -173,20 +242,23 @@ MEDIA_SOURCE_ITEM_IDENTIFIER_VIDEO_EXTENSION = "video_extension"
 TIME_LAPSE_FILE_NAME = "filename"
 TIME_LAPSE_TIME = "time"
 
-MONITOR_MODE_STOP = "stop"
-MONITOR_MODE_START = "start"
-MONITOR_MODE_RECORD = "record"
-
-ICON_MONITOR_MODES = {
-    MONITOR_MODE_STOP: "mdi:cctv-off",
-    MONITOR_MODE_START: "mdi:cctv",
-    MONITOR_MODE_RECORD: "mdi:record-rec",
-}
+SINGLE_FRAME_PS = 1
 
 STORAGE_DATA_USE_ORIGINAL_STREAM = "useOriginalStream"
 
 STORAGE_DATA_FILE_CONFIG = "config"
 
-STORAGE_DATA_FILES = [STORAGE_DATA_FILE_CONFIG]
-
 MEDIA_SOURCE_SPECIAL_DAYS = {0: "Today", 1: "Yesterday"}
+
+CONF_SUPPORT_STREAM = "support_stream"
+
+VERSION = "1.0.0"
+
+URL_MONITORS = "{base_url}{api_key}/monitor/{group_id}"
+URL_VIDEO_WALL = "{base_url}{api_key}/videoBrowser/{group_id}"
+ATTR_FPS = "fps"
+
+TRIGGER_STATE = "state"
+
+REASON_MOTION = "motion"
+REASON_SOUND = "soundChange"

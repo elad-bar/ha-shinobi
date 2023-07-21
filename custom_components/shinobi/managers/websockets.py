@@ -1,31 +1,32 @@
-"""
-This component provides support for Shinobi Video.
-For more details about this component, please refer to the documentation at
-https://home-assistant.io/components/shinobi/
-"""
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable
 from datetime import datetime
 import json
 import logging
 import sys
+from typing import Any, Callable
 
 import aiohttp
-from aiohttp.http_websocket import WS_CLOSING_MESSAGE
+from aiohttp import ClientSession
 
-from homeassistant.const import STATE_OFF, STATE_ON
+from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 
-from ...component.helpers.const import (
+from .. import ConfigManager
+from ..common.connectivity_status import ConnectivityStatus
+from ..common.consts import (
     API_DATA_API_KEY,
     API_DATA_GROUP_ID,
     API_DATA_LAST_UPDATE,
     API_DATA_MONITORS,
     API_DATA_SOCKET_IO_VERSION,
     API_DATA_USER_ID,
+    ATTR_IS_ON,
     ATTR_MONITOR_GROUP_ID,
     ATTR_MONITOR_ID,
     DISCONNECT_INTERVAL,
@@ -40,6 +41,8 @@ from ...component.helpers.const import (
     SHINOBI_WS_ENDPOINT,
     SHINOBI_WS_PING_MESSAGE,
     SHINOBI_WS_PONG_MESSAGE,
+    SIGNAL_MONITOR_TRIGGER,
+    SIGNAL_WS_STATUS,
     TRIGGER_DEFAULT,
     TRIGGER_DETAILS,
     TRIGGER_DETAILS_PLUG,
@@ -53,60 +56,82 @@ from ...component.helpers.const import (
     TRIGGER_TOPIC,
     URL_PARAMETER_BASE_URL,
     URL_PARAMETER_VERSION,
+    WS_CLOSING_MESSAGE,
     WS_COMPRESSION_DEFLATE,
     WS_TIMEOUT,
 )
-from ...configuration.models.config_data import ConfigData
-from ...core.api.base_api import BaseAPI
-from ...core.helpers.const import WS_PROTOCOLS
-from ...core.helpers.enums import ConnectivityStatus
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class IntegrationWS(BaseAPI):
-    _config_data: ConfigData | None
+class WebSockets:
+    _session: ClientSession | None
+    _triggered_sensors: dict
     _api_data: dict
+    _config_manager: ConfigManager
+
+    _status: ConnectivityStatus | None
+    _on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]]
 
     def __init__(
         self,
         hass: HomeAssistant | None,
-        async_on_data_changed: Callable[[], Awaitable[None]] | None = None,
-        async_on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]]
-        | None = None,
+        config_manager: ConfigManager,
     ):
-        super().__init__(hass, async_on_data_changed, async_on_status_changed)
+        try:
+            self._hass = hass
+            self._config_manager = config_manager
 
-        self._config_data = None
-        self._base_url = None
-        self._repairing = []
-        self._pending_payloads = []
-        self._ws = None
-        self._api_data = {}
-        self._remove_async_track_time = None
+            self._status = None
+            self._session = None
 
-        self._messages_handler: dict = {
-            SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE: self._handle_connection_established_message,
-            SHINOBI_WS_PONG_MESSAGE: self._handle_pong_message,
-            SHINOBI_WS_CONNECTION_READY_MESSAGE: self._handle_ready_state_message,
-            SHINOBI_WS_ACTION_MESSAGE: self._handle_action_message,
-        }
+            self._base_url = None
+            self._pending_payloads = []
+            self._ws = None
+            self._api_data = {}
+            self._data = {}
+            self._triggered_sensors = {}
+            self._remove_async_track_time = None
 
-        self._handlers = {
-            "log": self._handle_log,
-            "detector_trigger": self._handle_detector_trigger,
-        }
+            self._local_async_dispatcher_send = None
+
+            self._messages_handler: dict = {
+                SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE: self._handle_connection_established_message,
+                SHINOBI_WS_PONG_MESSAGE: self._handle_pong_message,
+                SHINOBI_WS_CONNECTION_READY_MESSAGE: self._handle_ready_state_message,
+                SHINOBI_WS_ACTION_MESSAGE: self._handle_action_message,
+            }
+
+            self._handlers = {
+                "log": self._handle_log,
+                "detector_trigger": self._handle_detector_trigger,
+            }
+
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            _LOGGER.error(
+                f"Failed to load MyDolphin Plus WS, error: {ex}, line: {line_number}"
+            )
 
     @property
-    def ws_url(self):
-        config_data = self._config_data
-        protocol = WS_PROTOCOLS[config_data.ssl]
+    def data(self) -> dict:
+        return self._data
 
-        path = "/" if config_data.path == "" else config_data.path
+    @property
+    def status(self) -> str | None:
+        status = self._status
 
-        url = f"{protocol}://{config_data.host}:{config_data.port}{path}"
+        return status
 
-        return url
+    @property
+    def _is_home_assistant(self):
+        return self._hass is not None
+
+    @property
+    def _has_running_loop(self):
+        return self._hass.loop is not None and not self._hass.loop.is_closed()
 
     @property
     def version(self):
@@ -117,12 +142,12 @@ class IntegrationWS(BaseAPI):
         return self._api_data.get(API_DATA_API_KEY)
 
     @property
-    def group_id(self):
-        return self._api_data.get(API_DATA_GROUP_ID)
-
-    @property
     def user_id(self):
         return self._api_data.get(API_DATA_USER_ID)
+
+    @property
+    def group_id(self):
+        return self._api_data.get(API_DATA_GROUP_ID)
 
     @property
     def monitors(self):
@@ -131,19 +156,11 @@ class IntegrationWS(BaseAPI):
     async def update_api_data(self, api_data: dict):
         self._api_data = api_data
 
-    async def initialize(self, config_data: ConfigData | None = None):
-        if config_data is None:
-            _LOGGER.debug("Reinitializing WebSocket connection")
-
-        else:
-            self._config_data = config_data
-
-            _LOGGER.debug("Initializing WebSocket connection")
-
+    async def initialize(self):
         try:
-            if self.is_home_assistant:
+            if self._is_home_assistant:
                 self._remove_async_track_time = async_track_time_interval(
-                    self.hass, self._check_triggers, TRIGGER_INTERVAL
+                    self._hass, self._check_triggers, TRIGGER_INTERVAL
                 )
 
             else:
@@ -152,16 +169,16 @@ class IntegrationWS(BaseAPI):
                     TRIGGER_INTERVAL.total_seconds(), self._check_triggers, None
                 )
 
-            await self.initialize_session()
+            await self._initialize_session()
 
             data = {
-                URL_PARAMETER_BASE_URL: self.ws_url,
+                URL_PARAMETER_BASE_URL: self._config_manager.ws_url,
                 URL_PARAMETER_VERSION: self.version,
             }
 
             url = SHINOBI_WS_ENDPOINT.format(**data)
 
-            async with self.session.ws_connect(
+            async with self._session.ws_connect(
                 url,
                 ssl=False,
                 autoclose=True,
@@ -169,7 +186,7 @@ class IntegrationWS(BaseAPI):
                 timeout=WS_TIMEOUT,
                 compress=WS_COMPRESSION_DEFLATE,
             ) as ws:
-                await self.set_status(ConnectivityStatus.Connected)
+                self._set_status(ConnectivityStatus.Connected)
 
                 self._ws = ws
 
@@ -184,18 +201,16 @@ class IntegrationWS(BaseAPI):
                     f"WS got disconnected will try to recover, Error: {ex}, Line: {line_number}"
                 )
 
-                await self.set_status(ConnectivityStatus.NotConnected)
+                self._set_status(ConnectivityStatus.NotConnected)
 
             else:
                 _LOGGER.warning(
                     f"Failed to connect WS, Error: {ex}, Line: {line_number}"
                 )
 
-                await self.set_status(ConnectivityStatus.Failed)
+                self._set_status(ConnectivityStatus.Failed)
 
     async def terminate(self):
-        await super().terminate()
-
         if self._remove_async_track_time is not None:
             self._remove_async_track_time()
             self._remove_async_track_time = None
@@ -205,11 +220,30 @@ class IntegrationWS(BaseAPI):
 
             await asyncio.sleep(DISCONNECT_INTERVAL)
 
+        self._set_status(ConnectivityStatus.Disconnected)
         self._ws = None
 
-    async def async_send_heartbeat(self):
-        if self.session is None or self.session.closed:
-            await self.set_status(ConnectivityStatus.NotConnected)
+    async def _initialize_session(self):
+        try:
+            if self._is_home_assistant:
+                self._session = async_create_clientsession(hass=self._hass)
+
+            else:
+                self._session = ClientSession()
+
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            _LOGGER.warning(
+                f"Failed to initialize session, Error: {str(ex)}, Line: {line_number}"
+            )
+
+            self._set_status(ConnectivityStatus.Failed)
+
+    async def send_heartbeat(self):
+        if self._session is None or self._session.closed:
+            self._set_status(ConnectivityStatus.NotConnected)
 
         if self.status == ConnectivityStatus.Connected:
             try:
@@ -219,17 +253,10 @@ class IntegrationWS(BaseAPI):
                 _LOGGER.debug(
                     f"Gracefully failed to send heartbeat - Restarting connection, Error: {crex}"
                 )
-                await self.set_status(ConnectivityStatus.NotConnected)
+                self._set_status(ConnectivityStatus.NotConnected)
 
             except Exception as ex:
                 _LOGGER.error(f"Failed to send heartbeat, Error: {ex}")
-
-    def get_data(self, topic, event_type):
-        key = self._get_key(topic, event_type)
-
-        state = self.data.get(key, TRIGGER_DEFAULT)
-
-        return state
 
     async def _listen(self):
         _LOGGER.info("Starting to listen connected")
@@ -242,7 +269,7 @@ class IntegrationWS(BaseAPI):
             is_closing_data = (
                 False if is_closing_type or is_error else msg.data == "close"
             )
-            session_is_closed = self.session is None or self.session.closed
+            session_is_closed = self._session is None or self._session.closed
 
             if (
                 is_closing_type
@@ -265,7 +292,7 @@ class IntegrationWS(BaseAPI):
                 await self._parse_message(msg.data)
 
         if self.status == ConnectivityStatus.Connected:
-            await self.set_status(ConnectivityStatus.NotConnected)
+            self._set_status(ConnectivityStatus.NotConnected)
 
     async def _parse_message(self, message: str):
         try:
@@ -389,9 +416,7 @@ class IntegrationWS(BaseAPI):
         monitor_id = data.get("id")
         group_id = data.get(ATTR_MONITOR_GROUP_ID)
 
-        topic = f"{group_id}/{monitor_id}"
-
-        self._message_received(topic, data)
+        self._message_received(group_id, monitor_id, data)
 
     async def _send_connect_message(self):
         message_data = [
@@ -441,7 +466,7 @@ class IntegrationWS(BaseAPI):
         if self.status == ConnectivityStatus.Connected:
             await self._ws.send_str(message)
 
-    def _message_received(self, topic, payload):
+    def _message_received(self, group_id: str, monitor_id: str, payload):
         try:
             trigger_details = payload.get(TRIGGER_DETAILS, {})
             trigger_reason = trigger_details.get(TRIGGER_DETAILS_REASON)
@@ -451,29 +476,24 @@ class IntegrationWS(BaseAPI):
             sensor_type = PLUG_SENSOR_TYPE.get(trigger_reason, None)
 
             if sensor_type is not None:
+                topic = f"{group_id}/{monitor_id}"
+
                 trigger_name = payload.get(TRIGGER_NAME)
                 trigger_plug = trigger_details.get(TRIGGER_DETAILS_PLUG)
 
                 if trigger_name is None:
                     trigger_name = trigger_details.get(TRIGGER_NAME)
 
-                value = {
+                event_data = {
                     TRIGGER_NAME: trigger_name,
                     TRIGGER_PLUG: trigger_plug,
                     TRIGGER_DETAILS_REASON: trigger_reason,
-                    TRIGGER_STATE: STATE_ON,
+                    ATTR_IS_ON: True,
                     TRIGGER_TIMESTAMP: datetime.now().timestamp(),
                     TRIGGER_TOPIC: topic,
                 }
 
-                previous_data = self.get_data(topic, sensor_type)
-                previous_state = previous_data.get(TRIGGER_STATE, STATE_OFF)
-
-                self._set(topic, sensor_type, value)
-
-                if previous_state == STATE_OFF:
-                    if self.is_home_assistant:
-                        self.hass.async_create_task(self.fire_data_changed_event())
+                self._set_trigger_data(group_id, monitor_id, sensor_type, event_data)
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -486,17 +506,17 @@ class IntegrationWS(BaseAPI):
     def fire_event(self, trigger: str, data: dict):
         event_name = f"{SHINOBI_EVENT}{trigger}"
 
-        if self.is_home_assistant:
+        if self._is_home_assistant:
             _LOGGER.debug(f"Firing event {event_name}, Payload: {data}")
 
-            self.hass.bus.async_fire(event_name, data)
+            self._hass.bus.async_fire(event_name, data)
 
         else:
             _LOGGER.info(f"Firing event {event_name}, Payload: {data}")
 
     def _check_triggers(self, now):
-        if self.is_home_assistant:
-            self.hass.async_create_task(self._async_check_triggers(now))
+        if self._is_home_assistant:
+            self._hass.async_create_task(self._async_check_triggers(now))
 
         else:
             loop = asyncio.get_running_loop()
@@ -510,43 +530,32 @@ class IntegrationWS(BaseAPI):
         try:
             current_time = datetime.now().timestamp()
 
-            all_keys = self.data.keys()
+            for group_id in self._triggered_sensors:
+                monitors = self._triggered_sensors[group_id]
 
-            changes = []
+                for monitor_id in monitors:
+                    events = monitors[monitor_id]
 
-            for key in all_keys:
-                if key != API_DATA_LAST_UPDATE:
-                    data = self.data.get(key)
+                    for event_type in events:
+                        event_data = events[event_type]
+                        trigger_timestamp = event_data.get(TRIGGER_TIMESTAMP)
+                        trigger_state = event_data.get(TRIGGER_STATE)
 
-                    if data is not None:
-                        topic = data.get(TRIGGER_TOPIC, None)
-                        trigger_reason = data.get(TRIGGER_DETAILS_REASON, None)
-                        trigger_timestamp = data.get(TRIGGER_TIMESTAMP, None)
-                        trigger_state = data.get(TRIGGER_STATE, STATE_OFF)
-
-                        if topic is not None and trigger_state == STATE_ON:
-                            sensor_type = PLUG_SENSOR_TYPE[trigger_reason]
-
+                        if trigger_state == STATE_ON:
                             diff = current_time - trigger_timestamp
                             event_duration = SENSOR_AUTO_OFF_INTERVAL.get(
-                                sensor_type, 20
+                                event_type, 20
                             )
 
                             if diff >= event_duration:
-                                data[TRIGGER_STATE] = STATE_OFF
+                                event_data[ATTR_IS_ON] = False
+                                event_data[
+                                    TRIGGER_TIMESTAMP
+                                ] = datetime.now().timestamp()
 
-                                self._set(topic, sensor_type, data)
-
-                                changes.append(f"{topic} {sensor_type}")
-
-            if len(changes) > 0:
-                if self.is_home_assistant:
-                    await self.fire_data_changed_event()
-
-                else:
-                    message = ", ".join(changes)
-
-                    _LOGGER.info(f"Manual events: {message}")
+                                self._set_trigger_data(
+                                    group_id, monitor_id, event_type, event_data
+                                )
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -556,15 +565,69 @@ class IntegrationWS(BaseAPI):
                 f"Failed to check triggers (async) at {event_time}, Error: {ex}, Line: {line_number}"
             )
 
-    def _set(self, topic, event_type, value):
-        _LOGGER.debug(f"Set {event_type} state: {value} for {topic}")
+    def _set_trigger_data(
+        self, group_id: str, monitor_id: str, event_type: str, data: dict
+    ):
+        _LOGGER.debug(f"Set {event_type} Data: {data} for {group_id}::{monitor_id}")
 
-        key = self._get_key(topic, event_type)
+        previous_trigger_state = self.get_trigger_state(
+            group_id, monitor_id, event_type
+        )
 
-        self.data[key] = value
+        if group_id not in self._triggered_sensors:
+            self._triggered_sensors[group_id] = {}
 
-    @staticmethod
-    def _get_key(topic, event_type):
-        key = f"{topic}_{event_type}".lower()
+        if monitor_id not in self._triggered_sensors[group_id]:
+            self._triggered_sensors[group_id][monitor_id] = {}
 
-        return key
+        self._triggered_sensors[group_id][monitor_id][event_type] = data
+
+        current_trigger_state = data.get(ATTR_IS_ON)
+
+        if previous_trigger_state != current_trigger_state:
+            self._async_dispatcher_send(
+                SIGNAL_MONITOR_TRIGGER,
+                group_id,
+                monitor_id,
+                event_type,
+                current_trigger_state,
+            )
+
+    def get_trigger_state(self, group_id: str, monitor_id: str, event_type: str) -> str:
+        group = self._triggered_sensors.get(group_id, {})
+        monitor = group.get(monitor_id, {})
+        data = monitor.get(event_type, TRIGGER_DEFAULT)
+        state = data.get(ATTR_IS_ON, False)
+
+        return state
+
+    def _set_status(self, status: ConnectivityStatus):
+        if status != self._status:
+            log_level = ConnectivityStatus.get_log_level(status)
+
+            _LOGGER.log(
+                log_level,
+                f"Status changed from '{self._status}' to '{status}'",
+            )
+
+            self._status = status
+
+            self._async_dispatcher_send(
+                self._hass,
+                SIGNAL_WS_STATUS,
+                status,
+            )
+
+    def set_local_async_dispatcher_send(self, callback):
+        self._local_async_dispatcher_send = callback
+
+    def _async_dispatcher_send(
+        self, hass: HomeAssistant, signal: str, *args: Any
+    ) -> None:
+        if hass is None:
+            self._local_async_dispatcher_send(
+                signal, self._config_manager.entry_id, *args
+            )
+
+        else:
+            async_dispatcher_send(hass, signal, self._config_manager.entry_id, *args)

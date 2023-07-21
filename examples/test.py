@@ -7,10 +7,9 @@ import logging
 import os
 import sys
 
-from custom_components.shinobi.component.api.api import IntegrationAPI
-from custom_components.shinobi.component.api.websocket import IntegrationWS
-from custom_components.shinobi.configuration.models.config_data import ConfigData
-from custom_components.shinobi.core.helpers.enums import ConnectivityStatus
+from custom_components.shinobi.common.connectivity_status import ConnectivityStatus
+from custom_components.shinobi.managers.rest_api import RestAPI
+from custom_components.shinobi.managers.websockets import WebSockets
 from homeassistant.const import (
     CONF_HOST,
     CONF_PASSWORD,
@@ -44,16 +43,22 @@ class Test:
     def __init__(self):
         """Do initialization of test class instance, Returns None."""
 
-        self._api = IntegrationAPI(
-            None, self._api_data_changed, self._api_status_changed
+        self._api = RestAPI(
+            None, None
         )
 
-        self._ws = IntegrationWS(None, self._ws_data_changed, self._ws_status_changed)
-
-        self._config_data: ConfigData | None = None
+        self._ws = WebSockets(None, None)
 
     async def initialize(self):
         """Do initialization of test dependencies instances, Returns None."""
+
+        self.x(1, "2")
+        self.x("DSA")
+
+    def x(self, *kwargs):
+        print(len(kwargs))
+
+    async def initialize_api(self):
 
         data = {}
 
@@ -68,9 +73,7 @@ class Test:
 
             data[key] = value
 
-        self._config_data = ConfigData.from_dict(data)
-
-        await self._api.initialize(self._config_data)
+        await self._api.initialize()
 
     async def terminate(self):
         """Do termination of the API, Return none."""
@@ -78,10 +81,6 @@ class Test:
         await self._api.terminate()
 
     async def _api_data_changed(self):
-        data = self._get_api_data()
-
-        _LOGGER.info(f"API Data: {data}")
-
         if (
             self._api.status == ConnectivityStatus.Connected
             and self._ws.status == ConnectivityStatus.NotConnected
@@ -94,7 +93,7 @@ class Test:
         _LOGGER.info(f"API Status changed to {status.name}")
 
         if self._api.status == ConnectivityStatus.Connected:
-            await self._api.async_update()
+            await self._api.update()
 
         if self._api.status == ConnectivityStatus.Disconnected:
             await self._ws.terminate()
@@ -106,33 +105,6 @@ class Test:
 
     async def _ws_status_changed(self, status: ConnectivityStatus):
         _LOGGER.info(f"WS Status changed to {status.name}")
-
-    def _get_api_data(self) -> str:
-        data = self._api.data
-        clean_data = {}
-
-        try:
-            for key in data:
-                if key in [API_DATA_MONITORS]:
-                    new_monitors = {}
-                    monitors = data.get(key, {})
-
-                    for monitor_key in monitors:
-                        monitor = monitors.get(monitor_key)
-                        new_monitors[monitor_key] = monitor.to_dict()
-
-                    clean_data[key] = new_monitors
-                elif key in [API_DATA_LAST_UPDATE]:
-                    clean_data[key] = str(data.get(key))
-
-                else:
-                    clean_data[key] = data.get(key)
-        except Exception as ex:
-            _LOGGER.error(f"Failed to get API data, Data: {data} Error: {ex}")
-
-        result = json.dumps(clean_data, indent=4)
-
-        return result
 
 
 instance = Test()
