@@ -133,7 +133,7 @@ class Coordinator(DataUpdateCoordinator):
 
         await self._api.initialize()
 
-    def get_device_debug_data(self) -> dict:
+    def get_debug_data(self) -> dict:
         config_data = {}
         for config_item_key in self._config_manager.data:
             if config_item_key not in [CONF_PASSWORD]:
@@ -142,6 +142,7 @@ class Coordinator(DataUpdateCoordinator):
                 ]
 
         data = {
+            "monitors": self._monitors,
             "config": config_data,
             "api": self._api.data,
             "websockets": self._websockets.data,
@@ -172,7 +173,7 @@ class Coordinator(DataUpdateCoordinator):
         return monitor
 
     def get_monitor_device_info(self, monitor_id: str) -> DeviceInfo:
-        monitor = self._monitors.get(monitor_id)
+        monitor: MonitorData = self._monitors.get(monitor_id)
         device_name = self.get_monitor_device_name(monitor)
 
         device_info = DeviceInfo(
