@@ -3,23 +3,12 @@ from datetime import timedelta
 import aiohttp
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_PASSWORD,
-    CONF_PATH,
-    CONF_PORT,
-    CONF_SSL,
-    CONF_USERNAME,
-)
 
 DEFAULT_NAME = "Shinobi Video"
 DOMAIN = "shinobi"
 
 DEFAULT_PORT = 8080
 
-DATA_KEYS = [CONF_HOST, CONF_PATH, CONF_PORT, CONF_SSL, CONF_USERNAME, CONF_PASSWORD]
-
-DATA = f"{DOMAIN}_DATA"
 LEGACY_KEY_FILE = f"{DOMAIN}.key"
 CONFIGURATION_FILE = f"{DOMAIN}.config.json"
 
@@ -37,13 +26,10 @@ SIGNAL_API_STATUS = f"{DOMAIN}_API_STATUS_SIGNAL"
 MONITOR_SIGNALS = {True: SIGNAL_MONITOR_DISCOVERED, False: SIGNAL_MONITOR_UPDATED}
 ADD_COMPONENT_SIGNALS = [SIGNAL_MONITOR_ADDED, SIGNAL_SERVER_ADDED]
 
-
 PROTOCOLS = {True: "https", False: "http"}
 WS_PROTOCOLS = {True: "wss", False: "ws"}
 
 INVALID_TOKEN_SECTION = "https://github.com/elad-bar/ha-shinobi#invalid-token"
-
-ENTRY_ID_CONFIG = "config"
 
 DATA_KEY_CAMERA = "Camera"
 DATA_KEY_MONITOR_MODE = "Mode"
@@ -55,32 +41,13 @@ DATA_KEY_SOUND_DETECTION = "Sound Detector"
 DATA_KEY_ORIGINAL_STREAM = "Use Original Stream"
 
 ATTR_IS_ON = "is_on"
-ATTR_FRIENDLY_NAME = "friendly_name"
-ATTR_START_TIME = "start_time"
 
-ATTR_ENABLE = "enable"
 ATTR_DISABLED = "disabled"
-
-DEFAULT_ENABLE = False
-
-WS_LAST_UPDATE = "last-update"
-
-BLOCK_SIZE = 16
-
-MQTT_QOS_0 = 0
-MQTT_QOS_1 = 1
-
-MQTT_MESSAGE_ENCODING = "utf-8"
 
 ATTR_ATTRIBUTES = "attributes"
 ATTR_ACTIONS = "actions"
 
 STORAGE_DATA_KEY = "key"
-STORAGE_DATA_LOCATING = "locating"
-
-STORAGE_DATA_FILE_CONFIG = "config"
-
-STORAGE_DATA_FILES = [STORAGE_DATA_FILE_CONFIG]
 
 ACTION_ENTITY_TURN_ON = "turn_on"
 ACTION_ENTITY_TURN_OFF = "turn_off"
@@ -111,8 +78,6 @@ SHINOBI_WS_PONG_MESSAGE = "3"
 SHINOBI_WS_CONNECTION_READY_MESSAGE = "40"
 SHINOBI_WS_ACTION_MESSAGE = "42"
 
-DEFAULT_ICON = "mdi:alarm-light"
-
 UPDATE_API_INTERVAL = timedelta(seconds=60)
 HEARTBEAT_INTERVAL = timedelta(seconds=25)
 TRIGGER_INTERVAL = timedelta(seconds=1)
@@ -122,14 +87,8 @@ UPDATE_ENTITIES_INTERVAL = timedelta(seconds=1)
 
 MAX_MSG_SIZE = 0
 DISCONNECT_INTERVAL = 5
-RECONNECT_INTERVAL = 30
-REPAIR_REPAIR_RECORD_INTERVAL = 5
-REPAIR_UPDATE_STATUS_INTERVAL = 10
-REPAIR_UPDATE_STATUS_ATTEMPTS = 12  # Up to 2 minutes of retries
 
 URL_PARAMETER_BASE_URL = "base_url"
-URL_PARAMETER_DOMAIN = "DOMAIN"
-URL_PARAMETER_ENTRY_ID = "entry_id"
 URL_PARAMETER_API_KEY = "api_key"
 URL_PARAMETER_GROUP_ID = "group_id"
 URL_PARAMETER_MONITOR_ID = "monitor_id"
@@ -175,10 +134,6 @@ ATTR_STREAM_FPS = "fps"
 
 STREAM_PROTOCOL_SUFFIX = "://"
 
-MONITOR_ATTRIBUTES = {"status": "Status", "mode": "Mode", "type": "Type"}
-
-MONITOR_DETAILS_ATTRIBUTES = {ATTR_STREAM_FPS: ATTR_FPS}
-
 TRIGGER_STARTS_WITH = '["f",{"f":"'
 
 TRIGGER_PLUG = "plug"
@@ -213,8 +168,6 @@ SENSOR_AUTO_OFF_INTERVAL = {
 
 TRIGGER_DEFAULT = {TRIGGER_STATE: False, TRIGGER_TIMESTAMP: 0}
 
-BINARY_SENSOR_ATTRIBUTES = []
-
 INVALID_JSON_FORMATS = {
     '":,"': '": null,"',
     '":.': '": 0.',
@@ -222,15 +175,9 @@ INVALID_JSON_FORMATS = {
     '":}': '": null}',
 }
 
-VIDEO_DETAILS_MONITOR_ID = "mid"
 VIDEO_DETAILS_TIME = "time"
-VIDEO_DETAILS_END_TIME = "end"
-VIDEO_DETAILS_URL = "actionUrl"
 VIDEO_DETAILS_EXTENSION = "ext"
 VIDEO_DETAILS_TIME_INVALID_CHAR = "z"
-VIDEO_DETAILS_MIME_TYPE = "mime-type"
-VIDEO_DETAILS_IDENTIFIER = "identifier"
-VIDEO_DETAILS_TITLE = "title"
 
 VIDEO_DETAILS_TIME_FORMAT = "%X"
 VIDEO_DETAILS_TIME_ISO_FORMAT = "%H-%M-%S"
@@ -251,19 +198,4 @@ SINGLE_FRAME_PS = 1
 
 STORAGE_DATA_USE_ORIGINAL_STREAM = "useOriginalStream"
 
-STORAGE_DATA_FILE_CONFIG = "config"
-
 MEDIA_SOURCE_SPECIAL_DAYS = {0: "Today", 1: "Yesterday"}
-
-CONF_SUPPORT_STREAM = "support_stream"
-
-VERSION = "1.0.0"
-
-URL_MONITORS = "{base_url}{api_key}/monitor/{group_id}"
-URL_VIDEO_WALL = "{base_url}{api_key}/videoBrowser/{group_id}"
-ATTR_FPS = "fps"
-
-TRIGGER_STATE = "state"
-
-REASON_MOTION = "motion"
-REASON_SOUND = "soundChange"

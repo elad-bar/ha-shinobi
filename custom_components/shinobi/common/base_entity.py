@@ -80,23 +80,25 @@ class IntegrationBaseEntity(CoordinatorEntity):
 
             if monitor is None:
                 device_info = coordinator.get_server_device_info()
+                context_id = "server"
 
             else:
                 self.monitor_id = monitor.id
                 device_info = coordinator.get_monitor_device_info(monitor.id)
-
-            identifiers = device_info.get("identifiers")
-            identifier = list(identifiers)[0][1]
+                context_id = monitor.id
 
             entity_name = coordinator.config_manager.get_entity_name(
                 entity_description, device_info
             )
 
-            slugify_name = slugify(entity_name)
+            unique_id_parts = [
+                DOMAIN,
+                entity_description.platform,
+                entity_description.key,
+                context_id,
+            ]
 
-            unique_id = slugify(
-                f"{entity_description.platform}_{identifier}_{slugify_name}"
-            )
+            unique_id = slugify("_".join(unique_id_parts))
 
             self.entity_description = entity_description
             self._entity_description = entity_description

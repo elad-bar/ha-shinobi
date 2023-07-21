@@ -46,6 +46,24 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "motion": {
+        "name": "Motion"
+      },
+      "sound": {
+        "name": "Sound"
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": ""
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status"
+      }
+    },
     "select": {
       "mode": {
         "name": "Mode",
@@ -54,6 +72,17 @@
           "start": "Watch-Only",
           "record": "Record"
         }
+      }
+    },
+    "switch": {
+      "motion_detector": {
+        "name": "Motion Detector"
+      },
+      "sound_detector": {
+        "name": "Sound Detector"
+      },
+      "use_original_stream": {
+        "name": "Use Original Stream"
       }
     }
   }

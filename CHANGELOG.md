@@ -4,6 +4,8 @@
 
 - Major refactor to integration
 - Removed previous infrastructure for creating and managing components, switched to native UpdateCoordinator
+- Support translations for entity names
+- Change structure of unique ID for entities (Might create duplication of entities, need to remove old)
 - Camera
   - Fix wrong usage of mode vs. status
   - Snapshot image is taken directly from the server
