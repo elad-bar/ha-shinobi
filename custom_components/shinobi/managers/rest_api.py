@@ -26,6 +26,7 @@ from ..common.consts import (
     ATTR_MONITOR_DETAILS_DETECTOR_AUDIO,
     ATTR_MONITOR_GROUP_ID,
     ATTR_MONITOR_ID,
+    BASE_PROXY_URL,
     LOGIN_PASSWORD,
     LOGIN_USERNAME,
     MONITOR_SIGNALS,
@@ -147,12 +148,23 @@ class RestAPI:
 
         await self.login()
 
+    def build_proxy_url(self, endpoint, monitor_id: str = None):
+        proxy_url_prefix = f"{BASE_PROXY_URL}/{self._config_manager.entry_id}/"
+        url = self._build_url(proxy_url_prefix, endpoint, monitor_id)
+
+        return url
+
     def build_url(self, endpoint, monitor_id: str = None):
+        url = self._build_url(self._config_manager.api_url, endpoint, monitor_id)
+
+        return url
+
+    def _build_url(self, base_url: str, endpoint, monitor_id: str = None):
         if endpoint.startswith("/"):
             endpoint = endpoint[1:]
 
         data = {
-            URL_PARAMETER_BASE_URL: self._config_manager.api_url,
+            URL_PARAMETER_BASE_URL: base_url,
             URL_PARAMETER_GROUP_ID: self.group_id,
             URL_PARAMETER_API_KEY: self.api_key,
             URL_PARAMETER_MONITOR_ID: monitor_id,

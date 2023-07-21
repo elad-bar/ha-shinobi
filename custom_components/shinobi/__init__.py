@@ -14,6 +14,7 @@ from .common.entity_descriptions import PLATFORMS
 from .common.exceptions import LoginError
 from .managers.config_manager import ConfigManager
 from .managers.coordinator import Coordinator
+from .views import async_setup as views_async_setup
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +46,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
             await coordinator.async_config_entry_first_refresh()
+
+            views_async_setup(hass, coordinator)
 
             _LOGGER.info("Finished loading integration")
 

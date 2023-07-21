@@ -56,7 +56,8 @@ class IntegrationMediaSource(MediaSource, ABC):
 
     name = MEDIA_BROWSER_NAME
     hass: HomeAssistant = None
-    _ha = None
+    coordinator: Coordinator
+
     _ui_modes: dict[
         int, Callable[[MediaSourceItemIdentifier], Awaitable[list[BrowseMediaSource]]]
     ]
@@ -89,7 +90,7 @@ class IntegrationMediaSource(MediaSource, ABC):
         """Resolve selected Video to a streaming URL."""
         identifier = MediaSourceItemIdentifier(item.identifier)
 
-        video_base_url = self.api.build_url(URL_VIDEOS, identifier.monitor_id)
+        video_base_url = self.api.build_proxy_url(URL_VIDEOS, identifier.monitor_id)
         video_url = f"{video_base_url}/{identifier.day}T{identifier.video_time}.{identifier.video_extension}"
 
         mime_type = identifier.video_mime_type
@@ -160,7 +161,8 @@ class IntegrationMediaSource(MediaSource, ABC):
         for monitor in monitors:
             monitor_id = monitor.get(ATTR_MONITOR_ID)
             monitor_data = self._coordinator.get_monitor(monitor_id)
-            monitor_name = monitor_id
+            monitor_name = self._coordinator.get_monitor_device_name(monitor_data)
+
             snapshot = None
 
             if monitor_data is not None:
@@ -169,7 +171,11 @@ class IntegrationMediaSource(MediaSource, ABC):
                 if snapshot.startswith("/"):
                     snapshot = snapshot[1:]
 
-                snapshot = self.api.build_url(f"{{base_url}}{snapshot}")
+                snapshot = self.api.build_proxy_url(f"{{base_url}}{snapshot}")
+
+                _LOGGER.debug(
+                    f"Monitor's snapshots: {identifier.identifier}," f"URL: {snapshot}"
+                )
 
             item = BrowseMediaSource(
                 domain=DOMAIN,
@@ -216,13 +222,18 @@ class IntegrationMediaSource(MediaSource, ABC):
                 )
                 day_name = date.strftime(day_name_key)
 
-            thumbnail_base_url = self.api.build_url(
+            thumbnail_base_url = self.api.build_proxy_url(
                 URL_TIME_LAPSE, identifier.monitor_id
             )
             thumbnail_url = (
                 None
                 if filename is None
                 else f"{thumbnail_base_url}/{date_iso}/{filename}"
+            )
+
+            _LOGGER.debug(
+                f"Calendar's thumbnails: {identifier.identifier},"
+                f"URL: {thumbnail_url}"
             )
 
             item = BrowseMediaSource(
@@ -261,11 +272,15 @@ class IntegrationMediaSource(MediaSource, ABC):
             video_start_time = video_time.strftime(VIDEO_DETAILS_TIME_FORMAT)
             video_time_iso = video_time.strftime(VIDEO_DETAILS_TIME_ISO_FORMAT)
 
-            thumbnail_base_url = self.api.build_url(
+            thumbnail_base_url = self.api.build_proxy_url(
                 URL_TIME_LAPSE, identifier.monitor_id
             )
             thumbnail_url = (
                 None if filename is None else f"{thumbnail_base_url}/{date}/{filename}"
+            )
+
+            _LOGGER.debug(
+                f"Video's thumbnails: {identifier.identifier}," f"URL: {thumbnail_url}"
             )
 
             item = BrowseMediaSource(

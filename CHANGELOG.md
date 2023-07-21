@@ -4,9 +4,12 @@
 
 - Major refactor to integration
 - Removed previous infrastructure for creating and managing components, switched to native UpdateCoordinator
-- Improved camera component
+- Camera
   - Fix wrong usage of mode vs. status
   - Snapshot image is taken directly from the server
+- Media Source
+  - In monitor / camera wall changed the displayed name to camera name instead of ID
+  - Add HA Proxy View for thumbnails and videos
 - Add status component per camera to present the camera status
 
 ## 2.0.34

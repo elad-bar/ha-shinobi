@@ -128,10 +128,15 @@ REPAIR_UPDATE_STATUS_INTERVAL = 10
 REPAIR_UPDATE_STATUS_ATTEMPTS = 12  # Up to 2 minutes of retries
 
 URL_PARAMETER_BASE_URL = "base_url"
+URL_PARAMETER_DOMAIN = "DOMAIN"
+URL_PARAMETER_ENTRY_ID = "entry_id"
 URL_PARAMETER_API_KEY = "api_key"
 URL_PARAMETER_GROUP_ID = "group_id"
 URL_PARAMETER_MONITOR_ID = "monitor_id"
 URL_PARAMETER_VERSION = "version"
+
+BASE_PROXY_URL = f"/api/{DOMAIN}"
+PROXY_PREFIX = f"/api/{DOMAIN}/{{entry_id:.+}}"
 
 URL_LOGIN = "{base_url}?json=true"
 
