@@ -61,7 +61,14 @@
     },
     "sensor": {
       "status": {
-        "name": "Status"
+        "name": "Status",
+        "state": {
+          "stopped": "Stopped",
+          "died": "Died",
+          "starting": "Staring",
+          "watching": "Watching",
+          "recording": "Recording"
+        }
       }
     },
     "select": {
