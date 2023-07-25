@@ -7,6 +7,7 @@ import logging
 import sys
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EVENT_HOMEASSISTANT_START
 from homeassistant.core import HomeAssistant
 
 from .common.consts import DEFAULT_NAME, DOMAIN
@@ -14,7 +15,6 @@ from .common.entity_descriptions import PLATFORMS
 from .common.exceptions import LoginError
 from .managers.config_manager import ConfigManager
 from .managers.coordinator import Coordinator
-from .views import async_setup as views_async_setup
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,19 +35,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         if is_initialized:
             coordinator = Coordinator(hass, config_manager)
-            await coordinator.initialize()
 
             hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-            await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-            _LOGGER.info(
-                f"Start loading {DOMAIN} integration, Entry ID: {entry.entry_id}"
+            hass.bus.async_listen_once(
+                EVENT_HOMEASSISTANT_START, coordinator.on_home_assistant_start
             )
-
-            await coordinator.async_config_entry_first_refresh()
-
-            views_async_setup(hass, coordinator)
 
             _LOGGER.info("Finished loading integration")
 

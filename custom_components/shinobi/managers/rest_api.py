@@ -65,6 +65,7 @@ class RestAPI:
     _config_manager: ConfigManager
 
     _dispatched_devices: list
+    _dispatched_server: bool
 
     def __init__(
         self,
@@ -86,6 +87,7 @@ class RestAPI:
 
             self._session = None
             self._dispatched_devices = []
+            self._dispatched_server = False
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -296,9 +298,12 @@ class RestAPI:
             await self.initialize()
 
         if self.status == ConnectivityStatus.Connected:
-            self._async_dispatcher_send(self._hass, SIGNAL_SERVER_DISCOVERED)
-
             await self._load_monitors()
+
+            if not self._dispatched_server:
+                self._dispatched_server = True
+
+                self._async_dispatcher_send(self._hass, SIGNAL_SERVER_DISCOVERED)
 
     async def login(self):
         try:

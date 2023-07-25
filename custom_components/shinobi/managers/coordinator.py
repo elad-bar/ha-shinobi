@@ -6,6 +6,7 @@ from typing import Callable
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.const import ATTR_ICON, ATTR_STATE, CONF_PASSWORD
+from homeassistant.core import Event
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
@@ -33,10 +34,12 @@ from ..common.consts import (
     DATA_KEY_SOUND,
     DATA_KEY_SOUND_DETECTION,
     DEFAULT_NAME,
+    DOMAIN,
     HEARTBEAT_INTERVAL,
     SIGNAL_API_STATUS,
     SIGNAL_MONITOR_ADDED,
     SIGNAL_MONITOR_DISCOVERED,
+    SIGNAL_MONITOR_STATUS_CHANGED,
     SIGNAL_MONITOR_TRIGGER,
     SIGNAL_MONITOR_UPDATED,
     SIGNAL_SERVER_ADDED,
@@ -46,9 +49,10 @@ from ..common.consts import (
     UPDATE_ENTITIES_INTERVAL,
     WS_RECONNECT_INTERVAL,
 )
-from ..common.entity_descriptions import IntegrationEntityDescription
-from ..common.enums import MonitorMode
+from ..common.entity_descriptions import PLATFORMS, IntegrationEntityDescription
+from ..common.enums import MonitorMode, MonitorState
 from ..common.monitor_data import MonitorData
+from ..views import async_setup as views_async_setup
 from .config_manager import ConfigManager
 from .rest_api import RestAPI
 from .websockets import WebSockets
@@ -91,6 +95,7 @@ class Coordinator(DataUpdateCoordinator):
             SIGNAL_MONITOR_DISCOVERED: self._on_monitor_discovered,
             SIGNAL_MONITOR_UPDATED: self._on_monitor_updated,
             SIGNAL_MONITOR_TRIGGER: self._on_monitor_triggered,
+            SIGNAL_MONITOR_STATUS_CHANGED: self._on_monitor_status_changed,
             SIGNAL_SERVER_DISCOVERED: self._on_server_discovered,
         }
 
@@ -128,8 +133,20 @@ class Coordinator(DataUpdateCoordinator):
 
         return config_manager
 
+    async def on_home_assistant_start(self, _event_data: Event):
+        await self.initialize()
+
     async def initialize(self):
         self._build_data_mapping()
+
+        entry = self.config_manager.entry
+        await self.hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+        _LOGGER.info(f"Start loading {DOMAIN} integration, Entry ID: {entry.entry_id}")
+
+        views_async_setup(self.hass, self._config_manager)
+
+        await self.async_config_entry_first_refresh()
 
         await self._api.initialize()
 
@@ -251,9 +268,22 @@ class Coordinator(DataUpdateCoordinator):
             self._monitors[monitor.id] = monitor
 
     async def _on_monitor_triggered(
-        self, entry_id: str, _group_id, _monitor_id, _event_type, _value
+        self, entry_id: str, _group_id, monitor_id, event_type, value
     ):
         if entry_id == self.config_manager.entry_id:
+            _LOGGER.debug(
+                f"Monitor '{monitor_id}' triggered with event {event_type}: {value}"
+            )
+            await self.async_request_refresh()
+
+    async def _on_monitor_status_changed(self, entry_id: str, monitor_id, status):
+        if entry_id == self.config_manager.entry_id:
+            _LOGGER.debug(f"Monitor '{monitor_id}' status changed to {status}")
+            monitor = self.get_monitor(monitor_id)
+            monitor.status = status
+
+            self._monitors[monitor.id] = monitor
+
             await self.async_request_refresh()
 
     async def _async_update_data(self):
@@ -337,9 +367,13 @@ class Coordinator(DataUpdateCoordinator):
         return result
 
     def get_device_action(
-        self, entity_description: IntegrationEntityDescription, action_key: str
+        self,
+        entity_description: IntegrationEntityDescription,
+        monitor_id: str | None,
+        action_key: str,
     ) -> Callable:
-        device_data = self.get_data(entity_description)
+        device_data = self.get_data(entity_description, monitor_id)
+
         actions = device_data.get(ATTR_ACTIONS)
         async_action = actions.get(action_key)
 
@@ -378,9 +412,15 @@ class Coordinator(DataUpdateCoordinator):
     def _get_motion_status_data(
         self, _entity_description, monitor_id: str
     ) -> dict | None:
-        is_on = self._websockets.get_trigger_state(
-            self._api.group_id, monitor_id, BinarySensorDeviceClass.MOTION
-        )
+        is_on: bool = False
+
+        monitor = self.get_monitor(monitor_id)
+        is_online = MonitorState.is_online(monitor.status)
+
+        if is_online:
+            is_on = self._websockets.get_trigger_state(
+                self._api.group_id, monitor_id, BinarySensorDeviceClass.MOTION
+            )
 
         result = {ATTR_IS_ON: is_on}
 
@@ -389,9 +429,15 @@ class Coordinator(DataUpdateCoordinator):
     def _get_sound_status_data(
         self, _entity_description, monitor_id: str
     ) -> dict | None:
-        is_on = self._websockets.get_trigger_state(
-            self._api.group_id, monitor_id, BinarySensorDeviceClass.SOUND
-        )
+        is_on: bool = False
+
+        monitor = self.get_monitor(monitor_id)
+        is_online = MonitorState.is_online(monitor.status)
+
+        if is_online:
+            is_on = self._websockets.get_trigger_state(
+                self._api.group_id, monitor_id, BinarySensorDeviceClass.SOUND
+            )
 
         result = {ATTR_IS_ON: is_on}
 
@@ -448,37 +494,41 @@ class Coordinator(DataUpdateCoordinator):
 
         return result
 
-    async def _set_monitor_mode(self, monitor_id: str, option: str):
+    async def _set_monitor_mode(
+        self, _entity_description, monitor_id: str, option: str
+    ):
         _LOGGER.debug(f"Change monitor {monitor_id} mode, New: {option}")
 
         await self._api.set_monitor_mode(monitor_id, option)
 
-    async def _set_motion_detection_enabled(self, monitor_id: str):
+    async def _set_motion_detection_enabled(self, _entity_description, monitor_id: str):
         _LOGGER.debug(f"Enable monitor {monitor_id} Motion Detection")
 
         await self._api.set_motion_detection(monitor_id, True)
 
-    async def _set_motion_detection_disabled(self, monitor_id: str):
+    async def _set_motion_detection_disabled(
+        self, _entity_description, monitor_id: str
+    ):
         _LOGGER.debug(f"Disable monitor {monitor_id} Motion Detection")
 
         await self._api.set_motion_detection(monitor_id, False)
 
-    async def _set_sound_detection_enabled(self, monitor_id: str):
+    async def _set_sound_detection_enabled(self, _entity_description, monitor_id: str):
         _LOGGER.debug(f"Enable monitor {monitor_id} Sound Detection")
 
         await self._api.set_sound_detection(monitor_id, True)
 
-    async def _set_sound_detection_disabled(self, monitor_id: str):
+    async def _set_sound_detection_disabled(self, _entity_description, monitor_id: str):
         _LOGGER.debug(f"Disable monitor {monitor_id} Sound Detection")
 
         await self._api.set_sound_detection(monitor_id, False)
 
-    async def _set_original_stream_enabled(self):
+    async def _set_original_stream_enabled(self, _entity_description):
         _LOGGER.debug("Enable Original Stream")
 
         await self._config_manager.update_original_stream(True)
 
-    async def _set_original_stream_disabled(self):
+    async def _set_original_stream_disabled(self, _entity_description):
         _LOGGER.debug("Disable Original Stream")
 
         await self._config_manager.update_original_stream(False)

@@ -17,7 +17,6 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 
-from .. import ConfigManager
 from ..common.connectivity_status import ConnectivityStatus
 from ..common.consts import (
     API_DATA_API_KEY,
@@ -41,6 +40,7 @@ from ..common.consts import (
     SHINOBI_WS_ENDPOINT,
     SHINOBI_WS_PING_MESSAGE,
     SHINOBI_WS_PONG_MESSAGE,
+    SIGNAL_MONITOR_STATUS_CHANGED,
     SIGNAL_MONITOR_TRIGGER,
     SIGNAL_WS_STATUS,
     TRIGGER_DEFAULT,
@@ -60,6 +60,7 @@ from ..common.consts import (
     WS_COMPRESSION_DEFLATE,
     WS_TIMEOUT,
 )
+from .config_manager import ConfigManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -105,6 +106,7 @@ class WebSockets:
             self._handlers = {
                 "log": self._handle_log,
                 "detector_trigger": self._handle_detector_trigger,
+                "monitor_status": self._monitor_status_changed,
             }
 
         except Exception as ex:
@@ -158,6 +160,7 @@ class WebSockets:
 
     async def initialize(self):
         try:
+            _LOGGER.debug(f"Initializing, Mode: {self._is_home_assistant}")
             if self._is_home_assistant:
                 self._remove_async_track_time = async_track_time_interval(
                     self._hass, self._check_triggers, TRIGGER_INTERVAL
@@ -189,7 +192,6 @@ class WebSockets:
                 self._set_status(ConnectivityStatus.Connected)
 
                 self._ws = ws
-
                 await self._listen()
 
         except Exception as ex:
@@ -418,6 +420,16 @@ class WebSockets:
 
         self._message_received(group_id, monitor_id, data)
 
+    async def _monitor_status_changed(self, data):
+        _LOGGER.debug(f"Monitor status event received, Data: {data}")
+
+        monitor_id = data.get("id")
+        status = data.get("status")
+
+        self._async_dispatcher_send(
+            self._hass, SIGNAL_MONITOR_STATUS_CHANGED, monitor_id, status
+        )
+
     async def _send_connect_message(self):
         message_data = [
             "f",
@@ -593,7 +605,9 @@ class WebSockets:
                 current_trigger_state,
             )
 
-    def get_trigger_state(self, group_id: str, monitor_id: str, event_type: str) -> str:
+    def get_trigger_state(
+        self, group_id: str, monitor_id: str, event_type: str
+    ) -> bool:
         group = self._triggered_sensors.get(group_id, {})
         monitor = group.get(monitor_id, {})
         data = monitor.get(event_type, TRIGGER_DEFAULT)

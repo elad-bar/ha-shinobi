@@ -9,9 +9,13 @@
 - Camera
   - Fix wrong usage of mode vs. status
   - Snapshot image is taken directly from the server
+  - When monitor is recording, State: Recording
+  - When monitor is watching, State: Streaming
+  - Otherwise: Idle
 - Media Source
   - In monitor / camera wall changed the displayed name to camera name instead of ID
   - Add HA Proxy View for thumbnails and videos
+- Binary Sensors (Motion, Sound) - if camera is not in watching or recording state, state will be `off`
 - Add status component per camera to present the camera status
 
 ## 2.0.34

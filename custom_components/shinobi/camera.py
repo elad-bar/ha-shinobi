@@ -163,6 +163,7 @@ class IntegrationCameraEntity(IntegrationBaseEntity, Camera, ABC):
 
             self._attr_motion_detection_enabled = monitor.has_motion_detector
             self._attr_is_recording = is_recording
+            self._attr_is_streaming = is_on and not is_recording
             self._attr_is_on = is_on
 
             self._attr_extra_state_attributes = attributes

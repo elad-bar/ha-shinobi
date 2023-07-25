@@ -127,10 +127,16 @@ class IntegrationBaseEntity(CoordinatorEntity):
 
     async def async_execute_device_action(self, key: str, *kwargs: Any):
         async_device_action = self._local_coordinator.get_device_action(
-            self._entity_description, key
+            self._entity_description, self.monitor_id, key
         )
 
-        await async_device_action(self._entity_description, self.monitor_id, *kwargs)
+        if self.monitor_id is None:
+            await async_device_action(self._entity_description, *kwargs)
+
+        else:
+            await async_device_action(
+                self._entity_description, self.monitor_id, *kwargs
+            )
 
         await self.coordinator.async_request_refresh()
 

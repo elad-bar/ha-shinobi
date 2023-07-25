@@ -16,30 +16,30 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .common.consts import DOMAIN, PROXY_PREFIX
-from .managers.coordinator import Coordinator
+from .managers.config_manager import ConfigManager
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def async_setup(hass: HomeAssistant, coordinator: Coordinator) -> None:
+def async_setup(hass: HomeAssistant, config_manager: ConfigManager) -> None:
     """Set up the views."""
     session = async_get_clientsession(hass)
 
-    hass.http.register_view(ThumbnailsProxyView(coordinator, session))
-    hass.http.register_view(TimelapseThumbnailsProxyView(coordinator, session))
-    hass.http.register_view(RecordingProxyView(coordinator, session))
+    hass.http.register_view(ThumbnailsProxyView(config_manager, session))
+    hass.http.register_view(TimelapseThumbnailsProxyView(config_manager, session))
+    hass.http.register_view(RecordingProxyView(config_manager, session))
 
 
 class ProxyView(HomeAssistantView):  # type: ignore[misc]
     """HomeAssistant view."""
 
-    _coordinator: Coordinator
+    _config_manager: ConfigManager
     requires_auth = True
 
-    def __init__(self, coordinator: Coordinator, session: aiohttp.ClientSession):
+    def __init__(self, config_manager: ConfigManager, session: aiohttp.ClientSession):
         """Initialize the frigate clips proxy view."""
         self._session = session
-        self._coordinator = coordinator
+        self._config_manager = config_manager
 
     def _create_path(self, **kwargs: Any) -> str | None:
         """Create path."""
@@ -144,9 +144,7 @@ class ProxyView(HomeAssistantView):  # type: ignore[misc]
         **kwargs: Any,
     ) -> web.Response | web.StreamResponse:
         """Handle route for request."""
-        config_manager = self._coordinator.config_manager
-
-        config_entry = config_manager.entry
+        config_entry = self._config_manager.entry
         if not config_entry:
             _LOGGER.error(f"Invalid request, Data: {request}")
 
@@ -163,7 +161,7 @@ class ProxyView(HomeAssistantView):  # type: ignore[misc]
 
             return web.Response(status=HTTPStatus.NOT_FOUND)
 
-        url = str(URL(config_manager.api_url) / full_path)
+        url = str(URL(self._config_manager.api_url) / full_path)
 
         data = await request.read()
         source_header = self._init_header(request)
