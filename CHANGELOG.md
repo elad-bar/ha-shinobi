@@ -4,9 +4,17 @@
 
 ### Major refactor to integration
 
-- Change structure of unique ID for entities (Might create duplication of entities, need to remove old)
 - Removed previous infrastructure for creating and managing components, switched to native UpdateCoordinator
 - Support translations for entity names
+- Add more components (see below)
+- Add proxy view for recordings
+- Improve camera component
+- Remove repair process introduced in v2.0.34
+
+### BREAKING CHANGES
+
+- Unique IDs format for entities and devices, also password storage flow changed, If integration is not working after upgrade, it is recommended to remove and re-integrate.
+- `Use Original Stream` local storage key name changed, by default it is off, if you enabled it in the past, please re-enable to make it work again.
 
 ### Components
 
@@ -34,7 +42,6 @@
 #### Switch
 
 - Add HA Proxy for server device, defines whether to use local proxy for `Media Sources` thumbnails and videos, Default: off
-- **Breaking Change:** if changed in the past `Use Original Stream`, please set it again as the key changed
 
 #### Sensor
 
