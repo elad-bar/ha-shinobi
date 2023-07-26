@@ -122,6 +122,7 @@ ATTR_MONITOR_ID = "mid"
 ATTR_MONITOR_GROUP_ID = "ke"
 ATTR_MONITOR_NAME = "name"
 ATTR_MONITOR_STATUS = "status"
+ATTR_MONITOR_STATUS_CODE = "code"
 ATTR_ORIGINAL_STREAM = "auto_host"
 ATTR_STREAM_PASSWORD = "mpass"
 ATTR_STREAM_USERNAME = "muser"
@@ -200,3 +201,87 @@ TIME_LAPSE_TIME = "time"
 SINGLE_FRAME_PS = 1
 
 MEDIA_SOURCE_SPECIAL_DAYS = {0: "Today", 1: "Yesterday"}
+
+MONITOR_STATUS_CODE_DISABLED = "0"
+MONITOR_STATUS_CODE_STARTING = "1"
+MONITOR_STATUS_CODE_WATCHING = "2"
+MONITOR_STATUS_CODE_RECORDING = "3"
+MONITOR_STATUS_CODE_RESTARTING = "4"
+MONITOR_STATUS_CODE_STOPPED = "5"
+MONITOR_STATUS_CODE_IDLE = "6"
+MONITOR_STATUS_CODE_DIED = "7"
+MONITOR_STATUS_CODE_STOPPING = "8"
+MONITOR_STATUS_CODE_STARTED = "9"
+
+MONITOR_STATUS = {
+    MONITOR_STATUS_CODE_DISABLED: {
+        "name": "disabled",
+        "is_online": False,
+        "is_recording": False,
+        "icon": None,
+        "sensors": False,
+    },
+    MONITOR_STATUS_CODE_STARTING: {
+        "name": "starting",
+        "is_online": False,
+        "is_recording": False,
+        "icon": None,
+        "sensors": False,
+    },
+    MONITOR_STATUS_CODE_WATCHING: {
+        "name": "watching",
+        "is_online": True,
+        "is_recording": False,
+        "icon": None,
+        "sensors": True,
+    },
+    MONITOR_STATUS_CODE_RECORDING: {
+        "name": "recording",
+        "is_online": True,
+        "is_recording": True,
+        "icon": None,
+        "sensors": True,
+    },
+    MONITOR_STATUS_CODE_RESTARTING: {
+        "name": "restarting",
+        "is_online": False,
+        "is_recording": False,
+        "icon": None,
+        "sensors": False,
+    },
+    MONITOR_STATUS_CODE_STOPPED: {
+        "name": "stopped",
+        "is_online": False,
+        "is_recording": False,
+        "icon": None,
+        "sensors": False,
+    },
+    MONITOR_STATUS_CODE_IDLE: {
+        "name": "idle",
+        "is_online": False,
+        "is_recording": False,
+        "icon": None,
+        "sensors": False,
+    },
+    MONITOR_STATUS_CODE_DIED: {
+        "name": "died",
+        "is_online": False,
+        "is_recording": False,
+        "icon": None,
+        "sensors": False,
+    },
+    MONITOR_STATUS_CODE_STOPPING: {
+        "name": "stopping",
+        "is_online": False,
+        "is_recording": False,
+        "icon": None,
+        "sensors": False,
+    },
+    MONITOR_STATUS_CODE_STARTED: {
+        "name": "started",
+        "is_online": True,
+        "is_recording": False,
+        "icon": None,
+        "sensors": True,
+    },
+}

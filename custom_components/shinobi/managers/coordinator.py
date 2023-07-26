@@ -50,7 +50,7 @@ from ..common.consts import (
     WS_RECONNECT_INTERVAL,
 )
 from ..common.entity_descriptions import PLATFORMS, IntegrationEntityDescription
-from ..common.enums import MonitorMode, MonitorState
+from ..common.enums import MonitorMode
 from ..models.monitor_data import MonitorData
 from ..views import async_setup as views_async_setup
 from .config_manager import ConfigManager
@@ -378,7 +378,7 @@ class Coordinator(DataUpdateCoordinator):
     def _get_camera_data(self, _entity_description, monitor_id: str) -> dict | None:
         monitor = self.get_monitor(monitor_id)
 
-        result = {ATTR_STATE: monitor.status}
+        result = {ATTR_STATE: str(monitor.status_code)}
 
         return result
 
@@ -397,7 +397,7 @@ class Coordinator(DataUpdateCoordinator):
 
     def _get_status_data(self, _entity_description, monitor_id: str) -> dict | None:
         monitor = self.get_monitor(monitor_id)
-        state = monitor.status
+        state = str(monitor.status_code)
 
         result = {
             ATTR_STATE: state,
@@ -411,7 +411,7 @@ class Coordinator(DataUpdateCoordinator):
         is_on: bool = False
 
         monitor = self.get_monitor(monitor_id)
-        is_online = MonitorState.is_online(monitor.status)
+        is_online = monitor.is_online()
 
         if is_online:
             is_on = self._websockets.get_trigger_state(
@@ -428,7 +428,7 @@ class Coordinator(DataUpdateCoordinator):
         is_on: bool = False
 
         monitor = self.get_monitor(monitor_id)
-        is_online = MonitorState.is_online(monitor.status)
+        is_online = monitor.is_online()
 
         if is_online:
             is_on = self._websockets.get_trigger_state(
@@ -442,9 +442,9 @@ class Coordinator(DataUpdateCoordinator):
     def _get_motion_detection_data(
         self, _entity_description, monitor_id: str
     ) -> dict | None:
-        monitor = self._monitors.get(monitor_id)
+        monitor: MonitorData = self._monitors.get(monitor_id)
 
-        is_on = monitor.has_motion_detector
+        is_on = monitor.is_detector_active(BinarySensorDeviceClass.MOTION)
         icon = "mdi:motion-sensor" if is_on else "mdi:motion-sensor-off"
 
         result = {

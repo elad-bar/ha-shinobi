@@ -17,6 +17,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .common.consts import DOMAIN, PROXY_PREFIX
 from .managers.config_manager import ConfigManager
+from .models.config_data import ConfigData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +41,10 @@ class ProxyView(HomeAssistantView):  # type: ignore[misc]
         """Initialize the frigate clips proxy view."""
         self._session = session
         self._config_manager = config_manager
+
+    @property
+    def config_data(self) -> ConfigData:
+        return self._config_manager.config_data
 
     def _create_path(self, **kwargs: Any) -> str | None:
         """Create path."""
@@ -161,7 +166,7 @@ class ProxyView(HomeAssistantView):  # type: ignore[misc]
 
             return web.Response(status=HTTPStatus.NOT_FOUND)
 
-        url = str(URL(self._config_manager.api_url) / full_path)
+        url = str(URL(self.config_data.api_url) / full_path)
 
         data = await request.read()
         source_header = self._init_header(request)

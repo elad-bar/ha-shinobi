@@ -17,7 +17,7 @@ from homeassistant.components.camera import (
 )
 from homeassistant.components.stream import Stream
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_ICON, ATTR_STATE, Platform
+from homeassistant.const import ATTR_ICON, Platform
 from homeassistant.core import HomeAssistant
 
 from .common.base_entity import IntegrationBaseEntity, async_setup_base_entry
@@ -28,7 +28,6 @@ from .common.consts import (
     SINGLE_FRAME_PS,
 )
 from .common.entity_descriptions import IntegrationCameraEntityDescription
-from .common.enums import MonitorState
 from .managers.coordinator import Coordinator
 from .models.monitor_data import MonitorData
 
@@ -156,12 +155,11 @@ class IntegrationCameraEntity(IntegrationBaseEntity, Camera, ABC):
         if data is not None:
             monitor = self._local_coordinator.get_monitor(self.monitor_id)
 
-            state = data.get(ATTR_STATE).lower()
             attributes = data.get(ATTR_ATTRIBUTES)
             icon = data.get(ATTR_ICON)
 
-            is_on = MonitorState.is_online(state)
-            is_recording = MonitorState.is_recording(state)
+            is_on = monitor.is_online
+            is_recording = monitor.is_recording
 
             self._attr_motion_detection_enabled = monitor.has_motion_detector
             self._attr_is_recording = is_recording
