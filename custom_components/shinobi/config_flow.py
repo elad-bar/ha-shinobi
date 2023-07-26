@@ -23,8 +23,6 @@ class DomainFlowHandler(config_entries.ConfigFlow):
     def __init__(self):
         super().__init__()
 
-        self.flow_manager = IntegrationFlowManager(self.hass, self)
-
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
@@ -33,20 +31,24 @@ class DomainFlowHandler(config_entries.ConfigFlow):
 
     async def async_step_user(self, user_input=None):
         """Handle a flow start."""
-        return await self.flow_manager.async_step(user_input)
+        flow_manager = IntegrationFlowManager(self.hass, self)
+
+        return await flow_manager.async_step(user_input)
 
 
 class DomainOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle domain options."""
 
-    flow_manager: IntegrationFlowManager
+    _config_entry: ConfigEntry
 
     def __init__(self, config_entry: ConfigEntry):
         """Initialize domain options flow."""
         super().__init__()
 
-        self.flow_manager = IntegrationFlowManager(self.hass, self, config_entry)
+        self._config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """Manage the domain options."""
-        return await self.flow_manager.async_step(user_input)
+        flow_manager = IntegrationFlowManager(self.hass, self, self._config_entry)
+
+        return await flow_manager.async_step(user_input)

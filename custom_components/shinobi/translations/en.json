@@ -61,11 +61,16 @@
       "status": {
         "name": "Status",
         "state": {
-          "stopped": "Stopped",
-          "died": "Died",
-          "starting": "Staring",
-          "watching": "Watching",
-          "recording": "Recording"
+          "0": "Disabled",
+          "1": "Starting",
+          "2": "Watching",
+          "3": "Recording",
+          "4": "Restarting",
+          "5": "Stopped",
+          "6": "Idle",
+          "7": "Died",
+          "8": "Stopping",
+          "9": "Started"
         }
       }
     },
@@ -88,6 +93,9 @@
       },
       "use_original_stream": {
         "name": "Use Original Stream"
+      },
+      "use_proxy_for_recordings": {
+        "name": "Use Proxy for Recording"
       }
     }
   }

@@ -426,10 +426,10 @@ class WebSockets:
         _LOGGER.debug(f"Monitor status event received, Data: {data}")
 
         monitor_id = data.get("id")
-        status = data.get("status")
+        status_code = data.get("code")
 
         self._async_dispatcher_send(
-            self._hass, SIGNAL_MONITOR_STATUS_CHANGED, monitor_id, status
+            SIGNAL_MONITOR_STATUS_CHANGED, monitor_id, status_code
         )
 
     async def _send_connect_message(self):
@@ -629,7 +629,6 @@ class WebSockets:
             self._status = status
 
             self._async_dispatcher_send(
-                self._hass,
                 SIGNAL_WS_STATUS,
                 status,
             )
@@ -637,13 +636,13 @@ class WebSockets:
     def set_local_async_dispatcher_send(self, callback):
         self._local_async_dispatcher_send = callback
 
-    def _async_dispatcher_send(
-        self, hass: HomeAssistant, signal: str, *args: Any
-    ) -> None:
-        if hass is None:
+    def _async_dispatcher_send(self, signal: str, *args: Any) -> None:
+        if self._hass is None:
             self._local_async_dispatcher_send(
                 signal, self._config_manager.entry_id, *args
             )
 
         else:
-            async_dispatcher_send(hass, signal, self._config_manager.entry_id, *args)
+            async_dispatcher_send(
+                self._hass, signal, self._config_manager.entry_id, *args
+            )

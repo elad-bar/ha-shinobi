@@ -23,6 +23,7 @@ from ..common.consts import (
     ATTR_STREAM_FPS,
     ATTR_STREAM_PASSWORD,
     ATTR_STREAM_USERNAME,
+    DETECTOR_SENSOR_ICONS,
     MONITOR_STATUS,
     MONITOR_STATUS_CODE_DISABLED,
     MOTION_DETECTION,
@@ -135,11 +136,11 @@ class MonitorData:
 
     @property
     def icon(self):
-        icon = self._get_status_bit("icon")
+        icon = self._get_status_description("icon")
 
         return icon
 
-    def is_detector_active(self, sensor_type: BinarySensorDeviceClass):
+    def is_detector_active(self, sensor_type: BinarySensorDeviceClass) -> bool:
         result = False
 
         if sensor_type.SOUND and self.has_audio_detector:
@@ -150,16 +151,12 @@ class MonitorData:
 
         return result
 
-    def detector_icon(self, sensor_type: BinarySensorDeviceClass):
-        result = False
+    def get_detector_icon(self, sensor_type: BinarySensorDeviceClass) -> str:
+        icons = DETECTOR_SENSOR_ICONS.get(sensor_type)
+        is_active = self.is_detector_active(sensor_type)
+        icon = icons.get(is_active)
 
-        if sensor_type.SOUND and self.has_audio_detector:
-            result = True
-
-        if sensor_type.MOTION and self.has_motion_detector:
-            result = True
-
-        return result
+        return icon
 
     def to_dict(self):
         obj = {
@@ -197,7 +194,7 @@ class MonitorData:
 
         return value
 
-    def _get_status_details(self):
+    def _get_status_details(self) -> dict:
         status_details = MONITOR_STATUS.get(str(self.status_code))
 
         return status_details

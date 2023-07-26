@@ -43,9 +43,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-            hass.bus.async_listen_once(
-                EVENT_HOMEASSISTANT_START, coordinator.on_home_assistant_start
-            )
+            if hass.is_running:
+                await coordinator.initialize()
+
+            else:
+                hass.bus.async_listen_once(
+                    EVENT_HOMEASSISTANT_START, coordinator.on_home_assistant_start
+                )
 
             _LOGGER.info("Finished loading integration")
 
@@ -70,6 +74,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     _LOGGER.info(f"Unloading {DOMAIN} integration, Entry ID: {entry.entry_id}")
 
     coordinator: Coordinator = hass.data[DOMAIN][entry.entry_id]
+
+    await coordinator.terminate()
 
     await coordinator.config_manager.remove(entry.entry_id)
 

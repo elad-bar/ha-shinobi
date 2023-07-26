@@ -93,6 +93,9 @@
       },
       "use_original_stream": {
         "name": "Use Original Stream"
+      },
+      "use_proxy_for_recordings": {
+        "name": "Use Proxy for Recording"
       }
     }
   }

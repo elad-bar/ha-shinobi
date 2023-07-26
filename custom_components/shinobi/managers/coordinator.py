@@ -13,6 +13,7 @@ from homeassistant.helpers.dispatcher import (
 )
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import slugify
 
 from ..common.connectivity_status import ConnectivityStatus
 from ..common.consts import (
@@ -150,6 +151,9 @@ class Coordinator(DataUpdateCoordinator):
 
         await self._api.initialize()
 
+    async def terminate(self):
+        await self._websockets.terminate()
+
     def get_debug_data(self) -> dict:
         config_data = self._config_manager.get_debug_data()
 
@@ -163,16 +167,24 @@ class Coordinator(DataUpdateCoordinator):
         return data
 
     def get_server_device_info(self) -> DeviceInfo:
+        config_data = self.config_manager.config_data
+        server_unique_id = slugify(f"{config_data.hostname}_server")
         device_name = f"{self.name} Server"
 
         device_info = DeviceInfo(
-            identifiers={(DEFAULT_NAME, device_name)},
+            identifiers={(DOMAIN, server_unique_id)},
             name=device_name,
             model="Server",
             manufacturer=DEFAULT_NAME,
         )
 
         return device_info
+
+    @staticmethod
+    def get_monitor_device_unique_id(monitor: MonitorData):
+        unique_id = slugify(f"{monitor.group_id}_{monitor.id}")
+
+        return unique_id
 
     def get_monitor_device_name(self, monitor: MonitorData):
         device_name = f"{self.name} {monitor.name}"
@@ -188,8 +200,10 @@ class Coordinator(DataUpdateCoordinator):
         monitor: MonitorData = self._monitors.get(monitor_id)
         device_name = self.get_monitor_device_name(monitor)
 
+        monitor_unique_id = self.get_monitor_device_unique_id(monitor)
+
         device_info = DeviceInfo(
-            identifiers={(DEFAULT_NAME, device_name)},
+            identifiers={(DEFAULT_NAME, monitor_unique_id)},
             name=device_name,
             model="Camera",
             manufacturer=DEFAULT_NAME,
@@ -271,15 +285,18 @@ class Coordinator(DataUpdateCoordinator):
             )
             await self.async_request_refresh()
 
-    async def _on_monitor_status_changed(self, entry_id: str, monitor_id, status):
+    async def _on_monitor_status_changed(
+        self, entry_id: str, monitor_id, status_code: int
+    ):
         if entry_id == self.config_manager.entry_id:
-            _LOGGER.debug(f"Monitor '{monitor_id}' status changed to {status}")
+            _LOGGER.debug(f"Monitor '{monitor_id}' status changed to {status_code}")
             monitor = self.get_monitor(monitor_id)
-            monitor.status = status
+            if monitor is not None:
+                monitor.status_code = status_code
 
-            self._monitors[monitor.id] = monitor
+                self._monitors[monitor.id] = monitor
 
-            await self.async_request_refresh()
+                await self.async_request_refresh()
 
     async def _async_update_data(self):
         """Fetch parameters from API endpoint.
@@ -411,7 +428,7 @@ class Coordinator(DataUpdateCoordinator):
         is_on: bool = False
 
         monitor = self.get_monitor(monitor_id)
-        is_online = monitor.is_online()
+        is_online = monitor.is_online
 
         if is_online:
             is_on = self._websockets.get_trigger_state(
@@ -428,7 +445,7 @@ class Coordinator(DataUpdateCoordinator):
         is_on: bool = False
 
         monitor = self.get_monitor(monitor_id)
-        is_online = monitor.is_online()
+        is_online = monitor.is_online
 
         if is_online:
             is_on = self._websockets.get_trigger_state(
@@ -445,7 +462,7 @@ class Coordinator(DataUpdateCoordinator):
         monitor: MonitorData = self._monitors.get(monitor_id)
 
         is_on = monitor.is_detector_active(BinarySensorDeviceClass.MOTION)
-        icon = "mdi:motion-sensor" if is_on else "mdi:motion-sensor-off"
+        icon = monitor.get_detector_icon(BinarySensorDeviceClass.MOTION)
 
         result = {
             ATTR_IS_ON: is_on,
@@ -461,10 +478,10 @@ class Coordinator(DataUpdateCoordinator):
     def _get_sound_detection_data(
         self, _entity_description, monitor_id: str
     ) -> dict | None:
-        monitor = self._monitors.get(monitor_id)
+        monitor: MonitorData = self._monitors.get(monitor_id)
 
-        is_on = monitor.has_audio_detector
-        icon = "mdi:music-note" if is_on else "mdi:music-note-off"
+        is_on = monitor.is_detector_active(BinarySensorDeviceClass.SOUND)
+        icon = monitor.get_detector_icon(BinarySensorDeviceClass.SOUND)
 
         result = {
             ATTR_IS_ON: is_on,

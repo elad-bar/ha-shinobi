@@ -57,7 +57,11 @@ class IntegrationFlowManager:
                 user_input = {key: self._entry.data[key] for key in self._entry.data}
                 user_input[CONF_TITLE] = self._entry.title
 
-                await PasswordManager.decrypt(self._hass, user_input)
+                _LOGGER.info(user_input)
+
+                await PasswordManager.decrypt(
+                    self._hass, user_input, self._entry.entry_id
+                )
 
         else:
             try:
@@ -74,14 +78,14 @@ class IntegrationFlowManager:
                         data = copy(user_input)
 
                     else:
-                        await PasswordManager.encrypt(self._hass, user_input)
+                        data = await self.remap_entry_data(user_input)
 
-                        data = self.remap_entry_data(user_input)
+                    await PasswordManager.encrypt(self._hass, data)
 
-                    title = user_input.get(CONF_TITLE, DEFAULT_NAME)
+                    title = data.get(CONF_TITLE, DEFAULT_NAME)
 
-                    if CONF_TITLE in user_input:
-                        user_input.pop(CONF_TITLE)
+                    if CONF_TITLE in data:
+                        data.pop(CONF_TITLE)
 
                     return self._flow_handler.async_create_entry(title=title, data=data)
 
@@ -105,7 +109,7 @@ class IntegrationFlowManager:
             step_id=self._flow_id, data_schema=schema, errors=form_errors
         )
 
-    def remap_entry_data(self, options: dict[str, Any]) -> dict[str, Any]:
+    async def remap_entry_data(self, options: dict[str, Any]) -> dict[str, Any]:
         config_options = {}
         config_data = {}
 
@@ -118,11 +122,13 @@ class IntegrationFlowManager:
             if key in DATA_KEYS:
                 config_data[key] = options.get(key, entry_data.get(key))
 
-            if key == CONF_TITLE:
+            elif key == CONF_TITLE:
                 title = options.get(key, DEFAULT_NAME)
 
             else:
                 config_options[key] = options.get(key)
+
+        await PasswordManager.encrypt(self._hass, config_data)
 
         self._hass.config_entries.async_update_entry(
             entry, data=config_data, title=title

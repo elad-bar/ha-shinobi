@@ -285,3 +285,14 @@ MONITOR_STATUS = {
         "sensors": True,
     },
 }
+
+DETECTOR_SENSOR_ICONS = {
+    BinarySensorDeviceClass.MOTION: {
+        True: "mdi:motion-sensor",
+        False: "mdi:motion-sensor-off",
+    },
+    BinarySensorDeviceClass.SOUND: {
+        True: "mdi:music-note",
+        False: "mdi:music-note-off",
+    },
+}

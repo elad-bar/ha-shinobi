@@ -74,10 +74,11 @@ class PasswordManager:
 
         await instance.initialize()
 
-        password = data.get(CONF_PASSWORD)
-        password_encrypted = instance._encrypt(password)
+        if CONF_PASSWORD in data:
+            password = data.get(CONF_PASSWORD)
+            password_encrypted = instance._encrypt(password)
 
-        data[CONF_PASSWORD] = password_encrypted
+            data[CONF_PASSWORD] = password_encrypted
 
     async def _load_encryption_key(self):
         store_data = None

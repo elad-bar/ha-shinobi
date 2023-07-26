@@ -27,6 +27,7 @@ from ..common.consts import (
     ATTR_MONITOR_GROUP_ID,
     ATTR_MONITOR_ID,
     BASE_PROXY_URL,
+    DEFAULT_NAME,
     LOGIN_PASSWORD,
     LOGIN_USERNAME,
     MONITOR_SIGNALS,
@@ -95,7 +96,7 @@ class RestAPI:
             line_number = tb.tb_lineno
 
             _LOGGER.error(
-                f"Failed to load MyDolphin Plus API, error: {ex}, line: {line_number}"
+                f"Failed to load {DEFAULT_NAME} API, error: {ex}, line: {line_number}"
             )
 
     @property
@@ -315,7 +316,7 @@ class RestAPI:
             if not self._dispatched_server:
                 self._dispatched_server = True
 
-                self._async_dispatcher_send(self._hass, SIGNAL_SERVER_DISCOVERED)
+                self._async_dispatcher_send(SIGNAL_SERVER_DISCOVERED)
 
     async def login(self):
         try:
@@ -502,7 +503,6 @@ class RestAPI:
             self._dispatched_devices.append(monitor.id)
 
         self._async_dispatcher_send(
-            self._hass,
             monitor_signal,
             monitor,
         )
@@ -672,18 +672,18 @@ class RestAPI:
 
             self._status = status
 
-            self._async_dispatcher_send(self._hass, SIGNAL_API_STATUS, status)
+            self._async_dispatcher_send(SIGNAL_API_STATUS, status)
 
     def set_local_async_dispatcher_send(self, callback):
         self._local_async_dispatcher_send = callback
 
-    def _async_dispatcher_send(
-        self, hass: HomeAssistant, signal: str, *args: Any
-    ) -> None:
-        if hass is None:
+    def _async_dispatcher_send(self, signal: str, *args: Any) -> None:
+        if self._hass is None:
             self._local_async_dispatcher_send(
                 signal, self._config_manager.entry_id, *args
             )
 
         else:
-            async_dispatcher_send(hass, signal, self._config_manager.entry_id, *args)
+            async_dispatcher_send(
+                self._hass, signal, self._config_manager.entry_id, *args
+            )

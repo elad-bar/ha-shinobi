@@ -63,16 +63,17 @@ def _async_get_diagnostics(
     else:
         _LOGGER.debug("Getting diagnostic information for all devices")
         server_device_info = coordinator.get_server_device_info()
-        server_name = server_device_info.get("name")
+        server_identifiers = server_device_info.get("identifiers")
 
         data.update(
             monitors=[
                 _async_device_as_dict(
-                    hass, {(DEFAULT_NAME, coordinator.get_monitor_device_name(monitor))}
+                    hass,
+                    {(DEFAULT_NAME, coordinator.get_monitor_device_unique_id(monitor))},
                 )
                 for monitor in monitor_list
             ],
-            system=_async_device_as_dict(hass, {(DEFAULT_NAME, server_name)}),
+            system=_async_device_as_dict(hass, server_identifiers),
         )
 
     return data
