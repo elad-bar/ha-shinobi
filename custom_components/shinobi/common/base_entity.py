@@ -10,9 +10,9 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
 from ..managers.coordinator import Coordinator
+from ..models.monitor_data import MonitorData
 from .consts import ADD_COMPONENT_SIGNALS, DOMAIN
 from .entity_descriptions import IntegrationEntityDescription, get_entity_descriptions
-from .monitor_data import MonitorData
 
 _LOGGER = logging.getLogger(__name__)
 

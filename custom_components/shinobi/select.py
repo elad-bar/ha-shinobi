@@ -9,8 +9,8 @@ from homeassistant.core import HomeAssistant
 from .common.base_entity import IntegrationBaseEntity, async_setup_base_entry
 from .common.consts import ACTION_ENTITY_SELECT_OPTION, ATTR_ATTRIBUTES
 from .common.entity_descriptions import IntegrationSelectEntityDescription
-from .common.monitor_data import MonitorData
 from .managers.coordinator import Coordinator
+from .models.monitor_data import MonitorData
 
 _LOGGER = logging.getLogger(__name__)
 

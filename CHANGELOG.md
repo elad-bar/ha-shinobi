@@ -2,21 +2,43 @@
 
 ## 3.0.0
 
-- Major refactor to integration
+### Major refactor to integration
+
+- Change structure of unique ID for entities (Might create duplication of entities, need to remove old)
 - Removed previous infrastructure for creating and managing components, switched to native UpdateCoordinator
 - Support translations for entity names
-- Change structure of unique ID for entities (Might create duplication of entities, need to remove old)
-- Camera
-  - Fix wrong usage of mode vs. status
-  - Snapshot image is taken directly from the server
-  - When monitor is recording, State: Recording
-  - When monitor is watching, State: Streaming
-  - Otherwise: Idle
-- Media Source
-  - In monitor / camera wall changed the displayed name to camera name instead of ID
-  - Add HA Proxy View for thumbnails and videos
-- Binary Sensors (Motion, Sound) - if camera is not in watching or recording state, state will be `off`
-- Add status component per camera to present the camera status
+
+### Components
+
+#### Camera
+
+- Fix wrong usage of mode vs. status
+- Snapshot image is taken directly from the server
+- HA State aligned to Monitor status:
+
+  | Monitor Status | HA Camera State |
+  | -------------- | --------------- |
+  | recording      | Recording       |
+  | watching       | Streaming       |
+  | rest           | Idle            |
+
+#### Media Source
+
+- In monitor / camera wall changed the displayed name to camera name instead of ID
+- Add HA Proxy View for thumbnails and videos
+
+#### Binary Sensor
+
+- Motion, Sound - set default state to `off` when camera is not online (watching or recording)
+
+#### Switch
+
+- Add HA Proxy for server device, defines whether to use local proxy for `Media Sources` thumbnails and videos, Default: off
+- **Breaking Change:** if changed in the past `Use Original Stream`, please set it again as the key changed
+
+#### Sensor
+
+- Add `status` sensor per camera to present the camera status
 
 ## 2.0.34
 

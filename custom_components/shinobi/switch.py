@@ -15,8 +15,8 @@ from .common.consts import (
     ATTR_IS_ON,
 )
 from .common.entity_descriptions import IntegrationSwitchEntityDescription
-from .common.monitor_data import MonitorData
 from .managers.coordinator import Coordinator
+from .models.monitor_data import MonitorData
 
 _LOGGER = logging.getLogger(__name__)
 

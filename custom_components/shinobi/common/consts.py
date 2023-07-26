@@ -8,6 +8,7 @@ DEFAULT_NAME = "Shinobi Video"
 DOMAIN = "shinobi"
 
 DEFAULT_PORT = 8080
+CONF_TITLE = "title"
 
 LEGACY_KEY_FILE = f"{DOMAIN}.key"
 CONFIGURATION_FILE = f"{DOMAIN}.config.json"
@@ -32,14 +33,15 @@ WS_PROTOCOLS = {True: "wss", False: "ws"}
 
 INVALID_TOKEN_SECTION = "https://github.com/elad-bar/ha-shinobi#invalid-token"
 
-DATA_KEY_CAMERA = "Camera"
-DATA_KEY_MONITOR_MODE = "Mode"
-DATA_KEY_MONITOR_STATUS = "Status"
-DATA_KEY_MOTION = "Motion"
-DATA_KEY_SOUND = "Sound"
-DATA_KEY_MOTION_DETECTION = "Motion Detector"
-DATA_KEY_SOUND_DETECTION = "Sound Detector"
-DATA_KEY_ORIGINAL_STREAM = "Use Original Stream"
+DATA_KEY_CAMERA = "camera"
+DATA_KEY_MONITOR_MODE = "mode"
+DATA_KEY_MONITOR_STATUS = "status"
+DATA_KEY_MOTION = "motion"
+DATA_KEY_SOUND = "sound"
+DATA_KEY_MOTION_DETECTION = "motion_detector"
+DATA_KEY_SOUND_DETECTION = "sound_detector"
+DATA_KEY_ORIGINAL_STREAM = "use_original_stream"
+DATA_KEY_PROXY_RECORDINGS = "use_proxy_for_recordings"
 
 ATTR_IS_ON = "is_on"
 
@@ -196,7 +198,5 @@ TIME_LAPSE_FILE_NAME = "filename"
 TIME_LAPSE_TIME = "time"
 
 SINGLE_FRAME_PS = 1
-
-STORAGE_DATA_USE_ORIGINAL_STREAM = "useOriginalStream"
 
 MEDIA_SOURCE_SPECIAL_DAYS = {0: "Today", 1: "Yesterday"}

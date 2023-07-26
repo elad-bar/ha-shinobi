@@ -12,9 +12,10 @@ from homeassistant.core import HomeAssistant
 
 from .common.consts import DEFAULT_NAME, DOMAIN
 from .common.entity_descriptions import PLATFORMS
-from .common.exceptions import LoginError
 from .managers.config_manager import ConfigManager
 from .managers.coordinator import Coordinator
+from .managers.password_manager import PasswordManager
+from .models.exceptions import LoginError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,8 +29,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     initialized = False
 
     try:
+        entry_config = {key: entry.data[key] for key in entry.data}
+
+        await PasswordManager.decrypt(hass, entry_config, entry.entry_id)
+
         config_manager = ConfigManager(hass, entry)
-        await config_manager.initialize()
+        await config_manager.initialize(entry_config)
 
         is_initialized = config_manager.is_initialized
 
@@ -66,7 +71,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     coordinator: Coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    await coordinator.config_manager.remove()
+    await coordinator.config_manager.remove(entry.entry_id)
 
     for platform in PLATFORMS:
         await hass.config_entries.async_forward_entry_unload(entry, platform)

@@ -28,7 +28,7 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 
 #### Integration settings
 
-###### Basic configuration
+###### Integration configuration
 
 | Fields name | Type      | Required | Default   | Description                                                             |
 | ----------- | --------- | -------- | --------- | ----------------------------------------------------------------------- |
@@ -38,17 +38,6 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 | SSL         | Check-box | +        | Unchecked | Is SSL supported?                                                       |
 | Username    | Textbox   | -        |           | Username of dashboard user for Shinobi Video server                     |
 | Password    | Textbox   | -        |           | Password of dashboard user for Shinobi Video server                     |
-
-###### Integration options
-
-| Fields name | Type      | Required | Default              | Description                                                             |
-| ----------- | --------- | -------- | -------------------- | ----------------------------------------------------------------------- |
-| Host        | Texbox    | +        | ast stored hostname  | Hostname or IP address of the Shinobi Video server                      |
-| Port        | Textbox   | +        | 0ast stored port     | HTTP Port to access Shinobi Video server                                |
-| Path        | Textbox   | -        | Empty                | If Shinobi Video Server NVR has non default path, please adjust it here |
-| SSL         | Check-box | +        | Last stored SSL flag | Is SSL supported?                                                       |
-| Username    | Textbox   | -        | Last stored username | Username of dashboard user for Shinobi Video server                     |
-| Password    | Textbox   | -        | Last stored password | Password of dashboard user for Shinobi Video server                     |
 
 ###### Configuration validations
 

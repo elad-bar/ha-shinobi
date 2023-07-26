@@ -5,7 +5,7 @@ import sys
 from typing import Callable
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
-from homeassistant.const import ATTR_ICON, ATTR_STATE, CONF_PASSWORD
+from homeassistant.const import ATTR_ICON, ATTR_STATE
 from homeassistant.core import Event
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
@@ -13,7 +13,6 @@ from homeassistant.helpers.dispatcher import (
 )
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.util import slugify
 
 from ..common.connectivity_status import ConnectivityStatus
 from ..common.consts import (
@@ -31,6 +30,7 @@ from ..common.consts import (
     DATA_KEY_MOTION,
     DATA_KEY_MOTION_DETECTION,
     DATA_KEY_ORIGINAL_STREAM,
+    DATA_KEY_PROXY_RECORDINGS,
     DATA_KEY_SOUND,
     DATA_KEY_SOUND_DETECTION,
     DEFAULT_NAME,
@@ -51,7 +51,7 @@ from ..common.consts import (
 )
 from ..common.entity_descriptions import PLATFORMS, IntegrationEntityDescription
 from ..common.enums import MonitorMode, MonitorState
-from ..common.monitor_data import MonitorData
+from ..models.monitor_data import MonitorData
 from ..views import async_setup as views_async_setup
 from .config_manager import ConfigManager
 from .rest_api import RestAPI
@@ -82,7 +82,7 @@ class Coordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name=config_manager.name,
+            name=config_manager.entry_title,
             update_interval=UPDATE_ENTITIES_INTERVAL,
             update_method=self._async_update_data,
         )
@@ -151,12 +151,7 @@ class Coordinator(DataUpdateCoordinator):
         await self._api.initialize()
 
     def get_debug_data(self) -> dict:
-        config_data = {}
-        for config_item_key in self._config_manager.data:
-            if config_item_key not in [CONF_PASSWORD]:
-                config_data[config_item_key] = self._config_manager.data[
-                    config_item_key
-                ]
+        config_data = self._config_manager.get_debug_data()
 
         data = {
             "monitors": self._monitors,
@@ -168,7 +163,7 @@ class Coordinator(DataUpdateCoordinator):
         return data
 
     def get_server_device_info(self) -> DeviceInfo:
-        device_name = f"{self._config_manager.name} Server"
+        device_name = f"{self.name} Server"
 
         device_info = DeviceInfo(
             identifiers={(DEFAULT_NAME, device_name)},
@@ -180,7 +175,7 @@ class Coordinator(DataUpdateCoordinator):
         return device_info
 
     def get_monitor_device_name(self, monitor: MonitorData):
-        device_name = f"{self.config_manager.name} {monitor.name}"
+        device_name = f"{self.name} {monitor.name}"
 
         return device_name
 
@@ -320,14 +315,15 @@ class Coordinator(DataUpdateCoordinator):
 
     def _build_data_mapping(self):
         data_mapping = {
-            slugify(DATA_KEY_CAMERA): self._get_camera_data,
-            slugify(DATA_KEY_MONITOR_MODE): self._get_mode_data,
-            slugify(DATA_KEY_MONITOR_STATUS): self._get_status_data,
-            slugify(DATA_KEY_MOTION): self._get_motion_status_data,
-            slugify(DATA_KEY_SOUND): self._get_sound_status_data,
-            slugify(DATA_KEY_MOTION_DETECTION): self._get_motion_detection_data,
-            slugify(DATA_KEY_SOUND_DETECTION): self._get_sound_detection_data,
-            slugify(DATA_KEY_ORIGINAL_STREAM): self._get_original_stream_data,
+            DATA_KEY_CAMERA: self._get_camera_data,
+            DATA_KEY_MONITOR_MODE: self._get_mode_data,
+            DATA_KEY_MONITOR_STATUS: self._get_status_data,
+            DATA_KEY_MOTION: self._get_motion_status_data,
+            DATA_KEY_SOUND: self._get_sound_status_data,
+            DATA_KEY_MOTION_DETECTION: self._get_motion_detection_data,
+            DATA_KEY_SOUND_DETECTION: self._get_sound_detection_data,
+            DATA_KEY_ORIGINAL_STREAM: self._get_original_stream_data,
+            DATA_KEY_PROXY_RECORDINGS: self._get_proxy_for_recordings_data,
         }
 
         self._data_mapping = data_mapping
@@ -494,6 +490,19 @@ class Coordinator(DataUpdateCoordinator):
 
         return result
 
+    def _get_proxy_for_recordings_data(self, _entity_description) -> dict | None:
+        is_on = self._config_manager.use_proxy_for_recordings
+
+        result = {
+            ATTR_IS_ON: is_on,
+            ATTR_ACTIONS: {
+                ACTION_ENTITY_TURN_ON: self._set_proxy_for_recordings_enabled,
+                ACTION_ENTITY_TURN_OFF: self._set_proxy_for_recordings_disabled,
+            },
+        }
+
+        return result
+
     async def _set_monitor_mode(
         self, _entity_description, monitor_id: str, option: str
     ):
@@ -532,6 +541,16 @@ class Coordinator(DataUpdateCoordinator):
         _LOGGER.debug("Disable Original Stream")
 
         await self._config_manager.update_original_stream(False)
+
+    async def _set_proxy_for_recordings_enabled(self, _entity_description):
+        _LOGGER.debug("Enable Original Stream")
+
+        await self._config_manager.update_proxy_for_recordings(True)
+
+    async def _set_proxy_for_recordings_disabled(self, _entity_description):
+        _LOGGER.debug("Disable Proxy for Recordings")
+
+        await self._config_manager.update_proxy_for_recordings(False)
 
     @staticmethod
     def _get_date_time_from_timestamp(timestamp):

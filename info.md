@@ -28,7 +28,7 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 
 #### Integration settings
 
-###### Basic configuration
+###### Integration configuration
 
 | Fields name | Type      | Required | Default   | Description                                                             |
 | ----------- | --------- | -------- | --------- | ----------------------------------------------------------------------- |
@@ -38,17 +38,6 @@ Add new token - IP: 0.0.0.0, Permissions - Select all
 | SSL         | Check-box | +        | Unchecked | Is SSL supported?                                                       |
 | Username    | Textbox   | -        |           | Username of dashboard user for Shinobi Video server                     |
 | Password    | Textbox   | -        |           | Password of dashboard user for Shinobi Video server                     |
-
-###### Integration options
-
-| Fields name | Type      | Required | Default              | Description                                                             |
-| ----------- | --------- | -------- | -------------------- | ----------------------------------------------------------------------- |
-| Host        | Texbox    | +        | ast stored hostname  | Hostname or IP address of the Shinobi Video server                      |
-| Port        | Textbox   | +        | 0ast stored port     | HTTP Port to access Shinobi Video server                                |
-| Path        | Textbox   | -        | Empty                | If Shinobi Video Server NVR has non default path, please adjust it here |
-| SSL         | Check-box | +        | Last stored SSL flag | Is SSL supported?                                                       |
-| Username    | Textbox   | -        | Last stored username | Username of dashboard user for Shinobi Video server                     |
-| Password    | Textbox   | -        | Last stored password | Password of dashboard user for Shinobi Video server                     |
 
 ###### Configuration validations
 
@@ -179,7 +168,7 @@ Example:
 {
   "version": 1,
   "minor_version": 1,
-  "key": "mydolphin_plus.config.json",
+  "key": "shinobi.config.json",
   "data": {
     "key": "ox-qQsAiHb67Kz3ypxY19uU2_YwVcSjvdbaBVHZJQFY="
   }
@@ -192,7 +181,7 @@ OR
 {
   "version": 1,
   "minor_version": 1,
-  "key": "mydolphin_plus.config.json",
+  "key": "shinobi.config.json",
   "data": {
     "key": "ox-qQsAiHb67Kz3ypxY19uU2_YwVcSjvdbaBVHZJQFY="
   }
@@ -213,7 +202,7 @@ Example:
 {
   "version": 1,
   "minor_version": 1,
-  "key": "mydolphin_plus.config.json",
+  "key": "shinobi.config.json",
   "data": {
     "b8fa11c50331d2647b8aa7e37935efeb": {
       "key": "ox-qQsAiHb67Kz3ypxY19uU2_YwVcSjvdbaBVHZJQFY="

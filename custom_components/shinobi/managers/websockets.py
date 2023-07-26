@@ -174,8 +174,10 @@ class WebSockets:
 
             await self._initialize_session()
 
+            config_data = self._config_manager.config_data
+
             data = {
-                URL_PARAMETER_BASE_URL: self._config_manager.ws_url,
+                URL_PARAMETER_BASE_URL: config_data.ws_url,
                 URL_PARAMETER_VERSION: self.version,
             }
 

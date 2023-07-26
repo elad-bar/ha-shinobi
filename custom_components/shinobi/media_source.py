@@ -6,9 +6,6 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime
 import logging
 
-from custom_components.shinobi.common.media_source_item_identifier import (
-    MediaSourceItemIdentifier,
-)
 from homeassistant.components.media_player.const import MediaClass, MediaType
 from homeassistant.components.media_source.models import (
     BrowseMediaSource,
@@ -38,6 +35,7 @@ from .common.consts import (
 )
 from .managers.coordinator import Coordinator
 from .managers.rest_api import RestAPI
+from .models.media_source_item_identifier import MediaSourceItemIdentifier
 
 _LOGGER = logging.getLogger(__name__)
 

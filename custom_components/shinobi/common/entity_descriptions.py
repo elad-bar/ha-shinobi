@@ -12,8 +12,8 @@ from homeassistant.components.sensor import SensorEntityDescription
 from homeassistant.components.switch import SwitchEntityDescription
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import EntityCategory, EntityDescription
-from homeassistant.util import slugify
 
+from ..models.monitor_data import MonitorData
 from .consts import (
     DATA_KEY_CAMERA,
     DATA_KEY_MONITOR_MODE,
@@ -21,11 +21,11 @@ from .consts import (
     DATA_KEY_MOTION,
     DATA_KEY_MOTION_DETECTION,
     DATA_KEY_ORIGINAL_STREAM,
+    DATA_KEY_PROXY_RECORDINGS,
     DATA_KEY_SOUND,
     DATA_KEY_SOUND_DETECTION,
 )
 from .enums import MonitorMode
-from .monitor_data import MonitorData
 
 
 @dataclass(slots=True)
@@ -75,51 +75,57 @@ class IntegrationSwitchEntityDescription(
 
 ENTITY_DESCRIPTIONS: list[IntegrationEntityDescription] = [
     IntegrationCameraEntityDescription(
-        key=slugify(DATA_KEY_CAMERA),
+        key=DATA_KEY_CAMERA,
         name="",
-        translation_key=slugify(DATA_KEY_CAMERA),
+        translation_key=DATA_KEY_CAMERA,
     ),
     IntegrationSensorEntityDescription(
-        key=slugify(DATA_KEY_MONITOR_STATUS),
+        key=DATA_KEY_MONITOR_STATUS,
         name=DATA_KEY_MONITOR_STATUS,
         entity_category=EntityCategory.DIAGNOSTIC,
-        translation_key=slugify(DATA_KEY_MONITOR_STATUS),
+        translation_key=DATA_KEY_MONITOR_STATUS,
     ),
     IntegrationSelectEntityDescription(
-        key=slugify(DATA_KEY_MONITOR_MODE),
+        key=DATA_KEY_MONITOR_MODE,
         name=DATA_KEY_MONITOR_MODE,
         options=MonitorMode.get_list(),
         entity_category=EntityCategory.CONFIG,
-        translation_key=slugify(DATA_KEY_MONITOR_MODE),
+        translation_key=DATA_KEY_MONITOR_MODE,
     ),
     IntegrationBinarySensorEntityDescription(
-        key=slugify(DATA_KEY_MOTION),
+        key=DATA_KEY_MOTION,
         name=DATA_KEY_MOTION,
         device_class=BinarySensorDeviceClass.MOTION,
-        translation_key=slugify(DATA_KEY_MOTION),
+        translation_key=DATA_KEY_MOTION,
     ),
     IntegrationBinarySensorEntityDescription(
-        key=slugify(DATA_KEY_SOUND),
+        key=DATA_KEY_SOUND,
         name=DATA_KEY_SOUND,
         device_class=BinarySensorDeviceClass.SOUND,
-        translation_key=slugify(DATA_KEY_SOUND),
+        translation_key=DATA_KEY_SOUND,
         filter=lambda m: m is not None and m.has_audio,
     ),
     IntegrationSwitchEntityDescription(
-        key=slugify(DATA_KEY_MOTION_DETECTION),
+        key=DATA_KEY_MOTION_DETECTION,
         name=DATA_KEY_MOTION_DETECTION,
-        translation_key=slugify(DATA_KEY_MOTION_DETECTION),
+        translation_key=DATA_KEY_MOTION_DETECTION,
     ),
     IntegrationSwitchEntityDescription(
-        key=slugify(DATA_KEY_SOUND_DETECTION),
+        key=DATA_KEY_SOUND_DETECTION,
         name=DATA_KEY_SOUND_DETECTION,
-        translation_key=slugify(DATA_KEY_SOUND_DETECTION),
+        translation_key=DATA_KEY_SOUND_DETECTION,
         filter=lambda m: m is not None and m.has_audio,
     ),
     IntegrationSwitchEntityDescription(
-        key=slugify(DATA_KEY_ORIGINAL_STREAM),
+        key=DATA_KEY_ORIGINAL_STREAM,
         name=DATA_KEY_ORIGINAL_STREAM,
-        translation_key=slugify(DATA_KEY_ORIGINAL_STREAM),
+        translation_key=DATA_KEY_ORIGINAL_STREAM,
+        filter=lambda m: m is None,
+    ),
+    IntegrationSwitchEntityDescription(
+        key=DATA_KEY_PROXY_RECORDINGS,
+        name=DATA_KEY_PROXY_RECORDINGS,
+        translation_key=DATA_KEY_PROXY_RECORDINGS,
         filter=lambda m: m is None,
     ),
 ]

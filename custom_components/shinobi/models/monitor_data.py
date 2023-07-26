@@ -5,7 +5,7 @@ import sys
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
-from .consts import (
+from ..common.consts import (
     ATTR_DISABLED,
     ATTR_FPS,
     ATTR_MONITOR_DETAILS,
@@ -28,7 +28,7 @@ from .consts import (
     STREAM_PROTOCOL_SUFFIX,
     TRIGGER_PLUG_DB,
 )
-from .enums import MonitorMode, MonitorState
+from ..common.enums import MonitorMode, MonitorState
 
 _LOGGER = logging.getLogger(__name__)
 

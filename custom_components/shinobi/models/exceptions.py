@@ -1,5 +1,6 @@
-from custom_components.shinobi.common.connectivity_status import ConnectivityStatus
 from homeassistant.exceptions import HomeAssistantError
+
+from ..common.connectivity_status import ConnectivityStatus
 
 
 class LoginError(Exception):

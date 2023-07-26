@@ -48,8 +48,9 @@ from ..common.consts import (
     VIDEO_DETAILS_EXTENSION,
     VIDEO_DETAILS_TIME,
 )
-from ..common.exceptions import APIValidationException
-from ..common.monitor_data import MonitorData
+from ..models.config_data import ConfigData
+from ..models.exceptions import APIValidationException
+from ..models.monitor_data import MonitorData
 from .config_manager import ConfigManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -104,6 +105,12 @@ class RestAPI:
         return result
 
     @property
+    def config_data(self) -> ConfigData:
+        result = self._config_manager.config_data
+
+        return result
+
+    @property
     def status(self) -> str | None:
         status = self._status
 
@@ -151,13 +158,18 @@ class RestAPI:
         await self.login()
 
     def build_proxy_url(self, endpoint, monitor_id: str = None):
-        proxy_url_prefix = f"{BASE_PROXY_URL}/{self._config_manager.entry_id}/"
-        url = self._build_url(proxy_url_prefix, endpoint, monitor_id)
+        use_proxy = self._config_manager.use_proxy_for_recordings
+        api_url = self.config_data.api_url
+
+        if use_proxy:
+            api_url = f"{BASE_PROXY_URL}/{self._config_manager.entry_id}/"
+
+        url = self._build_url(api_url, endpoint, monitor_id)
 
         return url
 
     def build_url(self, endpoint, monitor_id: str = None):
-        url = self._build_url(self._config_manager.api_url, endpoint, monitor_id)
+        url = self._build_url(self.config_data.api_url, endpoint, monitor_id)
 
         return url
 
@@ -291,7 +303,7 @@ class RestAPI:
 
     async def update(self):
         _LOGGER.debug(
-            f"Updating data from Shinobi Video Server ({self._config_manager.host})"
+            f"Updating data from Shinobi Video Server ({self.config_data.hostname})"
         )
 
         if self.status == ConnectivityStatus.Failed:
@@ -311,8 +323,8 @@ class RestAPI:
             self.data[API_DATA_API_KEY] = None
 
             data = {
-                LOGIN_USERNAME: self._config_manager.username,
-                LOGIN_PASSWORD: self._config_manager.password,
+                LOGIN_USERNAME: self.config_data.username,
+                LOGIN_PASSWORD: self.config_data.password,
             }
 
             login_data = await self._async_post(URL_LOGIN, data)

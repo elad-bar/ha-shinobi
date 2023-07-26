@@ -29,8 +29,8 @@ from .common.consts import (
 )
 from .common.entity_descriptions import IntegrationCameraEntityDescription
 from .common.enums import MonitorState
-from .common.monitor_data import MonitorData
 from .managers.coordinator import Coordinator
+from .models.monitor_data import MonitorData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,8 +77,10 @@ class IntegrationCameraEntity(IntegrationBaseEntity, Camera, ABC):
         self._last_url = None
         self._snapshot_url = None
 
-        username = coordinator.config_manager.username
-        password = coordinator.config_manager.password
+        config_data = coordinator.config_manager.config_data
+
+        username = config_data.username
+        password = config_data.password
 
         if username and password:
             self._auth = aiohttp.BasicAuth(username, password=password)

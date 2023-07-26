@@ -6,7 +6,7 @@ import mimetypes
 
 from homeassistant.components.camera import DOMAIN as DOMAIN_CAMERA
 
-from .consts import (
+from ..common.consts import (
     MEDIA_SOURCE_ITEM_IDENTIFIER_CATEGORY,
     MEDIA_SOURCE_ITEM_IDENTIFIER_DAY,
     MEDIA_SOURCE_ITEM_IDENTIFIER_KEY,
