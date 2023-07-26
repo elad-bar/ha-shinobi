@@ -9,8 +9,7 @@
           "port": "Port",
           "username": "Username",
           "password": "Password",
-          "ssl": "Is SSL",
-          "use_original_stream": "Use original stream"
+          "ssl": "SSL"
         }
       }
     },
@@ -30,10 +29,9 @@
         "data": {
           "host": "Host",
           "port": "Port",
-          "ssl": "Is SSL",
+          "ssl": "SSL",
           "username": "Username",
-          "password": "Password",
-          "use_original_stream": "Use original stream"
+          "password": "Password"
         }
       }
     },
