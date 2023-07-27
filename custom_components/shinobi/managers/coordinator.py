@@ -237,7 +237,7 @@ class Coordinator(DataUpdateCoordinator):
 
             await self._websockets.initialize()
 
-        elif status == ConnectivityStatus.Failed:
+        elif status in [ConnectivityStatus.Failed]:
             await self._websockets.terminate()
 
             await sleep(API_RECONNECT_INTERVAL.total_seconds())
@@ -251,9 +251,7 @@ class Coordinator(DataUpdateCoordinator):
         if entry_id != self._config_manager.entry_id:
             return
 
-        if status == ConnectivityStatus.Failed:
-            await self._api.initialize()
-
+        if status in [ConnectivityStatus.Failed, ConnectivityStatus.NotConnected]:
             await sleep(WS_RECONNECT_INTERVAL.total_seconds())
 
             await self._api.initialize()
