@@ -252,6 +252,8 @@ class Coordinator(DataUpdateCoordinator):
             return
 
         if status in [ConnectivityStatus.Failed, ConnectivityStatus.NotConnected]:
+            await self._websockets.terminate()
+
             await sleep(WS_RECONNECT_INTERVAL.total_seconds())
 
             await self._api.initialize()
