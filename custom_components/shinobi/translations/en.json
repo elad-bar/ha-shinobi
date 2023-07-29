@@ -7,11 +7,9 @@
         "data": {
           "host": "Host",
           "port": "Port",
-          "path": "Path",
           "username": "Username",
           "password": "Password",
-          "ssl": "Is SSL",
-          "use_original_stream": "Use original stream"
+          "ssl": "SSL"
         }
       }
     },
@@ -31,20 +29,74 @@
         "data": {
           "host": "Host",
           "port": "Port",
-          "ssl": "Is SSL",
-          "path": "Path",
+          "ssl": "SSL",
           "username": "Username",
-          "password": "Password",
-          "use_original_stream": "Use original stream"
+          "password": "Password"
         }
       }
     },
     "error": {
       "invalid_admin_credentials": "Invalid administrator credentials",
       "invalid_server_details": "Invalid server details",
-      "already_configured": "Integration already configured with the name",
+      "already_configured": "integration already configured with the name",
       "missing_permanent_api_key": "Missing permanent API key",
       "corrupted_encryption_key": "Encryption key got corrupted, please remove the integration and re-add it"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "motion": {
+        "name": "Motion"
+      },
+      "sound": {
+        "name": "Sound"
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": ""
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "0": "Disabled",
+          "1": "Starting",
+          "2": "Watching",
+          "3": "Recording",
+          "4": "Restarting",
+          "5": "Stopped",
+          "6": "Idle",
+          "7": "Died",
+          "8": "Stopping",
+          "9": "Started"
+        }
+      }
+    },
+    "select": {
+      "mode": {
+        "name": "Mode",
+        "state": {
+          "stop": "Disabled",
+          "start": "Watch-Only",
+          "record": "Record"
+        }
+      }
+    },
+    "switch": {
+      "motion_detector": {
+        "name": "Motion Detector"
+      },
+      "sound_detector": {
+        "name": "Sound Detector"
+      },
+      "use_original_stream": {
+        "name": "Use Original Stream"
+      },
+      "use_proxy_for_recordings": {
+        "name": "Use Proxy for Recording"
+      }
     }
   }
 }

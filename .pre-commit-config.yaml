@@ -17,7 +17,7 @@ repos:
       - id: codespell
         args:
           - --ignore-words-list=hass,alot,datas,dof,dur,ether,farenheit,hist,iff,ines,ist,lightsensor,mut,nd,pres,referer,ser,serie,te,technik,ue,uint,visability,wan,wanna,withing,iam,incomfort
-          - --skip="./.*,*.csv,*.json"
+          - --skip="./.*,./*.svg,*.svg,*.csv,*.json"
           - --quiet-level=2
         exclude_types: [csv, json]
   - repo: https://github.com/PyCQA/autoflake
@@ -63,7 +63,7 @@ repos:
       - id: trailing-whitespace
       - id: check-added-large-files
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.28.0
+    rev: v1.31.0
     hooks:
       - id: yamllint
   - repo: https://github.com/pre-commit/mirrors-prettier

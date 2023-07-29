@@ -1,5 +1,52 @@
 # Changelog
 
+## 3.0.0
+
+### Major refactor to integration
+
+- Removed previous infrastructure for creating and managing components, switched to native UpdateCoordinator
+- Support translations for entity names
+- Add more components (see below)
+- Add proxy view for recordings
+- Improve camera component
+- Remove repair process introduced in v2.0.34
+
+### BREAKING CHANGES
+
+- Unique IDs format for entities and devices, also password storage flow changed, If integration is not working after upgrade, it is recommended to remove and re-integrate.
+- `Use Original Stream` local storage key name changed, by default it is off, if you enabled it in the past, please re-enable to make it work again.
+
+### Components
+
+#### Camera
+
+- Fix wrong usage of mode vs. status
+- Snapshot image is taken directly from the server
+- HA State aligned to Monitor status:
+
+  | Monitor Status | HA Camera State |
+  | -------------- | --------------- |
+  | recording      | Recording       |
+  | watching       | Streaming       |
+  | rest           | Idle            |
+
+#### Media Source
+
+- In monitor / camera wall changed the displayed name to camera name instead of ID
+- Add HA Proxy View for thumbnails and videos
+
+#### Binary Sensor
+
+- Motion, Sound - set default state to `off` when camera is not online (watching or recording)
+
+#### Switch
+
+- Add HA Proxy for server device, defines whether to use local proxy for `Media Sources` thumbnails and videos, Default: off
+
+#### Sensor
+
+- Add `status` sensor per camera to present the camera status
+
 ## 2.0.34
 
 - Fix camera stream flags

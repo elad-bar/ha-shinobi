@@ -1,5 +1,8 @@
 ignore: |
   azure-*.yml
+  .yamllint
+  action.yml
+  main.yml
 rules:
   braces:
     level: error
