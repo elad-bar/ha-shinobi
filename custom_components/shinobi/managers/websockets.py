@@ -266,6 +266,7 @@ class WebSockets:
         _LOGGER.info("Starting to listen connected")
 
         async for msg in self._ws:
+            is_ha_running = self._hass.is_running
             is_connected = self.status == ConnectivityStatus.Connected
             is_closing_type = msg.type in WS_CLOSING_MESSAGE
             is_error = msg.type == aiohttp.WSMsgType.ERROR
@@ -275,28 +276,32 @@ class WebSockets:
             )
             session_is_closed = self._session is None or self._session.closed
 
-            if (
-                is_closing_type
-                or is_error
-                or is_closing_data
-                or session_is_closed
-                or not is_connected
-            ):
+            not_connected = True in [
+                is_closing_type,
+                is_error,
+                is_closing_data,
+                session_is_closed,
+                not is_connected,
+            ]
+
+            if not is_ha_running:
+                self._set_status(ConnectivityStatus.Disconnected)
+                return
+
+            elif not_connected:
                 _LOGGER.warning(
                     f"WS stopped listening, "
                     f"Message: {str(msg)}, "
                     f"Exception: {self._ws.exception()}"
                 )
 
-                break
+                self._set_status(ConnectivityStatus.NotConnected)
+                return
 
             elif can_try_parse_message:
                 self.data[API_DATA_LAST_UPDATE] = datetime.now().isoformat()
 
                 await self._parse_message(msg.data)
-
-        if self.status == ConnectivityStatus.Connected:
-            self._set_status(ConnectivityStatus.NotConnected)
 
     async def _parse_message(self, message: str):
         try:

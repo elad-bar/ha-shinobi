@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.1
+
+- Fix translations for options
+- Fix configuration storing process when changing server's switches
+- Media Source
+  - Fix typos in logs
+  - Fix support when Video Wall API is not available
+- Better handling disconnection for WebSockets
+
 ## 3.0.0
 
 ### Major refactor to integration

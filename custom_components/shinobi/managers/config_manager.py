@@ -263,11 +263,16 @@ class ConfigManager:
 
         entry_data = store_data.get(self._entry_id, {})
 
+        _LOGGER.debug(
+            f"Storing config data: {json.dumps(self._data)}, "
+            f"Exiting: {json.dumps(entry_data)}"
+        )
+
         for key in self._data:
             stored_value = entry_data.get(key)
 
             if key in [CONF_PASSWORD, CONF_USERNAME]:
-                entry_data.pop(CONF_USERNAME)
+                entry_data.pop(key)
 
                 if stored_value is not None:
                     should_save = True

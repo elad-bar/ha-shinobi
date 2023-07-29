@@ -117,6 +117,12 @@ class Coordinator(DataUpdateCoordinator):
         self._monitors = {}
 
     @property
+    def monitors(self) -> dict[str, MonitorData]:
+        monitors = self._monitors
+
+        return monitors
+
+    @property
     def api(self) -> RestAPI:
         api = self._api
 

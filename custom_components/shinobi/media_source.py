@@ -94,7 +94,7 @@ class IntegrationMediaSource(MediaSource, ABC):
         mime_type = identifier.video_mime_type
 
         _LOGGER.debug(
-            f"Resolving Identifier: {identifier.identifier},"
+            f"Resolving Identifier: {identifier.identifier}, "
             f"URL: {video_url}, "
             f"Mime type: {mime_type}"
         )
@@ -112,7 +112,7 @@ class IntegrationMediaSource(MediaSource, ABC):
         action = self._ui_modes.get(identifier.current_mode)
 
         _LOGGER.debug(
-            f"Browse media, " f"Identifier: {identifier.identifier}, " f"Title: {title}"
+            f"Browse media, Identifier: {identifier.identifier}, Title: {title}"
         )
 
         return BrowseMediaSource(
@@ -156,6 +156,9 @@ class IntegrationMediaSource(MediaSource, ABC):
 
         monitors = await self.api.get_video_wall()
 
+        if monitors is None:
+            monitors = [{ATTR_MONITOR_ID: key} for key in self.coordinator.monitors]
+
         for monitor in monitors:
             monitor_id = monitor.get(ATTR_MONITOR_ID)
             monitor_data = self._coordinator.get_monitor(monitor_id)
@@ -172,7 +175,7 @@ class IntegrationMediaSource(MediaSource, ABC):
                 snapshot = self.api.build_proxy_url(f"{{base_url}}{snapshot}")
 
                 _LOGGER.debug(
-                    f"Monitor's snapshots: {identifier.identifier}," f"URL: {snapshot}"
+                    f"Monitor's snapshots: {identifier.identifier}, URL: {snapshot}"
                 )
 
             item = BrowseMediaSource(
@@ -230,7 +233,7 @@ class IntegrationMediaSource(MediaSource, ABC):
             )
 
             _LOGGER.debug(
-                f"Calendar's thumbnails: {identifier.identifier},"
+                f"Calendar's thumbnails: {identifier.identifier}, "
                 f"URL: {thumbnail_url}"
             )
 
@@ -278,7 +281,7 @@ class IntegrationMediaSource(MediaSource, ABC):
             )
 
             _LOGGER.debug(
-                f"Video's thumbnails: {identifier.identifier}," f"URL: {thumbnail_url}"
+                f"Video's thumbnails: {identifier.identifier}, URL: {thumbnail_url}"
             )
 
             item = BrowseMediaSource(
