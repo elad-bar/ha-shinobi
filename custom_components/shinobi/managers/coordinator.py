@@ -45,6 +45,7 @@ from ..common.consts import (
     SIGNAL_MONITOR_UPDATED,
     SIGNAL_SERVER_ADDED,
     SIGNAL_SERVER_DISCOVERED,
+    SIGNAL_WS_READY,
     SIGNAL_WS_STATUS,
     UPDATE_API_INTERVAL,
     UPDATE_ENTITIES_INTERVAL,
@@ -98,6 +99,7 @@ class Coordinator(DataUpdateCoordinator):
             SIGNAL_MONITOR_TRIGGER: self._on_monitor_triggered,
             SIGNAL_MONITOR_STATUS_CHANGED: self._on_monitor_status_changed,
             SIGNAL_SERVER_DISCOVERED: self._on_server_discovered,
+            SIGNAL_WS_READY: self._on_ws_ready,
         }
 
         for signal in signal_handlers:
@@ -264,7 +266,12 @@ class Coordinator(DataUpdateCoordinator):
 
             await self._api.initialize()
 
-    async def _on_server_discovered(self, entry_id: str):
+    async def _on_ws_ready(self, entry_id: str) -> None:
+        if entry_id == self.config_manager.entry_id:
+            for monitor_id in self.monitors:
+                await self._websockets.send_connect_monitor(monitor_id)
+
+    async def _on_server_discovered(self, entry_id: str) -> None:
         if entry_id == self.config_manager.entry_id:
             async_dispatcher_send(
                 self.hass, SIGNAL_SERVER_ADDED, self._config_manager.entry_id
@@ -283,7 +290,7 @@ class Coordinator(DataUpdateCoordinator):
             self._monitors[monitor.id] = monitor
 
     async def _on_monitor_triggered(
-        self, entry_id: str, _group_id, monitor_id, event_type, value
+        self, entry_id: str, monitor_id: str, event_type: str, value
     ):
         if entry_id == self.config_manager.entry_id:
             _LOGGER.debug(
@@ -429,24 +436,25 @@ class Coordinator(DataUpdateCoordinator):
         return result
 
     def _get_motion_status_data(
-        self, _entity_description, monitor_id: str
+        self, entity_description, monitor_id: str
     ) -> dict | None:
-        is_on: bool = False
-
-        monitor = self.get_monitor(monitor_id)
-        is_online = monitor.is_online
-
-        if is_online:
-            is_on = self._websockets.get_trigger_state(
-                self._api.group_id, monitor_id, BinarySensorDeviceClass.MOTION
-            )
-
-        result = {ATTR_IS_ON: is_on}
+        result = self._get_sensor_status_data(
+            entity_description, monitor_id, BinarySensorDeviceClass.MOTION
+        )
 
         return result
 
     def _get_sound_status_data(
-        self, _entity_description, monitor_id: str
+        self, entity_description, monitor_id: str
+    ) -> dict | None:
+        result = self._get_sensor_status_data(
+            entity_description, monitor_id, BinarySensorDeviceClass.SOUND
+        )
+
+        return result
+
+    def _get_sensor_status_data(
+        self, _entity_description, monitor_id: str, event_type: BinarySensorDeviceClass
     ) -> dict | None:
         is_on: bool = False
 
@@ -454,9 +462,7 @@ class Coordinator(DataUpdateCoordinator):
         is_online = monitor.is_online
 
         if is_online:
-            is_on = self._websockets.get_trigger_state(
-                self._api.group_id, monitor_id, BinarySensorDeviceClass.SOUND
-            )
+            is_on = self._websockets.get_trigger_state(monitor_id, event_type)
 
         result = {ATTR_IS_ON: is_on}
 

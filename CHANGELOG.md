@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.0.2
+
+### New features
+
+- Support multiple instances of integrations for media source of Shinobi Video
+
+### Bug fixes
+
+- Motion detection stopped working since 3.x [#49](https://github.com/elad-bar/ha-shinobi/issues/50)
+- Latest home assistant update (2023.08.1) seems broken shinobi integration [#50](https://github.com/elad-bar/ha-shinobi/issues/50)
+
 ## 3.0.1
 
 - Fix translations for options

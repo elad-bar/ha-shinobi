@@ -20,6 +20,7 @@ from homeassistant.core import HomeAssistant, callback
 from .common.consts import (
     ATTR_MONITOR_ID,
     DATE_FORMAT_WEEKDAY,
+    DEFAULT_NAME,
     DOMAIN,
     MEDIA_BROWSER_NAME,
     MEDIA_SOURCE_SPECIAL_DAYS,
@@ -42,11 +43,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_get_media_source(hass: HomeAssistant) -> IntegrationMediaSource:
     """Set up Shinobi Video Browser media source."""
-    entries = hass.config_entries.async_entries(DOMAIN)
-
-    for entry in entries:
-        coordinator = hass.data[DOMAIN][entry.entry_id]
-        return IntegrationMediaSource(hass, entry, coordinator)
+    return IntegrationMediaSource(hass)
 
 
 class IntegrationMediaSource(MediaSource, ABC):
@@ -60,35 +57,28 @@ class IntegrationMediaSource(MediaSource, ABC):
         int, Callable[[MediaSourceItemIdentifier], Awaitable[list[BrowseMediaSource]]]
     ]
 
-    def __init__(
-        self, hass: HomeAssistant, entry: ConfigEntry, coordinator: Coordinator
-    ) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize CameraMediaSource."""
         _LOGGER.debug("Loading Shinobi Media Source")
 
         super().__init__(DOMAIN)
         self.hass = hass
-        self.entry = entry
-
-        self._coordinator = coordinator
 
         self._ui_modes = {
-            1: self._async_build_monitors,
-            2: self._async_build_calendar,
-            3: self._async_build_videos,
+            1: self._async_build_servers,
+            2: self._async_build_monitors,
+            3: self._async_build_calendar,
             4: self._async_build_videos,
             5: self._async_build_videos,
+            6: self._async_build_videos,
         }
-
-    @property
-    def api(self) -> RestAPI:
-        return self._coordinator.api
 
     async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:
         """Resolve selected Video to a streaming URL."""
         identifier = MediaSourceItemIdentifier(item.identifier)
+        api = self._get_api(identifier)
 
-        video_base_url = self.api.build_proxy_url(URL_VIDEOS, identifier.monitor_id)
+        video_base_url = api.build_proxy_url(URL_VIDEOS, identifier.monitor_id)
         video_url = f"{video_base_url}/{identifier.day}T{identifier.video_time}.{identifier.video_extension}"
 
         mime_type = identifier.video_mime_type
@@ -129,11 +119,40 @@ class IntegrationMediaSource(MediaSource, ABC):
             ],
         )
 
+    def _get_entry(self, identifier: MediaSourceItemIdentifier) -> ConfigEntry | None:
+        entry_id = identifier.entry_id
+        entry = self.hass.config_entries.async_get_entry(entry_id)
+
+        return entry
+
+    def _get_coordinator(self, identifier: MediaSourceItemIdentifier) -> Coordinator:
+        entry_id = identifier.entry_id
+
+        _LOGGER.info(self.hass.data[DOMAIN])
+        _LOGGER.info(entry_id)
+
+        coordinator = self.hass.data[DOMAIN][entry_id]
+
+        return coordinator
+
+    def _get_api(self, identifier: MediaSourceItemIdentifier) -> RestAPI:
+        coordinator = self._get_coordinator(identifier)
+        api = coordinator.api
+
+        return api
+
     def _get_title(self, identifier: MediaSourceItemIdentifier) -> str:
-        title_parts = [self.entry.title]
+        title_parts = [DEFAULT_NAME]
+
+        if identifier.entry_id is not None:
+            entry = self._get_entry(identifier)
+
+            title_parts.append(entry.title)
 
         if identifier.monitor_id is not None:
-            monitor = self._coordinator.get_monitor(identifier.monitor_id)
+            coordinator = self._get_coordinator(identifier)
+
+            monitor = coordinator.get_monitor(identifier.monitor_id)
 
             title_parts.append(monitor.name)
 
@@ -146,23 +165,53 @@ class IntegrationMediaSource(MediaSource, ABC):
         return title
 
     @callback
+    async def _async_build_servers(
+        self, identifier: MediaSourceItemIdentifier
+    ) -> list[BrowseMediaSource]:
+        """Build list of media sources from Shinobi Video Server."""
+        items: list[BrowseMediaSource] = []
+        entries = self.hass.config_entries.async_entries(DOMAIN)
+
+        _LOGGER.debug("Building entries list")
+
+        for entry in entries:
+            entry_id = entry.entry_id
+            entry_title = entry.title
+
+            item = BrowseMediaSource(
+                domain=DOMAIN,
+                identifier=f"{identifier.identifier}/{entry_id}",
+                media_class=MediaClass.APP,
+                media_content_type=MediaType.APP,
+                title=entry_title,
+                can_play=False,
+                can_expand=True,
+            )
+
+            items.append(item)
+
+        return items
+
+    @callback
     async def _async_build_monitors(
         self, identifier: MediaSourceItemIdentifier
     ) -> list[BrowseMediaSource]:
         """Build list of media sources from Shinobi Video Server."""
         items: list[BrowseMediaSource] = []
+        coordinator = self._get_coordinator(identifier)
+        api = self._get_api(identifier)
 
         _LOGGER.debug("Building monitors list")
 
-        monitors = await self.api.get_video_wall()
+        monitors = await api.get_video_wall()
 
         if monitors is None:
             monitors = [{ATTR_MONITOR_ID: key} for key in self.coordinator.monitors]
 
         for monitor in monitors:
             monitor_id = monitor.get(ATTR_MONITOR_ID)
-            monitor_data = self._coordinator.get_monitor(monitor_id)
-            monitor_name = self._coordinator.get_monitor_device_name(monitor_data)
+            monitor_data = coordinator.get_monitor(monitor_id)
+            monitor_name = coordinator.get_monitor_device_name(monitor_data)
 
             snapshot = None
 
@@ -172,7 +221,7 @@ class IntegrationMediaSource(MediaSource, ABC):
                 if snapshot.startswith("/"):
                     snapshot = snapshot[1:]
 
-                snapshot = self.api.build_proxy_url(f"{{base_url}}{snapshot}")
+                snapshot = api.build_proxy_url(f"{{base_url}}{snapshot}")
 
                 _LOGGER.debug(
                     f"Monitor's snapshots: {identifier.identifier}, URL: {snapshot}"
@@ -199,11 +248,12 @@ class IntegrationMediaSource(MediaSource, ABC):
     ) -> list[BrowseMediaSource]:
         """Build list of media sources from Shinobi Video Server."""
         items: list[BrowseMediaSource] = []
+        api = self._get_api(identifier)
 
         _LOGGER.debug(f"Building camera calendar, " f"Monitor: {identifier.monitor_id}")
 
         today = datetime.today()
-        monitors = await self.api.get_video_wall_monitor(identifier.monitor_id)
+        monitors = await api.get_video_wall_monitor(identifier.monitor_id)
 
         for monitor in monitors:
             date_iso = monitor.get(ATTR_DATE)
@@ -223,7 +273,7 @@ class IntegrationMediaSource(MediaSource, ABC):
                 )
                 day_name = date.strftime(day_name_key)
 
-            thumbnail_base_url = self.api.build_proxy_url(
+            thumbnail_base_url = api.build_proxy_url(
                 URL_TIME_LAPSE, identifier.monitor_id
             )
             thumbnail_url = (
@@ -258,8 +308,9 @@ class IntegrationMediaSource(MediaSource, ABC):
     ) -> list[BrowseMediaSource]:
         """Build list of media sources from Shinobi Video Server."""
         items: list[BrowseMediaSource] = []
+        api = self._get_api(identifier)
 
-        monitors = await self.api.get_video_wall_monitor_date(
+        monitors = await api.get_video_wall_monitor_date(
             identifier.monitor_id, identifier.day
         )
 
@@ -273,7 +324,7 @@ class IntegrationMediaSource(MediaSource, ABC):
             video_start_time = video_time.strftime(VIDEO_DETAILS_TIME_FORMAT)
             video_time_iso = video_time.strftime(VIDEO_DETAILS_TIME_ISO_FORMAT)
 
-            thumbnail_base_url = self.api.build_proxy_url(
+            thumbnail_base_url = api.build_proxy_url(
                 URL_TIME_LAPSE, identifier.monitor_id
             )
             thumbnail_url = (

@@ -11,7 +11,6 @@ from typing import Any, Callable
 import aiohttp
 from aiohttp import ClientSession
 
-from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -22,9 +21,9 @@ from ..common.consts import (
     API_DATA_API_KEY,
     API_DATA_GROUP_ID,
     API_DATA_LAST_UPDATE,
-    API_DATA_MONITORS,
     API_DATA_SOCKET_IO_VERSION,
     API_DATA_USER_ID,
+    ATTR_EVENT_TYPE,
     ATTR_IS_ON,
     ATTR_MONITOR_GROUP_ID,
     ATTR_MONITOR_ID,
@@ -42,6 +41,7 @@ from ..common.consts import (
     SHINOBI_WS_PONG_MESSAGE,
     SIGNAL_MONITOR_STATUS_CHANGED,
     SIGNAL_MONITOR_TRIGGER,
+    SIGNAL_WS_READY,
     SIGNAL_WS_STATUS,
     TRIGGER_DEFAULT,
     TRIGGER_DETAILS,
@@ -51,13 +51,15 @@ from ..common.consts import (
     TRIGGER_NAME,
     TRIGGER_PLUG,
     TRIGGER_STARTS_WITH,
-    TRIGGER_STATE,
     TRIGGER_TIMESTAMP,
-    TRIGGER_TOPIC,
     URL_PARAMETER_BASE_URL,
     URL_PARAMETER_VERSION,
     WS_CLOSING_MESSAGE,
     WS_COMPRESSION_DEFLATE,
+    WS_EVENT_ACTION_PING,
+    WS_EVENT_DETECTOR_TRIGGER,
+    WS_EVENT_LOG,
+    WS_EVENT_MONITOR_STATUS,
     WS_TIMEOUT,
 )
 from .config_manager import ConfigManager
@@ -70,6 +72,7 @@ class WebSockets:
     _triggered_sensors: dict
     _api_data: dict
     _config_manager: ConfigManager
+    _allowed_handlers: list[str]
 
     _status: ConnectivityStatus | None
     _on_status_changed: Callable[[ConnectivityStatus], Awaitable[None]]
@@ -104,10 +107,12 @@ class WebSockets:
             }
 
             self._handlers = {
-                "log": self._handle_log,
-                "detector_trigger": self._handle_detector_trigger,
-                "monitor_status": self._monitor_status_changed,
+                WS_EVENT_LOG: self._handle_log,
+                WS_EVENT_DETECTOR_TRIGGER: self._handle_detector_trigger,
+                WS_EVENT_MONITOR_STATUS: self._handle_monitor_status_changed,
             }
+
+            self._allowed_handlers = []
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -151,16 +156,14 @@ class WebSockets:
     def group_id(self):
         return self._api_data.get(API_DATA_GROUP_ID)
 
-    @property
-    def monitors(self):
-        return self._api_data.get(API_DATA_MONITORS, {})
-
     async def update_api_data(self, api_data: dict):
         self._api_data = api_data
 
     async def initialize(self):
         try:
             _LOGGER.debug(f"Initializing, Mode: {self._is_home_assistant}")
+            self._allowed_handlers = list(self._handlers.keys())
+
             if self._is_home_assistant:
                 self._remove_async_track_time = async_track_time_interval(
                     self._hass, self._check_triggers, TRIGGER_INTERVAL
@@ -361,16 +364,20 @@ class WebSockets:
             if action == "f":
                 func = data.get(action)
 
-                if func in self._handlers.keys():
-                    handler: Callable = self._handlers.get(func, None)
+                if func in self._allowed_handlers:
+                    _LOGGER.debug(
+                        f"Payload ({prefix}) received, Type: {func}, Data: {data}"
+                    )
+
+                    handler: Callable = self._handlers.get(func)
 
                     if handler is not None:
                         await handler(data)
 
-                else:
+                elif func != WS_EVENT_LOG:
                     _LOGGER.debug(f"Payload ({prefix}) received, Type: {func}")
 
-            elif action == "ping":
+            elif action == WS_EVENT_ACTION_PING:
                 await self._send_pong_message(data)
 
             else:
@@ -414,20 +421,54 @@ class WebSockets:
         log_type = log.get("type")
 
         if monitor_id == "$USER" and log_type == "Websocket Connected":
-            _LOGGER.debug("WebSocket Connected")
+            _LOGGER.debug(log_type)
 
-            for monitor_id in self.monitors:
-                await self._send_connect_monitor(monitor_id)
+            if WS_EVENT_LOG in self._allowed_handlers:
+                self._allowed_handlers.remove(WS_EVENT_LOG)
+
+            self._async_dispatcher_send(SIGNAL_WS_READY)
 
     async def _handle_detector_trigger(self, data):
-        _LOGGER.debug(f"Payload received, Data: {data}")
+        try:
+            _LOGGER.debug(f"Payload received, Data: {data}")
 
-        monitor_id = data.get("id")
-        group_id = data.get(ATTR_MONITOR_GROUP_ID)
+            monitor_id = data.get("id")
 
-        self._message_received(group_id, monitor_id, data)
+            trigger_details = data.get(TRIGGER_DETAILS, {})
+            trigger_reason = trigger_details.get(TRIGGER_DETAILS_REASON)
 
-    async def _monitor_status_changed(self, data):
+            self.fire_event(trigger_reason, data)
+
+            sensor_type = PLUG_SENSOR_TYPE.get(trigger_reason)
+
+            if sensor_type is not None:
+                trigger_name = data.get(TRIGGER_NAME)
+                trigger_plug = trigger_details.get(TRIGGER_DETAILS_PLUG)
+
+                if trigger_name is None:
+                    trigger_name = trigger_details.get(TRIGGER_NAME)
+
+                event_data = {
+                    ATTR_MONITOR_ID: monitor_id,
+                    ATTR_EVENT_TYPE: sensor_type,
+                    TRIGGER_NAME: trigger_name,
+                    TRIGGER_PLUG: trigger_plug,
+                    TRIGGER_DETAILS_REASON: trigger_reason,
+                    ATTR_IS_ON: True,
+                    TRIGGER_TIMESTAMP: datetime.now().timestamp(),
+                }
+
+                self._set_trigger_data(monitor_id, sensor_type, event_data)
+
+        except Exception as ex:
+            exc_type, exc_obj, tb = sys.exc_info()
+            line_number = tb.tb_lineno
+
+            _LOGGER.error(
+                f"Failed to handle sensor message, Error: {ex}, Line: {line_number}"
+            )
+
+    async def _handle_monitor_status_changed(self, data):
         _LOGGER.debug(f"Monitor status event received, Data: {data}")
 
         monitor_id = data.get("id")
@@ -461,7 +502,7 @@ class WebSockets:
 
         await self._send(message)
 
-    async def _send_connect_monitor(self, monitor_id: str):
+    async def send_connect_monitor(self, monitor_id: str):
         message_data = [
             "f",
             {
@@ -485,43 +526,6 @@ class WebSockets:
         if self.status == ConnectivityStatus.Connected:
             await self._ws.send_str(message)
 
-    def _message_received(self, group_id: str, monitor_id: str, payload):
-        try:
-            trigger_details = payload.get(TRIGGER_DETAILS, {})
-            trigger_reason = trigger_details.get(TRIGGER_DETAILS_REASON)
-
-            self.fire_event(trigger_reason, payload)
-
-            sensor_type = PLUG_SENSOR_TYPE.get(trigger_reason, None)
-
-            if sensor_type is not None:
-                topic = f"{group_id}/{monitor_id}"
-
-                trigger_name = payload.get(TRIGGER_NAME)
-                trigger_plug = trigger_details.get(TRIGGER_DETAILS_PLUG)
-
-                if trigger_name is None:
-                    trigger_name = trigger_details.get(TRIGGER_NAME)
-
-                event_data = {
-                    TRIGGER_NAME: trigger_name,
-                    TRIGGER_PLUG: trigger_plug,
-                    TRIGGER_DETAILS_REASON: trigger_reason,
-                    ATTR_IS_ON: True,
-                    TRIGGER_TIMESTAMP: datetime.now().timestamp(),
-                    TRIGGER_TOPIC: topic,
-                }
-
-                self._set_trigger_data(group_id, monitor_id, sensor_type, event_data)
-
-        except Exception as ex:
-            exc_type, exc_obj, tb = sys.exc_info()
-            line_number = tb.tb_lineno
-
-            _LOGGER.error(
-                f"Failed to handle sensor message, Error: {ex}, Line: {line_number}"
-            )
-
     def fire_event(self, trigger: str, data: dict):
         event_name = f"{SHINOBI_EVENT}{trigger}"
 
@@ -542,39 +546,38 @@ class WebSockets:
             loop.create_task(self._async_check_triggers(datetime.now()))
 
             loop.call_later(
-                TRIGGER_INTERVAL.total_seconds(), self._check_triggers, datetime.now()
+                TRIGGER_INTERVAL.total_seconds(),
+                self._async_check_triggers,
+                datetime.now(),
             )
 
     async def _async_check_triggers(self, event_time):
         try:
             current_time = datetime.now().timestamp()
 
-            for group_id in self._triggered_sensors:
-                monitors = self._triggered_sensors[group_id]
+            keys = [
+                key
+                for key in self._triggered_sensors
+                if self._triggered_sensors.get(key).get(ATTR_IS_ON, False)
+            ]
 
-                for monitor_id in monitors:
-                    events = monitors[monitor_id]
+            _LOGGER.debug(f"Checking event's triggers, Identified: {len(keys)}")
 
-                    for event_type in events:
-                        event_data = events[event_type]
-                        trigger_timestamp = event_data.get(TRIGGER_TIMESTAMP)
-                        trigger_state = event_data.get(TRIGGER_STATE)
+            for key in keys:
+                event_data = self._triggered_sensors.get(key)
 
-                        if trigger_state == STATE_ON:
-                            diff = current_time - trigger_timestamp
-                            event_duration = SENSOR_AUTO_OFF_INTERVAL.get(
-                                event_type, 20
-                            )
+                monitor_id = event_data.get(ATTR_MONITOR_ID)
+                event_type = event_data.get(ATTR_EVENT_TYPE)
+                trigger_timestamp = event_data.get(TRIGGER_TIMESTAMP)
 
-                            if diff >= event_duration:
-                                event_data[ATTR_IS_ON] = False
-                                event_data[
-                                    TRIGGER_TIMESTAMP
-                                ] = datetime.now().timestamp()
+                diff = current_time - trigger_timestamp
+                event_duration = SENSOR_AUTO_OFF_INTERVAL.get(event_type, 20)
 
-                                self._set_trigger_data(
-                                    group_id, monitor_id, event_type, event_data
-                                )
+                if diff >= event_duration:
+                    event_data[ATTR_IS_ON] = False
+                    event_data[TRIGGER_TIMESTAMP] = current_time
+
+                    self._set_trigger_data(monitor_id, event_type, event_data)
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -584,40 +587,42 @@ class WebSockets:
                 f"Failed to check triggers (async) at {event_time}, Error: {ex}, Line: {line_number}"
             )
 
-    def _set_trigger_data(
-        self, group_id: str, monitor_id: str, event_type: str, data: dict
-    ):
-        _LOGGER.debug(f"Set {event_type} Data: {data} for {group_id}::{monitor_id}")
+    @staticmethod
+    def _get_trigger_key(monitor_id: str, event_type: str) -> str:
+        key = f"{monitor_id}::{event_type}"
 
-        previous_trigger_state = self.get_trigger_state(
-            group_id, monitor_id, event_type
+        return key
+
+    def _set_trigger_data(self, monitor_id: str, event_type: str, data: dict):
+        key = self._get_trigger_key(monitor_id, event_type)
+
+        _LOGGER.debug(f"Set {key}, Data: {data}")
+
+        previous_trigger_state = self.get_trigger_state(monitor_id, event_type)
+
+        self._triggered_sensors[key] = data
+
+        _LOGGER.debug(
+            "Update trigger, "
+            f"Monitor: {monitor_id}, "
+            f"Event: {event_type}, "
+            f"Data: {data}"
         )
-
-        if group_id not in self._triggered_sensors:
-            self._triggered_sensors[group_id] = {}
-
-        if monitor_id not in self._triggered_sensors[group_id]:
-            self._triggered_sensors[group_id][monitor_id] = {}
-
-        self._triggered_sensors[group_id][monitor_id][event_type] = data
 
         current_trigger_state = data.get(ATTR_IS_ON)
 
         if previous_trigger_state != current_trigger_state:
             self._async_dispatcher_send(
                 SIGNAL_MONITOR_TRIGGER,
-                group_id,
                 monitor_id,
                 event_type,
                 current_trigger_state,
             )
 
-    def get_trigger_state(
-        self, group_id: str, monitor_id: str, event_type: str
-    ) -> bool:
-        group = self._triggered_sensors.get(group_id, {})
-        monitor = group.get(monitor_id, {})
-        data = monitor.get(event_type, TRIGGER_DEFAULT)
+    def get_trigger_state(self, monitor_id: str, event_type: str) -> bool:
+        key = self._get_trigger_key(monitor_id, event_type)
+
+        data = self._triggered_sensors.get(key, TRIGGER_DEFAULT)
         state = data.get(ATTR_IS_ON, False)
 
         return state

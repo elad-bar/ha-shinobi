@@ -52,9 +52,6 @@ async def async_setup_base_entry(
             )
 
     for add_component_signal in ADD_COMPONENT_SIGNALS:
-        _LOGGER.info(platform)
-        _LOGGER.info(add_component_signal)
-
         entry.async_on_unload(
             async_dispatcher_connect(hass, add_component_signal, _async_handle_device)
         )

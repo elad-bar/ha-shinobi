@@ -9,6 +9,7 @@ from homeassistant.components.camera import DOMAIN as DOMAIN_CAMERA
 from ..common.consts import (
     MEDIA_SOURCE_ITEM_IDENTIFIER_CATEGORY,
     MEDIA_SOURCE_ITEM_IDENTIFIER_DAY,
+    MEDIA_SOURCE_ITEM_IDENTIFIER_ENTRY_ID,
     MEDIA_SOURCE_ITEM_IDENTIFIER_KEY,
     MEDIA_SOURCE_ITEM_IDENTIFIER_MODE,
     MEDIA_SOURCE_ITEM_IDENTIFIER_MONITOR_ID,
@@ -22,6 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class MediaSourceItemIdentifier:
+    entry_id: str | None
     category: str | None
     monitor_id: str | None
     day: str | None
@@ -38,6 +40,7 @@ class MediaSourceItemIdentifier:
 
         self.current_mode = len(identifier_parts)
         self.identifier = identifier
+        self.entry_id = None
         self.category = None
         self.monitor_id = None
         self.day = None
@@ -48,16 +51,19 @@ class MediaSourceItemIdentifier:
             self.category = identifier_parts[0]
 
         if self.current_mode > 1:
-            self.monitor_id = identifier_parts[1]
+            self.entry_id = identifier_parts[1]
 
         if self.current_mode > 2:
-            self.day = identifier_parts[2]
+            self.monitor_id = identifier_parts[2]
 
         if self.current_mode > 3:
-            self.video_time = identifier_parts[3]
+            self.day = identifier_parts[3]
 
         if self.current_mode > 4:
-            self.video_extension = identifier_parts[4]
+            self.video_time = identifier_parts[4]
+
+        if self.current_mode > 5:
+            self.video_extension = identifier_parts[5]
 
     @property
     def video_date(self) -> str:
@@ -75,6 +81,7 @@ class MediaSourceItemIdentifier:
         obj = {
             MEDIA_SOURCE_ITEM_IDENTIFIER_MODE: self.current_mode,
             MEDIA_SOURCE_ITEM_IDENTIFIER_KEY: self.identifier,
+            MEDIA_SOURCE_ITEM_IDENTIFIER_ENTRY_ID: self.entry_id,
             MEDIA_SOURCE_ITEM_IDENTIFIER_CATEGORY: self.category,
             MEDIA_SOURCE_ITEM_IDENTIFIER_MONITOR_ID: self.monitor_id,
             MEDIA_SOURCE_ITEM_IDENTIFIER_DAY: self.day,
