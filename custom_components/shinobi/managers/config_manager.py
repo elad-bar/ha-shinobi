@@ -18,6 +18,7 @@ from ..common.consts import (
     DATA_KEY_EVENT_DURATION,
     DATA_KEY_ORIGINAL_STREAM,
     DATA_KEY_PROXY_RECORDINGS,
+    DEFAULT_ENTRY_ID,
     DEFAULT_NAME,
     DOMAIN,
     INVALID_TOKEN_SECTION,
@@ -46,7 +47,7 @@ class ConfigManager:
     def __init__(self, hass: HomeAssistant | None, entry: ConfigEntry | None = None):
         self._hass = hass
         self._entry = entry
-        self._entry_id = "config" if entry is None else entry.entry_id
+        self._entry_id = DEFAULT_ENTRY_ID if entry is None else entry.entry_id
         self._entry_title = DEFAULT_NAME if entry is None else entry.title
 
         self._config_data = ConfigData()
@@ -318,7 +319,10 @@ class ConfigManager:
 
                     entry_data[key] = self._data[key]
 
-        if should_save:
+        if should_save and self._entry_id != DEFAULT_ENTRY_ID:
+            if DEFAULT_ENTRY_ID in store_data:
+                store_data.pop(DEFAULT_ENTRY_ID)
+
             store_data[self._entry_id] = entry_data
 
             await self._store.async_save(store_data)

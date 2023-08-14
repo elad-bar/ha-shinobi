@@ -11,6 +11,7 @@
 ### Bug fixes
 
 - Fix type in logs when storing configuration of proxy for recording
+- Avoid saving default (config) entry id
 
 ## 3.0.2
 

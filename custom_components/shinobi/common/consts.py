@@ -34,6 +34,8 @@ WS_PROTOCOLS = {True: "wss", False: "ws"}
 
 INVALID_TOKEN_SECTION = "https://github.com/elad-bar/ha-shinobi#invalid-token"
 
+DEFAULT_ENTRY_ID = "config"
+
 DATA_KEY_CAMERA = "camera"
 DATA_KEY_MONITOR_MODE = "mode"
 DATA_KEY_MONITOR_STATUS = "status"
