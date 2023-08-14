@@ -191,7 +191,7 @@ class ConfigManager:
         await self._save()
 
     async def update_proxy_for_recordings(self, is_on: bool):
-        _LOGGER.debug(f"Set use original stream to {is_on}")
+        _LOGGER.debug(f"Set proxy for recordings to {is_on}")
 
         self._data[DATA_KEY_PROXY_RECORDINGS] = is_on
 
