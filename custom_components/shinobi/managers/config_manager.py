@@ -4,6 +4,7 @@ import sys
 
 from cryptography.fernet import InvalidToken
 
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.config_entries import STORAGE_VERSION, ConfigEntry
 from homeassistant.const import CONF_NAME, CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
@@ -14,11 +15,14 @@ from homeassistant.helpers.storage import Store
 
 from ..common.consts import (
     CONFIGURATION_FILE,
+    DATA_KEY_EVENT_DURATION,
     DATA_KEY_ORIGINAL_STREAM,
     DATA_KEY_PROXY_RECORDINGS,
     DEFAULT_NAME,
     DOMAIN,
     INVALID_TOKEN_SECTION,
+    SENSOR_AUTO_OFF_MOTION,
+    SENSOR_AUTO_OFF_SOUND,
 )
 from ..common.entity_descriptions import IntegrationEntityDescription
 from ..models.config_data import ConfigData
@@ -95,6 +99,12 @@ class ConfigManager:
         use_original_stream = self._data.get(DATA_KEY_PROXY_RECORDINGS, False)
 
         return use_original_stream
+
+    @property
+    def event_duration(self):
+        event_duration = self._data.get(DATA_KEY_EVENT_DURATION, {})
+
+        return event_duration
 
     @property
     def config_data(self) -> ConfigData:
@@ -183,6 +193,25 @@ class ConfigManager:
 
         return entity_name
 
+    def get_event_duration(self, event_type: BinarySensorDeviceClass) -> int:
+        event_duration = self.event_duration.get(
+            event_type, SENSOR_AUTO_OFF_MOTION.total_seconds()
+        )
+
+        return event_duration
+
+    async def update_event_duration(
+        self, event_type: BinarySensorDeviceClass, interval: int
+    ):
+        _LOGGER.debug(f"Set event duration for {event_type} to {interval} seconds")
+
+        if DATA_KEY_EVENT_DURATION not in self._data:
+            self._data[DATA_KEY_EVENT_DURATION] = {}
+
+        self._data[DATA_KEY_EVENT_DURATION][event_type] = interval
+
+        await self._save()
+
     async def update_original_stream(self, is_on: bool):
         _LOGGER.debug(f"Set use original stream to {is_on}")
 
@@ -228,6 +257,10 @@ class ConfigManager:
         data = {
             DATA_KEY_ORIGINAL_STREAM: False,
             DATA_KEY_PROXY_RECORDINGS: False,
+            DATA_KEY_EVENT_DURATION: {
+                BinarySensorDeviceClass.MOTION: SENSOR_AUTO_OFF_MOTION.total_seconds(),
+                BinarySensorDeviceClass.SOUND: SENSOR_AUTO_OFF_SOUND.total_seconds(),
+            },
         }
 
         return data

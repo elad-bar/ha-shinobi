@@ -31,7 +31,6 @@ from ..common.consts import (
     INVALID_JSON_FORMATS,
     MAX_MSG_SIZE,
     PLUG_SENSOR_TYPE,
-    SENSOR_AUTO_OFF_INTERVAL,
     SHINOBI_EVENT,
     SHINOBI_WS_ACTION_MESSAGE,
     SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE,
@@ -571,7 +570,7 @@ class WebSockets:
                 trigger_timestamp = event_data.get(TRIGGER_TIMESTAMP)
 
                 diff = current_time - trigger_timestamp
-                event_duration = SENSOR_AUTO_OFF_INTERVAL.get(event_type, 20)
+                event_duration = self._config_manager.get_event_duration(event_type)
 
                 if diff >= event_duration:
                     event_data[ATTR_IS_ON] = False

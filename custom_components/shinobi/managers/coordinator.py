@@ -18,6 +18,7 @@ from homeassistant.util import slugify
 from ..common.connectivity_status import ConnectivityStatus
 from ..common.consts import (
     ACTION_ENTITY_SELECT_OPTION,
+    ACTION_ENTITY_SET_NATIVE_VALUE,
     ACTION_ENTITY_TURN_OFF,
     ACTION_ENTITY_TURN_ON,
     API_RECONNECT_INTERVAL,
@@ -26,6 +27,8 @@ from ..common.consts import (
     ATTR_MONITOR_GROUP_ID,
     ATTR_MONITOR_ID,
     DATA_KEY_CAMERA,
+    DATA_KEY_EVENT_DURATION_MOTION,
+    DATA_KEY_EVENT_DURATION_SOUND,
     DATA_KEY_MONITOR_MODE,
     DATA_KEY_MONITOR_STATUS,
     DATA_KEY_MOTION,
@@ -354,6 +357,8 @@ class Coordinator(DataUpdateCoordinator):
             DATA_KEY_SOUND_DETECTION: self._get_sound_detection_data,
             DATA_KEY_ORIGINAL_STREAM: self._get_original_stream_data,
             DATA_KEY_PROXY_RECORDINGS: self._get_proxy_for_recordings_data,
+            DATA_KEY_EVENT_DURATION_MOTION: self._get_event_duration_motion_data,
+            DATA_KEY_EVENT_DURATION_SOUND: self._get_event_duration_sound_data,
         }
 
         self._data_mapping = data_mapping
@@ -532,6 +537,34 @@ class Coordinator(DataUpdateCoordinator):
 
         return result
 
+    def _get_event_duration_motion_data(self, entity_description) -> dict | None:
+        result = self._get_event_duration_data(
+            entity_description, BinarySensorDeviceClass.MOTION
+        )
+
+        return result
+
+    def _get_event_duration_sound_data(self, entity_description) -> dict | None:
+        result = self._get_event_duration_data(
+            entity_description, BinarySensorDeviceClass.SOUND
+        )
+
+        return result
+
+    def _get_event_duration_data(
+        self, _entity_description, event_type: BinarySensorDeviceClass
+    ) -> dict | None:
+        state = self._config_manager.get_event_duration(event_type)
+
+        result = {
+            ATTR_STATE: state,
+            ATTR_ACTIONS: {
+                ACTION_ENTITY_SET_NATIVE_VALUE: self._set_event_duration,
+            },
+        }
+
+        return result
+
     async def _set_monitor_mode(
         self, _entity_description, monitor_id: str, option: str
     ):
@@ -580,6 +613,16 @@ class Coordinator(DataUpdateCoordinator):
         _LOGGER.debug("Disable Proxy for Recordings")
 
         await self._config_manager.update_proxy_for_recordings(False)
+
+    async def _set_event_duration(self, entity_description, value: int):
+        _LOGGER.debug("Enable Original Stream")
+
+        key = entity_description.key
+        key_parts = key.split("_")
+        last_key_part = key_parts[len(key_parts) - 1]
+        event_type = BinarySensorDeviceClass(last_key_part)
+
+        await self._config_manager.update_event_duration(event_type, value)
 
     @staticmethod
     def _get_date_time_from_timestamp(timestamp):

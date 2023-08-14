@@ -131,6 +131,12 @@ How to enable `time-lapse` per monitor in Shinobi Video NVR:
 
 _Support for new endpoint of video browser in Shinobi Video NVR will be introduced on December 1st 2022_
 
+#### Number
+
+Each number will have the name pattern - {Integration Title} {Sound / Motion} Event Duration,
+Defaults are 20 seconds for motion event, 10 seconds for sound event,
+Valid values are between 0 and 600 represents seconds.
+
 ## Events
 
 Any Shinobi Video NVR event from type `detector_trigger` will be sent as an HA event as well with the same payload

@@ -78,6 +78,14 @@
         }
       }
     },
+    "number": {
+      "event_duration_motion": {
+        "name": "Motion Event Duration"
+      },
+      "event_duration_sound": {
+        "name": "Sound Event Duration"
+      }
+    },
     "select": {
       "mode": {
         "name": "Mode",

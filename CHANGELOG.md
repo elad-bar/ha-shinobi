@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.0.3
+
+### New features
+
+- Add number components to server device to control event durations:
+  - Motion defaults to 20 seconds
+  - Sound defaults to 10 seconds
+
+### Bug fixes
+
+- Fix type in logs when storing configuration of proxy for recording
+
 ## 3.0.2
 
 ### New features

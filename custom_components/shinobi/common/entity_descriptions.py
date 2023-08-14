@@ -7,15 +7,18 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 from homeassistant.components.camera import CameraEntityDescription
+from homeassistant.components.number import NumberEntityDescription
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorEntityDescription
 from homeassistant.components.switch import SwitchEntityDescription
-from homeassistant.const import Platform
+from homeassistant.const import Platform, UnitOfTime
 from homeassistant.helpers.entity import EntityCategory, EntityDescription
 
 from ..models.monitor_data import MonitorData
 from .consts import (
     DATA_KEY_CAMERA,
+    DATA_KEY_EVENT_DURATION_MOTION,
+    DATA_KEY_EVENT_DURATION_SOUND,
     DATA_KEY_MONITOR_MODE,
     DATA_KEY_MONITOR_STATUS,
     DATA_KEY_MOTION,
@@ -73,6 +76,13 @@ class IntegrationSwitchEntityDescription(
     on_value: str | bool | None = None
 
 
+@dataclass(slots=True)
+class IntegrationNumberEntityDescription(
+    NumberEntityDescription, IntegrationEntityDescription
+):
+    platform: Platform | None = Platform.NUMBER
+
+
 ENTITY_DESCRIPTIONS: list[IntegrationEntityDescription] = [
     IntegrationCameraEntityDescription(
         key=DATA_KEY_CAMERA,
@@ -127,6 +137,24 @@ ENTITY_DESCRIPTIONS: list[IntegrationEntityDescription] = [
         name=DATA_KEY_PROXY_RECORDINGS,
         translation_key=DATA_KEY_PROXY_RECORDINGS,
         filter=lambda m: m is None,
+    ),
+    IntegrationNumberEntityDescription(
+        key=DATA_KEY_EVENT_DURATION_MOTION,
+        name=DATA_KEY_EVENT_DURATION_MOTION,
+        translation_key=DATA_KEY_EVENT_DURATION_MOTION,
+        filter=lambda m: m is None,
+        native_max_value=600,
+        native_min_value=0,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+    ),
+    IntegrationNumberEntityDescription(
+        key=DATA_KEY_EVENT_DURATION_SOUND,
+        name=DATA_KEY_EVENT_DURATION_SOUND,
+        translation_key=DATA_KEY_EVENT_DURATION_SOUND,
+        filter=lambda m: m is None,
+        native_max_value=600,
+        native_min_value=0,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
     ),
 ]
 

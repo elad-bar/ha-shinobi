@@ -43,6 +43,13 @@ DATA_KEY_MOTION_DETECTION = "motion_detector"
 DATA_KEY_SOUND_DETECTION = "sound_detector"
 DATA_KEY_ORIGINAL_STREAM = "use_original_stream"
 DATA_KEY_PROXY_RECORDINGS = "use_proxy_for_recordings"
+DATA_KEY_EVENT_DURATION = "event_duration"
+DATA_KEY_EVENT_DURATION_MOTION = (
+    f"{DATA_KEY_EVENT_DURATION}_{BinarySensorDeviceClass.MOTION}"
+)
+DATA_KEY_EVENT_DURATION_SOUND = (
+    f"{DATA_KEY_EVENT_DURATION}_{BinarySensorDeviceClass.SOUND}"
+)
 
 ATTR_IS_ON = "is_on"
 
@@ -56,6 +63,7 @@ STORAGE_DATA_KEY = "key"
 ACTION_ENTITY_TURN_ON = "turn_on"
 ACTION_ENTITY_TURN_OFF = "turn_off"
 ACTION_ENTITY_SELECT_OPTION = "select_option"
+ACTION_ENTITY_SET_NATIVE_VALUE = "set_native_value"
 
 API_DATA_MONITORS = "monitors"
 API_DATA_USER_ID = "user-id"
@@ -166,10 +174,8 @@ PLUG_SENSOR_TYPE = {
     REASON_SOUND: BinarySensorDeviceClass.SOUND,
 }
 
-SENSOR_AUTO_OFF_INTERVAL = {
-    BinarySensorDeviceClass.MOTION: 20,
-    BinarySensorDeviceClass.SOUND: 10,
-}
+SENSOR_AUTO_OFF_MOTION = timedelta(seconds=20)
+SENSOR_AUTO_OFF_SOUND = timedelta(seconds=10)
 
 TRIGGER_DEFAULT = {TRIGGER_STATE: False, TRIGGER_TIMESTAMP: 0}
 
