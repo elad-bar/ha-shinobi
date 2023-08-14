@@ -259,8 +259,12 @@ class ConfigManager:
             DATA_KEY_ORIGINAL_STREAM: False,
             DATA_KEY_PROXY_RECORDINGS: False,
             DATA_KEY_EVENT_DURATION: {
-                BinarySensorDeviceClass.MOTION: SENSOR_AUTO_OFF_MOTION.total_seconds(),
-                BinarySensorDeviceClass.SOUND: SENSOR_AUTO_OFF_SOUND.total_seconds(),
+                BinarySensorDeviceClass.MOTION: int(
+                    SENSOR_AUTO_OFF_MOTION.total_seconds()
+                ),
+                BinarySensorDeviceClass.SOUND: int(
+                    SENSOR_AUTO_OFF_SOUND.total_seconds()
+                ),
             },
         }
 

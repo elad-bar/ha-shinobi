@@ -41,13 +41,15 @@ class IntegrationNumberEntity(IntegrationBaseEntity, NumberEntity, ABC):
 
         self.entity_description = entity_description
 
-        self._attr_native_max_value = entity_description.native_min_value
-        self._attr_native_min_value = entity_description.native_max_value
+        self._attr_native_min_value = entity_description.native_min_value
+        self._attr_native_max_value = entity_description.native_max_value
         self._attr_native_step = 1
 
     async def async_set_native_value(self, value: float) -> None:
         """Change the selected option."""
-        await self.async_execute_device_action(ACTION_ENTITY_SET_NATIVE_VALUE, value)
+        await self.async_execute_device_action(
+            ACTION_ENTITY_SET_NATIVE_VALUE, int(value)
+        )
 
     def update_component(self, data):
         """Fetch new state parameters for the sensor."""
@@ -55,7 +57,7 @@ class IntegrationNumberEntity(IntegrationBaseEntity, NumberEntity, ABC):
             state = data.get(ATTR_STATE)
             attributes = data.get(ATTR_ATTRIBUTES)
 
-            self._attr_native_value = state
+            self._attr_native_value = int(state)
             self._attr_extra_state_attributes = attributes
 
         else:
