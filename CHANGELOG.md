@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.4
+
+- Redact sensitive information from diagnostic file
+
 ## 3.0.3
 
 ### New features

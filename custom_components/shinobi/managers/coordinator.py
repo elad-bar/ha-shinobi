@@ -197,6 +197,11 @@ class Coordinator(DataUpdateCoordinator):
 
         return unique_id
 
+    def get_monitor_identifiers(self, monitor: MonitorData):
+        identifiers = {(DEFAULT_NAME, self.get_monitor_device_unique_id(monitor))}
+
+        return identifiers
+
     def get_monitor_device_name(self, monitor: MonitorData):
         device_name = f"{self.name} {monitor.name}"
 

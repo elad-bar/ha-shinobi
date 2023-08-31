@@ -313,3 +313,5 @@ WS_EVENT_MONITOR_STATUS = "monitor_status"
 WS_EVENT_DISK_USAGE = "diskUsed"
 WS_EVENT_OS = "os"
 WS_EVENT_ACTION_PING = "ping"
+
+TO_REDACT = ["mpass", "muser", "auto_host", "api-key", "username", "user-id"]

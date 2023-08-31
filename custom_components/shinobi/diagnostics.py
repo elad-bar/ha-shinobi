@@ -4,12 +4,13 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceEntry
 
-from .common.consts import DEFAULT_NAME, DOMAIN
+from .common.consts import DOMAIN, TO_REDACT
 from .managers.coordinator import Coordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,42 +46,62 @@ def _async_get_diagnostics(
     """Return diagnostics for a config entry."""
     _LOGGER.debug("Getting diagnostic information")
 
-    debug_data = coordinator.get_debug_data()
+    debug_data = async_redact_data(coordinator.get_debug_data(), TO_REDACT)
     monitors = debug_data.get("monitors", {})
     monitor_list = monitors.values()
-
-    debug_data["monitors"] = [monitor.to_dict() for monitor in monitor_list]
 
     data = {
         "disabled_by": entry.disabled_by,
         "disabled_polling": entry.pref_disable_polling,
-        "debug": debug_data,
     }
 
     if device:
-        data |= _async_device_as_dict(hass, device.identifiers)
+        data["config"] = debug_data["config"]
+        data["api"] = debug_data["api"]
+        data["websockets"] = debug_data["websockets"]
+
+        monitors_data = [
+            monitor.to_dict()
+            for monitor in monitor_list
+            if device.identifiers == coordinator.get_monitor_identifiers(monitor)
+        ]
+
+        data |= _async_device_as_dict(
+            hass,
+            device.identifiers,
+            async_redact_data(monitors_data[0].to_dict(), TO_REDACT),
+        )
 
     else:
         _LOGGER.debug("Getting diagnostic information for all devices")
         server_device_info = coordinator.get_server_device_info()
         server_identifiers = server_device_info.get("identifiers")
 
+        server_data = {
+            "config": debug_data["config"],
+            "api": debug_data["api"],
+            "websockets": debug_data["websockets"],
+        }
+
         data.update(
             monitors=[
                 _async_device_as_dict(
                     hass,
-                    {(DEFAULT_NAME, coordinator.get_monitor_device_unique_id(monitor))},
+                    coordinator.get_monitor_identifiers(monitor),
+                    async_redact_data(monitor.to_dict(), TO_REDACT),
                 )
                 for monitor in monitor_list
             ],
-            system=_async_device_as_dict(hass, server_identifiers),
+            system=_async_device_as_dict(hass, server_identifiers, server_data),
         )
 
     return data
 
 
 @callback
-def _async_device_as_dict(hass: HomeAssistant, identifiers) -> dict[str, Any]:
+def _async_device_as_dict(
+    hass: HomeAssistant, identifiers, additional_data: dict
+) -> dict[str, Any]:
     """Represent a Shinobi monitor as a dictionary."""
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
@@ -94,6 +115,7 @@ def _async_device_as_dict(hass: HomeAssistant, identifiers) -> dict[str, Any]:
             "name_by_user": ha_device.name_by_user,
             "disabled": ha_device.disabled,
             "disabled_by": ha_device.disabled_by,
+            "data": additional_data,
             "entities": [],
         }
 
