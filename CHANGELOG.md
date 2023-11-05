@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.5
+
+- Fix missing camera when no snapshot available by @chemelli74 in https://github.com/elad-bar/ha-shinobi/pull/57
+- Fix Non-thread-safe operation invoked by @chemelli74 in https://github.com/elad-bar/ha-shinobi/pull/56
+
 ## 3.0.4
 
 - Redact sensitive information from diagnostic file
