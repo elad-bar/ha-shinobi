@@ -94,7 +94,7 @@ class IntegrationCameraEntity(IntegrationBaseEntity, Camera, ABC):
         use_original_stream = config_manager.use_original_stream
         snapshot = monitor.snapshot
 
-        if snapshot.startswith("/"):
+        if snapshot and snapshot.startswith("/"):
             snapshot = snapshot[1:]
 
         snapshot = api.build_url(f"{{base_url}}{snapshot}")
