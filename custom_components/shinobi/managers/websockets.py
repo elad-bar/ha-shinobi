@@ -11,7 +11,7 @@ from typing import Any, Callable
 import aiohttp
 from aiohttp import ClientSession
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
@@ -536,6 +536,7 @@ class WebSockets:
         else:
             _LOGGER.info(f"Firing event {event_name}, Payload: {data}")
 
+    @callback
     def _check_triggers(self, now):
         if self._is_home_assistant:
             self._hass.async_create_task(self._async_check_triggers(now))
