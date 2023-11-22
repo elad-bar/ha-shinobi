@@ -218,7 +218,7 @@ class IntegrationMediaSource(MediaSource, ABC):
             if monitor_data is not None:
                 snapshot = monitor_data.snapshot
 
-                if snapshot.startswith("/"):
+                if snapshot and snapshot.startswith("/"):
                     snapshot = snapshot[1:]
 
                 snapshot = api.build_proxy_url(f"{{base_url}}{snapshot}")
