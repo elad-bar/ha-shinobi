@@ -31,14 +31,14 @@ from .consts import (
 from .enums import MonitorMode
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, kw_only=True)
 class IntegrationEntityDescription(EntityDescription):
     platform: Platform | None = None
     is_system: bool = False
     filter: Callable[[MonitorData | None], bool] | None = lambda m: m is not None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, kw_only=True)
 class IntegrationBinarySensorEntityDescription(
     BinarySensorEntityDescription, IntegrationEntityDescription
 ):
@@ -47,28 +47,28 @@ class IntegrationBinarySensorEntityDescription(
     attributes: list[str] | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, kw_only=True)
 class IntegrationCameraEntityDescription(
     CameraEntityDescription, IntegrationEntityDescription
 ):
     platform: Platform | None = Platform.CAMERA
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, kw_only=True)
 class IntegrationSensorEntityDescription(
     SensorEntityDescription, IntegrationEntityDescription
 ):
     platform: Platform | None = Platform.SENSOR
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, kw_only=True)
 class IntegrationSelectEntityDescription(
     SelectEntityDescription, IntegrationEntityDescription
 ):
     platform: Platform | None = Platform.SELECT
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, kw_only=True)
 class IntegrationSwitchEntityDescription(
     SwitchEntityDescription, IntegrationEntityDescription
 ):
@@ -76,7 +76,7 @@ class IntegrationSwitchEntityDescription(
     on_value: str | bool | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, kw_only=True)
 class IntegrationNumberEntityDescription(
     NumberEntityDescription, IntegrationEntityDescription
 ):
