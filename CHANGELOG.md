@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.6
+
+_Minimum HA Version: 2024.1.0_
+
+- Fix media browser when no snapshot available by @chemelli74 in https://github.com/elad-bar/ha-shinobi/pull/60
+- Adjust code to 2024.1.0 - [Issue #62](https://github.com/elad-bar/ha-shinobi/issues/62)
+
 ## 3.0.5
 
 - Fix missing camera when no snapshot available by @chemelli74 in https://github.com/elad-bar/ha-shinobi/pull/57
