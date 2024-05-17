@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.9
+
+- Fix async dispatcher send
+
 ## v3.0.8
 
 - Fix warning - StrEnum is a deprecated alias which will be removed in HA Core 2025.5. Use enum.StrEnum instead

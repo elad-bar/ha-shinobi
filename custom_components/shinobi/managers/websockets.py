@@ -13,7 +13,7 @@ from aiohttp import ClientSession
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
-from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.dispatcher import dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 
 from ..common.connectivity_status import ConnectivityStatus
@@ -653,6 +653,4 @@ class WebSockets:
             )
 
         else:
-            async_dispatcher_send(
-                self._hass, signal, self._config_manager.entry_id, *args
-            )
+            dispatcher_send(self._hass, signal, self._config_manager.entry_id, *args)
