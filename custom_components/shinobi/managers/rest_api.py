@@ -12,7 +12,7 @@ from aiohttp import ClientResponseError, ClientSession
 from homeassistant.const import ATTR_DATE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
-from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.dispatcher import dispatcher_send
 
 from ..common.connectivity_status import ConnectivityStatus
 from ..common.consts import (
@@ -684,6 +684,4 @@ class RestAPI:
             )
 
         else:
-            async_dispatcher_send(
-                self._hass, signal, self._config_manager.entry_id, *args
-            )
+            dispatcher_send(self._hass, signal, self._config_manager.entry_id, *args)
