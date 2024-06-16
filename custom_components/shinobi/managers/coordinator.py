@@ -6,7 +6,7 @@ from typing import Callable
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.const import ATTR_ICON, ATTR_STATE
-from homeassistant.core import Event
+from homeassistant.core import Event, callback
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
@@ -92,24 +92,6 @@ class Coordinator(DataUpdateCoordinator):
             update_method=self._async_update_data,
         )
 
-        entry = config_manager.entry
-
-        signal_handlers = {
-            SIGNAL_API_STATUS: self._on_api_status_changed,
-            SIGNAL_WS_STATUS: self._on_ws_status_changed,
-            SIGNAL_MONITOR_DISCOVERED: self._on_monitor_discovered,
-            SIGNAL_MONITOR_UPDATED: self._on_monitor_updated,
-            SIGNAL_MONITOR_TRIGGER: self._on_monitor_triggered,
-            SIGNAL_MONITOR_STATUS_CHANGED: self._on_monitor_status_changed,
-            SIGNAL_SERVER_DISCOVERED: self._on_server_discovered,
-            SIGNAL_WS_READY: self._on_ws_ready,
-        }
-
-        for signal in signal_handlers:
-            handler = signal_handlers[signal]
-
-            entry.async_on_unload(async_dispatcher_connect(hass, signal, handler))
-
         self._api = RestAPI(hass, config_manager)
         self._websockets = WebSockets(hass, config_manager)
 
@@ -120,6 +102,8 @@ class Coordinator(DataUpdateCoordinator):
         self._last_update = 0
         self._last_heartbeat = 0
         self._monitors = {}
+
+        self._load_signal_handlers()
 
     @property
     def monitors(self) -> dict[str, MonitorData]:
@@ -147,6 +131,65 @@ class Coordinator(DataUpdateCoordinator):
 
     async def on_home_assistant_start(self, _event_data: Event):
         await self.initialize()
+
+    def _load_signal_handlers(self):
+        loop = self.hass.loop
+
+        @callback
+        def on_api_status_changed(entry_id: str, status: ConnectivityStatus):
+            loop.create_task(self._on_api_status_changed(entry_id, status)).__await__()
+
+        @callback
+        def on_ws_status_changed(entry_id: str, status: ConnectivityStatus):
+            loop.create_task(self._on_ws_status_changed(entry_id, status)).__await__()
+
+        @callback
+        def on_monitor_discovered(entry_id: str, monitor: MonitorData):
+            loop.create_task(self._on_monitor_discovered(entry_id, monitor)).__await__()
+
+        @callback
+        def on_monitor_updated(entry_id: str, monitor: MonitorData):
+            loop.create_task(self._on_monitor_updated(entry_id, monitor)).__await__()
+
+        @callback
+        def on_monitor_triggered(
+            entry_id: str, monitor_id: str, event_type: str, value
+        ):
+            loop.create_task(
+                self._on_monitor_triggered(entry_id, monitor_id, event_type, value)
+            ).__await__()
+
+        @callback
+        def on_monitor_status_changed(entry_id: str, monitor_id: str, status_code: int):
+            loop.create_task(
+                self._on_monitor_status_changed(entry_id, monitor_id, status_code)
+            ).__await__()
+
+        @callback
+        def on_server_discovered(entry_id: str):
+            loop.create_task(self._on_server_discovered(entry_id)).__await__()
+
+        @callback
+        def on_ws_ready(entry_id: str):
+            loop.create_task(self._on_ws_ready(entry_id)).__await__()
+
+        signal_handlers = {
+            SIGNAL_API_STATUS: on_api_status_changed,
+            SIGNAL_WS_STATUS: on_ws_status_changed,
+            SIGNAL_MONITOR_DISCOVERED: on_monitor_discovered,
+            SIGNAL_MONITOR_UPDATED: on_monitor_updated,
+            SIGNAL_MONITOR_TRIGGER: on_monitor_triggered,
+            SIGNAL_MONITOR_STATUS_CHANGED: on_monitor_status_changed,
+            SIGNAL_SERVER_DISCOVERED: on_server_discovered,
+            SIGNAL_WS_READY: on_ws_ready,
+        }
+
+        for signal in signal_handlers:
+            handler = signal_handlers[signal]
+
+            self._config_manager.entry.async_on_unload(
+                async_dispatcher_connect(self.hass, signal, handler)
+            )
 
     async def initialize(self):
         self._build_data_mapping()
@@ -307,7 +350,7 @@ class Coordinator(DataUpdateCoordinator):
             await self.async_request_refresh()
 
     async def _on_monitor_status_changed(
-        self, entry_id: str, monitor_id, status_code: int
+        self, entry_id: str, monitor_id: str, status_code: int
     ):
         if entry_id == self.config_manager.entry_id:
             _LOGGER.debug(f"Monitor '{monitor_id}' status changed to {status_code}")

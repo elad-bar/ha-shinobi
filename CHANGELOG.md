@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.10
+
+- Fix blocking call on startup
+
 ## v3.0.9
 
 - Fix async dispatcher send
