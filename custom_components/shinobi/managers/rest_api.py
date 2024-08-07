@@ -270,9 +270,13 @@ class RestAPI:
 
                 else:
                     response_data = await response.json()
-                    valid_response = response_data.get("ok", False)
 
-                    if valid_response:
+                    if isinstance(response_data, dict):
+                        valid_response = response_data.get("ok", False)
+
+                        if valid_response:
+                            result = response_data
+                    else:
                         result = response_data
 
             else:
@@ -453,7 +457,7 @@ class RestAPI:
         _LOGGER.debug("Set support flag for video browser API")
 
         support_video_browser_api: bool = await self._async_get(
-            URL_VIDEO_WALL, resource_available_check=True
+            URL_VIDEO_WALL, request_type=RequestType.RESOURCE_CHECK
         )
 
         self._support_video_browser_api = support_video_browser_api
