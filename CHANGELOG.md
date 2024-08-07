@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.11
+
+- Add support for new monitor details format (as JSON, instead of string of JSON)
+
 ## v3.0.10
 
 - Fix blocking call on startup

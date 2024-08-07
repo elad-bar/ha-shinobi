@@ -1,4 +1,4 @@
-from enum import StrEnum
+from enum import Enum, StrEnum
 
 
 class MonitorMode(StrEnum):
@@ -19,3 +19,9 @@ class MonitorMode(StrEnum):
         }
 
         return icons.get(mode)
+
+
+class RequestType(Enum):
+    JSON = 0
+    RESOURCE_CHECK = 1
+    BYTES = 2
