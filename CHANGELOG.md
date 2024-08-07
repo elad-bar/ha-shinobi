@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.12
+
+- Fix errors introduced in v3.0.11 while trying to get results from API
+
 ## v3.0.11
 
 - Add support for new monitor details format (as JSON, instead of string of JSON)
