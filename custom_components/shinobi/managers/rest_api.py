@@ -7,7 +7,7 @@ import logging
 import sys
 from typing import Any
 
-from aiohttp import ClientResponseError, ClientSession
+from aiohttp import ClientResponse, ClientSession
 
 from homeassistant.const import ATTR_DATE
 from homeassistant.core import HomeAssistant
@@ -49,6 +49,7 @@ from ..common.consts import (
     VIDEO_DETAILS_EXTENSION,
     VIDEO_DETAILS_TIME,
 )
+from ..common.enums import RequestType
 from ..models.config_data import ConfigData
 from ..models.exceptions import APIValidationException
 from ..models.monitor_data import MonitorData
@@ -169,7 +170,7 @@ class RestAPI:
 
         return url
 
-    def build_url(self, endpoint, monitor_id: str = None):
+    def build_url(self, endpoint: str, monitor_id: str = None):
         url = self._build_url(self.config_data.api_url, endpoint, monitor_id)
 
         return url
@@ -233,16 +234,7 @@ class RestAPI:
             async with self._session.post(
                 url, data=data, json=json_data, ssl=False
             ) as response:
-                _LOGGER.debug(f"Status of {url}: {response.status}")
-
-                response.raise_for_status()
-
-                result = await response.json()
-
-        except ClientResponseError as crex:
-            _LOGGER.error(
-                f"Failed to post JSON to {endpoint}, HTTP Status: {crex.message} ({crex.status})"
-            )
+                result = await self._handle_response(response)
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -256,46 +248,75 @@ class RestAPI:
 
         return result
 
-    async def get_snapshot(self, url) -> bytes:
-        async with self._session.get(url, ssl=False) as response:
-            result = await response.read()
+    @staticmethod
+    async def _handle_response(
+        response: ClientResponse, request_type: RequestType = RequestType.JSON
+    ) -> bytes | dict | bool | None:
+        result: bytes | dict | bool | None = None
+        ok_response = response.ok
 
-            return result
+        _LOGGER.debug(
+            f"Status of request type {request_type} to {response.url}: "
+            f"{response.status} [ok: {ok_response}]"
+        )
+
+        if request_type == RequestType.RESOURCE_CHECK:
+            result = ok_response
+
+        else:
+            if ok_response:
+                if request_type == RequestType.BYTES:
+                    result = await response.read()
+
+                else:
+                    response_data = await response.json()
+                    valid_response = response_data.get("ok", False)
+
+                    if valid_response:
+                        result = response_data
+
+            else:
+                _LOGGER.error(
+                    f"Request to {response.url} failed, "
+                    f"HTTP Status: {response.reason} ({response.status})"
+                )
+
+        return result
+
+    async def get_snapshot(self, url) -> bytes:
+        result = await self._async_get_url(url, RequestType.BYTES)
+
+        return result
 
     async def _async_get(
-        self, endpoint, monitor_id: str = None, resource_available_check: bool = False
+        self,
+        endpoint: str,
+        monitor_id: str = None,
+        request_type: RequestType = RequestType.JSON,
+    ):
+        self._validate_request(endpoint)
+
+        url = self.build_url(endpoint, monitor_id)
+
+        result = await self._async_get_url(url, request_type)
+
+        return result
+
+    async def _async_get_url(
+        self, url: str, request_type: RequestType = RequestType.JSON
     ):
         result = None
 
         try:
-            self._validate_request(endpoint)
-
-            url = self.build_url(endpoint, monitor_id)
-
-            _LOGGER.debug(f"GET {url}")
-
             async with self._session.get(url, ssl=False) as response:
-                _LOGGER.debug(f"Status of {url}: {response.status}")
-
-                if resource_available_check:
-                    result = response.ok
-
-                else:
-                    response.raise_for_status()
-
-                    result = await response.json()
-
-        except ClientResponseError as crex:
-            _LOGGER.error(
-                f"Failed to get data from {endpoint}, HTTP Status: {crex.message} ({crex.status})"
-            )
+                result = await self._handle_response(response, request_type)
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
             line_number = tb.tb_lineno
 
             _LOGGER.error(
-                f"Failed to get data from {endpoint}, Error: {ex}, Line: {line_number}"
+                f"Failed to get data from {url}, Error: {ex}, Line: {line_number}"
             )
 
         await sleep(0.001)
@@ -420,7 +441,7 @@ class RestAPI:
         version = 3
 
         response: bool = await self._async_get(
-            URL_SOCKET_IO_V4, resource_available_check=True
+            URL_SOCKET_IO_V4, request_type=RequestType.RESOURCE_CHECK
         )
 
         if response:
@@ -460,10 +481,19 @@ class RestAPI:
                         _LOGGER.warning("Invalid monitor details found")
 
                     else:
-                        monitor_details_str = monitor.get(ATTR_MONITOR_DETAILS)
-                        details = json.loads(monitor_details_str)
+                        monitor_details = monitor.get(ATTR_MONITOR_DETAILS)
 
-                        monitor[ATTR_MONITOR_DETAILS] = details
+                        if monitor_details is None:
+                            _LOGGER.warning(f"Invalid monitor data, Data: {monitor}")
+                            continue
+
+                        if isinstance(monitor_details, dict):
+                            monitor[ATTR_MONITOR_DETAILS] = monitor_details
+
+                        else:
+                            details = json.loads(monitor_details)
+
+                            monitor[ATTR_MONITOR_DETAILS] = details
 
                         monitor_data = MonitorData(monitor)
 
