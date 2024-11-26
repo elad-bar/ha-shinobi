@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.13
+
+- Fix missing webrtc initialization led for camera component to fail loading
+- Removed first time loading by outdated function, instead use request to refresh data after loading is done (to avoid waiting for next iteration in 30 seconds)
+- Fix stability of WebSocket connection
+
 ## v3.0.12
 
 - Fix errors introduced in v3.0.11 while trying to get results from API
