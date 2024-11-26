@@ -39,7 +39,6 @@ from ..common.consts import (
     DATA_KEY_SOUND_DETECTION,
     DEFAULT_NAME,
     DOMAIN,
-    HEARTBEAT_INTERVAL,
     SIGNAL_API_STATUS,
     SIGNAL_MONITOR_ADDED,
     SIGNAL_MONITOR_DISCOVERED,
@@ -90,6 +89,7 @@ class Coordinator(DataUpdateCoordinator):
             name=config_manager.entry_title,
             update_interval=UPDATE_ENTITIES_INTERVAL,
             update_method=self._async_update_data,
+            config_entry=config_manager.entry,
         )
 
         self._api = RestAPI(hass, config_manager)
@@ -192,16 +192,17 @@ class Coordinator(DataUpdateCoordinator):
             )
 
     async def initialize(self):
-        self._build_data_mapping()
-
         entry = self.config_manager.entry
-        await self.hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
         _LOGGER.info(f"Start loading {DOMAIN} integration, Entry ID: {entry.entry_id}")
 
+        self._build_data_mapping()
+
+        await self.hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
         views_async_setup(self.hass, self._config_manager)
 
-        await self.async_config_entry_first_refresh()
+        await self.async_request_refresh()
 
         await self._api.initialize()
 
@@ -378,11 +379,6 @@ class Coordinator(DataUpdateCoordinator):
 
             if is_ready:
                 now = datetime.now().timestamp()
-
-                if now - self._last_heartbeat >= HEARTBEAT_INTERVAL.total_seconds():
-                    await self._websockets.send_heartbeat()
-
-                    self._last_heartbeat = now
 
                 if now - self._last_update >= UPDATE_API_INTERVAL.total_seconds():
                     await self._api.update()

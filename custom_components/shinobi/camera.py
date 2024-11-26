@@ -58,6 +58,8 @@ class IntegrationCameraEntity(IntegrationBaseEntity, Camera, ABC):
     ):
         super().__init__(hass, entity_description, coordinator, monitor)
 
+        Camera.__init__(self)
+
         self.stream: Stream | None = None
         self.stream_options: dict[str, str | bool | float] = {}
         self.content_type: str = DEFAULT_CONTENT_TYPE
@@ -65,7 +67,7 @@ class IntegrationCameraEntity(IntegrationBaseEntity, Camera, ABC):
         self._warned_old_signature = False
         self.async_update_token()
         self._create_stream_lock: asyncio.Lock | None = None
-        self._rtsp_to_webrtc = False
+        self._rtsp_to_webrtc = True
 
         self._stream_source = None
 

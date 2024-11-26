@@ -36,7 +36,6 @@ from ..common.consts import (
     SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE,
     SHINOBI_WS_CONNECTION_READY_MESSAGE,
     SHINOBI_WS_ENDPOINT,
-    SHINOBI_WS_PING_MESSAGE,
     SHINOBI_WS_PONG_MESSAGE,
     SIGNAL_MONITOR_STATUS_CHANGED,
     SIGNAL_MONITOR_TRIGGER,
@@ -247,23 +246,6 @@ class WebSockets:
 
             self._set_status(ConnectivityStatus.Failed)
 
-    async def send_heartbeat(self):
-        if self._session is None or self._session.closed:
-            self._set_status(ConnectivityStatus.NotConnected)
-
-        if self.status == ConnectivityStatus.Connected:
-            try:
-                await self._ws.ping(SHINOBI_WS_PING_MESSAGE)
-
-            except ConnectionResetError as crex:
-                _LOGGER.debug(
-                    f"Gracefully failed to send heartbeat - Restarting connection, Error: {crex}"
-                )
-                self._set_status(ConnectivityStatus.NotConnected)
-
-            except Exception as ex:
-                _LOGGER.error(f"Failed to send heartbeat, Error: {ex}")
-
     async def _listen(self):
         _LOGGER.info("Starting to listen connected")
 
@@ -377,6 +359,7 @@ class WebSockets:
                     _LOGGER.debug(f"Payload ({prefix}) received, Type: {func}")
 
             elif action == WS_EVENT_ACTION_PING:
+                _LOGGER.debug("Ping received")
                 await self._send_pong_message(data)
 
             else:
@@ -498,6 +481,8 @@ class WebSockets:
 
         json_str = json.dumps(message_data)
         message = f"42{json_str}"
+
+        _LOGGER.debug("Pong sent")
 
         await self._send(message)
 
