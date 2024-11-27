@@ -1,0 +1,114 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Imposta Shinobi Video",
+        "description": "Imposta i dettagli del tuo Video Server Shinobi (per controllare i profili compila username e password validi)",
+        "data": {
+          "title": "Titolo",
+          "host": "Host",
+          "port": "Porta",
+          "ssl": "SSL",
+          "path": "Percorso",
+          "username": "Nome utente",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_admin_credentials": "Credenziali amministratore non valide",
+      "invalid_server_details": "Dettagli server non validi",
+      "already_configured": "Integrazione già configurata con nome",
+      "missing_permanent_api_key": "Chiave permanente API mancante",
+      "corrupted_encryption_key": "Chiave di criptazione corrotta, rimuovi l'integrazione e riaggiungila"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Imposta Shinobi Video",
+        "description": "Imposta i dettagli del tuo Video Server Shinobi (per controllare i profili compila username e password validi)",
+        "data": {
+          "title": "Titolo",
+          "host": "Host",
+          "port": "Porta",
+          "ssl": "SSL",
+          "path": "Percorso",
+          "username": "Nome utente",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_admin_credentials": "Credenziali amministratore non valide",
+      "invalid_server_details": "Dettagli server non validi",
+      "already_configured": "Integrazione già configurata con nome",
+      "missing_permanent_api_key": "Chiave permanente API mancante",
+      "corrupted_encryption_key": "Chiave di criptazione corrotta, rimuovi l'integrazione e riaggiungila"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "motion": {
+        "name": "Movimento"
+      },
+      "sound": {
+        "name": "Suono"
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": ""
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Stato",
+        "state": {
+          "0": "Disabilitata",
+          "1": "Avvio",
+          "2": "Trasmissione",
+          "3": "Registrazione",
+          "4": "Riavvio",
+          "5": "Ferma",
+          "6": "Inattiva",
+          "7": "Morta",
+          "8": "Fermata",
+          "9": "Avviata"
+        }
+      }
+    },
+    "number": {
+      "event_duration_motion": {
+        "name": "Durata evento movimento"
+      },
+      "event_duration_sound": {
+        "name": "Durata evento sonoro"
+      }
+    },
+    "select": {
+      "mode": {
+        "name": "Modalità",
+        "state": {
+          "stop": "Disabilitata",
+          "start": "Solo trasmissione",
+          "record": "Registrazione"
+        }
+      }
+    },
+    "switch": {
+      "motion_detector": {
+        "name": "Rilevazione movimento"
+      },
+      "sound_detector": {
+        "name": "Rilevazione suoni"
+      },
+      "use_original_stream": {
+        "name": "Usa stream originale"
+      },
+      "use_proxy_for_recordings": {
+        "name": "Usa proxy per registrazione"
+      }
+    }
+  }
+}
