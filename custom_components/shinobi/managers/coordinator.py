@@ -137,19 +137,19 @@ class Coordinator(DataUpdateCoordinator):
 
         @callback
         def on_api_status_changed(entry_id: str, status: ConnectivityStatus):
-            loop.create_task(self._on_api_status_changed(entry_id, status)).__await__()
+            loop.create_task(self._on_api_status_changed(entry_id, status))
 
         @callback
         def on_ws_status_changed(entry_id: str, status: ConnectivityStatus):
-            loop.create_task(self._on_ws_status_changed(entry_id, status)).__await__()
+            loop.create_task(self._on_ws_status_changed(entry_id, status))
 
         @callback
         def on_monitor_discovered(entry_id: str, monitor: MonitorData):
-            loop.create_task(self._on_monitor_discovered(entry_id, monitor)).__await__()
+            loop.create_task(self._on_monitor_discovered(entry_id, monitor))
 
         @callback
         def on_monitor_updated(entry_id: str, monitor: MonitorData):
-            loop.create_task(self._on_monitor_updated(entry_id, monitor)).__await__()
+            loop.create_task(self._on_monitor_updated(entry_id, monitor))
 
         @callback
         def on_monitor_triggered(
@@ -157,21 +157,21 @@ class Coordinator(DataUpdateCoordinator):
         ):
             loop.create_task(
                 self._on_monitor_triggered(entry_id, monitor_id, event_type, value)
-            ).__await__()
+            )
 
         @callback
         def on_monitor_status_changed(entry_id: str, monitor_id: str, status_code: int):
             loop.create_task(
                 self._on_monitor_status_changed(entry_id, monitor_id, status_code)
-            ).__await__()
+            )
 
         @callback
         def on_server_discovered(entry_id: str):
-            loop.create_task(self._on_server_discovered(entry_id)).__await__()
+            loop.create_task(self._on_server_discovered(entry_id))
 
         @callback
         def on_ws_ready(entry_id: str):
-            loop.create_task(self._on_ws_ready(entry_id)).__await__()
+            loop.create_task(self._on_ws_ready(entry_id))
 
         signal_handlers = {
             SIGNAL_API_STATUS: on_api_status_changed,
