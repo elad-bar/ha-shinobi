@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.14
+
+- Corrected keep alive process to fix motion and sound detection - [Issue #77](https://github.com/elad-bar/ha-shinobi/issues/77)
+
 ## v3.0.13
 
 - Fix missing webrtc initialization led for camera component to fail loading

@@ -36,6 +36,7 @@ from ..common.consts import (
     SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE,
     SHINOBI_WS_CONNECTION_READY_MESSAGE,
     SHINOBI_WS_ENDPOINT,
+    SHINOBI_WS_PING_MESSAGE,
     SHINOBI_WS_PONG_MESSAGE,
     SIGNAL_MONITOR_STATUS_CHANGED,
     SIGNAL_MONITOR_TRIGGER,
@@ -99,7 +100,7 @@ class WebSockets:
 
             self._messages_handler: dict = {
                 SHINOBI_WS_CONNECTION_ESTABLISHED_MESSAGE: self._handle_connection_established_message,
-                SHINOBI_WS_PONG_MESSAGE: self._handle_pong_message,
+                SHINOBI_WS_PING_MESSAGE: self._handle_ping_message,
                 SHINOBI_WS_CONNECTION_READY_MESSAGE: self._handle_ready_state_message,
                 SHINOBI_WS_ACTION_MESSAGE: self._handle_action_message,
             }
@@ -195,7 +196,13 @@ class WebSockets:
                 self._set_status(ConnectivityStatus.Connected)
 
                 self._ws = ws
+
                 await self._listen()
+
+                if self.status != ConnectivityStatus.Connected:
+                    _LOGGER.warning(
+                        f"Stopped listening to web socket, Status: {self.status}"
+                    )
 
         except Exception as ex:
             exc_type, exc_obj, tb = sys.exc_info()
@@ -320,9 +327,10 @@ class WebSockets:
         if self.version == 4:
             await self._send(SHINOBI_WS_CONNECTION_READY_MESSAGE)
 
-    @staticmethod
-    async def _handle_pong_message(prefix, data):
-        _LOGGER.debug(f"Pong message received, ID: {prefix}, Payload: {data}")
+    async def _handle_ping_message(self, prefix, data):
+        _LOGGER.debug(f"Ping message received, ID: {prefix}, Payload: {data}")
+
+        await self._send(SHINOBI_WS_PONG_MESSAGE)
 
     async def _handle_ready_state_message(self, prefix, data):
         _LOGGER.debug(
@@ -628,8 +636,8 @@ class WebSockets:
                 status,
             )
 
-    def set_local_async_dispatcher_send(self, callback):
-        self._local_async_dispatcher_send = callback
+    def set_local_async_dispatcher_send(self, cb):
+        self._local_async_dispatcher_send = cb
 
     def _async_dispatcher_send(self, signal: str, *args: Any) -> None:
         if self._hass is None:
